@@ -19,14 +19,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Critical check: Ensure Firebase Admin auth service is available FROM THE IMPORT
-  // This check happens *after* admin.ts has tried to initialize Firebase Admin.
+  // This check is critical. If `auth` is undefined here, it means firebase-admin failed to initialize.
   if (!auth) {
-    console.error('CRITICAL: Firebase Admin SDK `auth` service is NOT available in middleware (imported as undefined). This indicates an initialization problem with `firebase-admin` likely due to missing/incorrect server-side environment variables. Protected routes will be inaccessible.');
+    console.error('CRITICAL FAILURE in middleware: Firebase Admin SDK `auth` service is NOT available (imported as undefined from admin.ts). This means Firebase Admin SDK did not initialize. This is likely due to missing or incorrect server-side environment variables (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY). Protected routes will be inaccessible.');
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
     const response = NextResponse.redirect(url);
+    // It's good practice to clear a potentially invalid cookie if auth is broken.
     response.cookies.delete('__session'); 
     return response;
   }
@@ -42,15 +42,17 @@ export async function middleware(request: NextRequest) {
     const decodedToken = await auth.verifySessionCookie(sessionCookie, true /** checkRevoked */);
     
     if (isAdminRoute) {
-      // Ensure customClaims exists before trying to access admin property
+      // Fetch user record to check custom claims for admin status
       const userRecord = await auth.getUser(decodedToken.uid);
       if (!userRecord.customClaims?.admin) { 
          const url = request.nextUrl.clone();
-         url.pathname = '/dashboard'; // Redirect non-admins from admin routes
+         url.pathname = '/dashboard'; // Redirect non-admins trying to access admin routes
+         console.log(`User ${decodedToken.uid} is not an admin. Redirecting from admin route ${pathname} to /dashboard.`);
          return NextResponse.redirect(url);
       }
     }
     
+    // Pass down decoded token to server components if needed (optional)
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-decoded-token', JSON.stringify(decodedToken));
     
@@ -62,16 +64,17 @@ export async function middleware(request: NextRequest) {
 
   } catch (error) {
     console.error('Auth middleware error during token verification or user lookup:', error);
-    // Clear potentially invalid cookie and redirect to login
+    // If token verification fails (e.g., expired, revoked, invalid), clear the cookie and redirect to login.
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('redirect', pathname);
+    url.searchParams.set('redirect', pathname); // Preserve the intended destination
     const response = NextResponse.redirect(url);
-    response.cookies.delete('__session'); 
+    response.cookies.delete('__session'); // Clear the invalid session cookie
     return response;
   }
 }
 
+// Apply middleware to protected and admin routes
 export const config = {
   matcher: ['/dashboard/:path*', '/admin/:path*'],
 };
