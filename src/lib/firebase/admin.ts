@@ -6,54 +6,46 @@ import type { Firestore } from 'firebase-admin/firestore';
 let authInstance: Auth | undefined = undefined;
 let firestoreInstance: Firestore | undefined = undefined;
 
+const projectId = process.env.FIREBASE_PROJECT_ID;
+const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 const privateKeyEnv = process.env.FIREBASE_PRIVATE_KEY;
-const clientEmailEnv = process.env.FIREBASE_CLIENT_EMAIL;
-const projectIdEnv = process.env.FIREBASE_PROJECT_ID;
 
-console.info('Attempting to initialize Firebase Admin SDK in admin.ts...');
-console.info(`FIREBASE_PROJECT_ID is ${projectIdEnv ? 'set' : 'NOT SET'}`);
-console.info(`FIREBASE_CLIENT_EMAIL is ${clientEmailEnv ? 'set' : 'NOT SET'}`);
-console.info(`FIREBASE_PRIVATE_KEY is ${privateKeyEnv ? 'set (length: ' + privateKeyEnv.length + ')' : 'NOT SET'}`);
+console.log('[Admin SDK] Attempting to initialize Firebase Admin SDK in admin.ts...');
+console.log(`[Admin SDK] FIREBASE_PROJECT_ID: ${projectId ? 'Loaded' : 'MISSING'}`);
+console.log(`[Admin SDK] FIREBASE_CLIENT_EMAIL: ${clientEmail ? 'Loaded' : 'MISSING'}`);
+console.log(`[Admin SDK] FIREBASE_PRIVATE_KEY: ${privateKeyEnv ? 'Loaded (exists)' : 'MISSING'}`);
 
-
-if (privateKeyEnv && clientEmailEnv && projectIdEnv) {
+if (projectId && clientEmail && privateKeyEnv) {
   const privateKey = privateKeyEnv.replace(/\\n/g, '\n');
-  
-  if (admin.apps.length === 0) {
-    try {
-      console.info('No existing Firebase Admin app found. Initializing a new one...');
+  try {
+    if (admin.apps.length === 0) {
+      console.log('[Admin SDK] No existing Firebase Admin app found. Initializing a new one...');
       admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: projectIdEnv,
-          clientEmail: clientEmailEnv,
-          privateKey: privateKey,
-        }),
+        credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
       });
-      console.info('Firebase Admin SDK initialized successfully via initializeApp.');
-      authInstance = admin.auth();
-      firestoreInstance = admin.firestore();
-      console.info('Firebase Admin Auth and Firestore services obtained.');
-    } catch (initError) {
-      console.error('CRITICAL: Firebase Admin SDK initialization or service retrieval error:', initError);
-      authInstance = undefined;
-      firestoreInstance = undefined;
+      console.log('[Admin SDK] New Firebase Admin app initialized successfully.');
+    } else {
+      console.log(`[Admin SDK] Existing Firebase Admin app(s) found: ${admin.apps.length}. Will use the existing one.`);
     }
-  } else {
-    console.info('Firebase Admin SDK: An app was already initialized. Attempting to get services from existing app.');
-    try {
-        authInstance = admin.auth(admin.apps[0]); // Get auth from the first initialized app
-        firestoreInstance = admin.firestore(admin.apps[0]); // Get firestore from the first initialized app
-        console.info('Firebase Admin Auth and Firestore services obtained from existing app.');
-    } catch (serviceError) {
-        console.error('CRITICAL: Error getting Firebase Admin Auth/Firestore services from existing app:', serviceError);
-        authInstance = undefined;
-        firestoreInstance = undefined;
-    }
+    
+    // Get the (now hopefully) initialized app
+    const appToUse = admin.apps[0] || admin.app(); // prefer existing or get default initialized
+    
+    authInstance = admin.auth(appToUse);
+    firestoreInstance = admin.firestore(appToUse);
+    console.log('[Admin SDK] Firebase Auth and Firestore services obtained successfully.');
+
+  } catch (error: any) {
+    console.error('[Admin SDK] CRITICAL ERROR during Firebase Admin SDK initialization or service retrieval:', error.message, error.code ? `(Code: ${error.code})` : '');
+    authInstance = undefined;
+    firestoreInstance = undefined;
   }
 } else {
-  console.warn(
-    'CRITICAL: Firebase Admin SDK environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID) are not fully set in the server environment. Firebase Admin features will be disabled. Auth service will be undefined.'
-  );
+  const missingVars: string[] = [];
+  if (!projectId) missingVars.push('FIREBASE_PROJECT_ID');
+  if (!clientEmail) missingVars.push('FIREBASE_CLIENT_EMAIL');
+  if (!privateKeyEnv) missingVars.push('FIREBASE_PRIVATE_KEY');
+  console.warn(`[Admin SDK] CRITICAL: Not all Firebase Admin SDK environment variables are set. Missing: ${missingVars.join(', ')}. Firebase Admin features will be disabled.`);
   authInstance = undefined;
   firestoreInstance = undefined;
 }
@@ -61,13 +53,14 @@ if (privateKeyEnv && clientEmailEnv && projectIdEnv) {
 export const auth = authInstance;
 export const db = firestoreInstance;
 
-if (typeof auth === 'undefined') {
-  console.warn('Firebase Admin `auth` service is UNDEFINED and will be exported as such from admin.ts. This means Admin SDK did not initialize correctly. Middleware authentication will likely fail or be bypassed if not handled.');
+if (auth === undefined) {
+  console.warn('[Admin SDK] Exporting UNDEFINED `auth` service from admin.ts. This indicates Firebase Admin SDK did not initialize correctly.');
 } else {
-  console.info('Firebase Admin `auth` service is DEFINED and will be exported from admin.ts.');
+  console.log('[Admin SDK] Exporting DEFINED `auth` service from admin.ts.');
 }
-if (typeof db === 'undefined') {
-  console.warn('Firebase Admin `db` service is UNDEFINED and will be exported as such from admin.ts.');
+
+if (db === undefined) {
+  console.warn('[Admin SDK] Exporting UNDEFINED `db` (Firestore) service from admin.ts.');
 } else {
-  console.info('Firebase Admin `db` service is DEFINED and will be exported from admin.ts.');
+  console.log('[Admin SDK] Exporting DEFINED `db` (Firestore) service from admin.ts.');
 }
