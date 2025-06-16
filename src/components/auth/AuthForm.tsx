@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form"; // تم استيراد Controller
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Link from "next/link";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox"; // استيراد Checkbox
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -154,33 +154,48 @@ export function AuthForm({ mode }: AuthFormProps) {
                   id="confirmPassword"
                   type="password"
                   placeholder="********"
-                  {...form.register("confirmPassword" as any)} // Cast as any because TS might not infer specific schema branch
+                  {...form.register("confirmPassword")}
                   className="text-right"
                   aria-invalid={form.formState.errors.confirmPassword ? "true" : "false"}
                 />
                 {form.formState.errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
+                  <p className="text-sm text-destructive">{form.formState.errors.confirmPassword?.message}</p>
                 )}
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <Checkbox
-                    id="agreeToTerms"
-                    {...form.register("agreeToTerms" as any)} // Cast as any
-                    aria-invalid={form.formState.errors.agreeToTerms ? "true" : "false"}
-                  />
-                  <Label htmlFor="agreeToTerms" className="text-sm font-normal cursor-pointer">
+              <div className="items-top flex space-x-2 rtl:space-x-reverse">
+                <Controller
+                  name="agreeToTerms"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="agreeToTerms"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      aria-invalid={!!form.formState.errors.agreeToTerms}
+                    />
+                  )}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label
+                    htmlFor="agreeToTerms"
+                    className="text-sm font-normal cursor-pointer"
+                  >
                     أوافق على{" "}
-                    <Link href="/terms" className="underline hover:text-primary" target="_blank" rel="noopener noreferrer">
+                    <Link
+                      href="/terms"
+                      className="underline hover:text-primary"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       الشروط والأحكام
                     </Link>
                   </Label>
+                  {form.formState.errors.agreeToTerms && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.agreeToTerms?.message}
+                    </p>
+                  )}
                 </div>
-                {form.formState.errors.agreeToTerms && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.agreeToTerms.message}
-                  </p>
-                )}
               </div>
             </>
           )}
