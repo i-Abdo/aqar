@@ -1,22 +1,21 @@
-import { Metadata } from "next";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Home, PlusCircle, BarChart3, Settings, UserCircle } from "lucide-react";
 
-// export const metadata: Metadata = { // Cannot be used in client component
-//   title: "لوحة التحكم - DarDz",
-//   description: "إدارة عقاراتك وإعدادات حسابك في DarDz.",
-// };
+// ملاحظة: export const metadata لا يمكن استخدامها مباشرة في مكونات العميل (Client Components).
+// يمكن تعيين عنوان الصفحة ديناميكيًا باستخدام useEffect و document.title إذا لزم الأمر،
+// أو بشكل أفضل، في مكون خادم (Server Component) رئيسي أو ملف layout.tsx.
 
 export default function DashboardPage() {
-  // In a real app, fetch user-specific data here (e.g., number of listings, plan info)
+  // بيانات مثال: في تطبيق حقيقي، سيتم جلب هذه البيانات ديناميكيًا للمستخدم الحالي.
   const userStats = {
-    activeListings: 2, // Example data
-    maxListings: 5,    // Example data
-    planName: "VIP",   // Example data
-    propertyViews: 1234, // Example data
-    unreadMessages: 3, // Example data
+    activeListings: 2, // مثال
+    maxListings: 5,    // مثال
+    planName: "VIP",   // مثال
+    propertyViews: 1234, // مثال
+    unreadMessages: 3, // مثال
   };
 
   return (
