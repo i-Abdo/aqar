@@ -19,6 +19,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Critical check: Ensure Firebase Admin auth service is available FROM THE IMPORT
+  // This check happens *after* admin.ts has tried to initialize Firebase Admin.
+  if (!auth) {
+    console.error('CRITICAL: Firebase Admin SDK `auth` service is NOT available in middleware (imported as undefined). This indicates an initialization problem with `firebase-admin` likely due to missing/incorrect server-side environment variables. Protected routes will be inaccessible.');
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('redirect', pathname);
+    const response = NextResponse.redirect(url);
+    response.cookies.delete('__session'); 
+    return response;
+  }
+
   if (!sessionCookie) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
@@ -27,19 +39,6 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Critical check: Ensure Firebase Admin auth service is available
-    if (!auth) {
-      console.error('CRITICAL: Firebase Admin SDK `auth` service is NOT available in middleware. This indicates an initialization problem with `firebase-admin` likely due to missing/incorrect server-side environment variables. Protected routes will be inaccessible.');
-      // Redirect to login, as auth cannot be verified
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('redirect', pathname);
-      request.cookies.delete('__session'); 
-      const response = NextResponse.redirect(url);
-      response.cookies.delete('__session'); 
-      return response;
-    }
-
     const decodedToken = await auth.verifySessionCookie(sessionCookie, true /** checkRevoked */);
     
     if (isAdminRoute) {
@@ -67,7 +66,6 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
-    request.cookies.delete('__session'); 
     const response = NextResponse.redirect(url);
     response.cookies.delete('__session'); 
     return response;

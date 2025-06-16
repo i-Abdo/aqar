@@ -48,7 +48,7 @@ if (privateKeyEnv && clientEmailEnv && projectIdEnv) {
   }
 } else {
   console.warn(
-    'Firebase Admin SDK critical environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID) are not fully set in the server environment. Firebase Admin features will be disabled.'
+    'CRITICAL: Firebase Admin SDK environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID) are not fully set in the server environment. Firebase Admin features will be disabled. Auth service will be undefined.'
   );
   authInstance = undefined;
   firestoreInstance = undefined;
@@ -58,8 +58,8 @@ export const auth = authInstance;
 export const db = firestoreInstance;
 
 if (typeof auth === 'undefined') {
-  console.warn('Firebase Admin `auth` service is UNDEFINED. Middleware authentication will likely fail or be bypassed if not handled.');
+  console.warn('Firebase Admin `auth` service is UNDEFINED and will be exported as such from admin.ts. Middleware authentication will likely fail or be bypassed if not handled.');
 }
 if (typeof db === 'undefined') {
-  console.warn('Firebase Admin `db` service is UNDEFINED.');
+  console.warn('Firebase Admin `db` service is UNDEFINED and will be exported as such from admin.ts.');
 }
