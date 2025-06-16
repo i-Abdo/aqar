@@ -45,7 +45,7 @@ interface PropertySearchSidebarProps {
 }
 
 const initialFormState: SearchFilters = {
-    wilaya: "",
+    wilaya: "", // Empty string to show placeholder initially
     city: "",
     minPrice: undefined,
     maxPrice: undefined,
@@ -61,6 +61,8 @@ const initialFormState: SearchFilters = {
     searchTerm: "",
 };
 
+const ALL_WILAYAS_VALUE = "_all_wilayas_";
+
 
 export function PropertySearchSidebar({ onSearch, initialFilters = {} }: PropertySearchSidebarProps) {
   const [filters, setFilters] = useState<SearchFilters>({...initialFormState, ...initialFilters});
@@ -75,7 +77,11 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFilters(prev => ({ ...prev, [name]: value }));
+    if (name === "wilaya" && value === ALL_WILAYAS_VALUE) {
+      setFilters(prev => ({ ...prev, [name]: "" })); // Set to empty string to represent "All" / no filter
+    } else {
+      setFilters(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleCheckboxChange = (name: keyof Property['filters']) => {
@@ -149,7 +155,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
             <Select name="wilaya" value={filters.wilaya || ""} onValueChange={(value) => handleSelectChange("wilaya", value)}>
               <SelectTrigger id="wilaya"><SelectValue placeholder="اختر الولاية" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">الكل</SelectItem>
+                <SelectItem value={ALL_WILAYAS_VALUE}>الكل</SelectItem>
                 {wilayas.map(w => <SelectItem key={w.code} value={w.name}>{w.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -228,3 +234,4 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     </Card>
   );
 }
+
