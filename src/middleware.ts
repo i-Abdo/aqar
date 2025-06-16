@@ -5,6 +5,8 @@ import { auth } from '@/lib/firebase/admin'; // Using Firebase Admin SDK for tok
 const protectedRoutes = ['/dashboard', '/admin'];
 const adminRoutes = ['/admin'];
 
+export const runtime = 'nodejs'; // Force Node.js runtime
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get('__session')?.value;
