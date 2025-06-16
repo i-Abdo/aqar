@@ -26,21 +26,21 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
+    if (!auth) {
+      console.error('Auth service in middleware is not available. Firebase Admin SDK might not have initialized correctly.');
+      throw new Error('Auth service unavailable');
+    }
     const decodedToken = await auth.verifySessionCookie(sessionCookie, true /** checkRevoked */);
-    // Attach user info to request if needed, or just verify
-    // const user = await auth.getUser(decodedToken.uid); // For more user details like custom claims
-
+    
     if (isAdminRoute) {
       const userRecord = await auth.getUser(decodedToken.uid);
-      if (!userRecord.customClaims?.admin) {
+      if (!userRecord.customClaims?.admin) { // Safe navigation
          const url = request.nextUrl.clone();
          url.pathname = '/dashboard'; // Redirect non-admins from admin routes
          return NextResponse.redirect(url);
       }
     }
     
-    // Clone the request headers and set a new header `x-decoded-token`
-    // This is one way to pass user info to Server Components, though direct session access is often preferred.
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-decoded-token', JSON.stringify(decodedToken));
     
@@ -55,9 +55,9 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
-    request.cookies.delete('__session'); // Clear invalid cookie
+    request.cookies.delete('__session'); 
     const response = NextResponse.redirect(url);
-    response.cookies.delete('__session'); // Ensure cookie is cleared on client too
+    response.cookies.delete('__session'); 
     return response;
   }
 }
