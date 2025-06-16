@@ -11,9 +11,12 @@ const clientEmailEnv = process.env.FIREBASE_CLIENT_EMAIL;
 const projectIdEnv = process.env.FIREBASE_PROJECT_ID;
 
 console.info('Attempting to initialize Firebase Admin SDK in admin.ts...');
+console.info(`FIREBASE_PROJECT_ID is ${projectIdEnv ? 'set' : 'NOT SET'}`);
+console.info(`FIREBASE_CLIENT_EMAIL is ${clientEmailEnv ? 'set' : 'NOT SET'}`);
+console.info(`FIREBASE_PRIVATE_KEY is ${privateKeyEnv ? 'set (length: ' + privateKeyEnv.length + ')' : 'NOT SET'}`);
+
 
 if (privateKeyEnv && clientEmailEnv && projectIdEnv) {
-  // Ensure the private key has actual newlines if \n notation is used in .env
   const privateKey = privateKeyEnv.replace(/\\n/g, '\n');
   
   if (admin.apps.length === 0) {
@@ -32,15 +35,14 @@ if (privateKeyEnv && clientEmailEnv && projectIdEnv) {
       console.info('Firebase Admin Auth and Firestore services obtained.');
     } catch (initError) {
       console.error('CRITICAL: Firebase Admin SDK initialization or service retrieval error:', initError);
-      // Ensure instances are undefined if initialization fails
       authInstance = undefined;
       firestoreInstance = undefined;
     }
   } else {
     console.info('Firebase Admin SDK: An app was already initialized. Attempting to get services from existing app.');
     try {
-        authInstance = admin.auth(); // Get auth from the already initialized app
-        firestoreInstance = admin.firestore(); // Get firestore from the already initialized app
+        authInstance = admin.auth(admin.apps[0]); // Get auth from the first initialized app
+        firestoreInstance = admin.firestore(admin.apps[0]); // Get firestore from the first initialized app
         console.info('Firebase Admin Auth and Firestore services obtained from existing app.');
     } catch (serviceError) {
         console.error('CRITICAL: Error getting Firebase Admin Auth/Firestore services from existing app:', serviceError);
@@ -61,7 +63,11 @@ export const db = firestoreInstance;
 
 if (typeof auth === 'undefined') {
   console.warn('Firebase Admin `auth` service is UNDEFINED and will be exported as such from admin.ts. This means Admin SDK did not initialize correctly. Middleware authentication will likely fail or be bypassed if not handled.');
+} else {
+  console.info('Firebase Admin `auth` service is DEFINED and will be exported from admin.ts.');
 }
 if (typeof db === 'undefined') {
   console.warn('Firebase Admin `db` service is UNDEFINED and will be exported as such from admin.ts.');
+} else {
+  console.info('Firebase Admin `db` service is DEFINED and will be exported from admin.ts.');
 }
