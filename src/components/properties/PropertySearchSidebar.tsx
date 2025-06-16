@@ -152,7 +152,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
         
           <div>
             <Label htmlFor="wilaya">الولاية</Label>
-            <Select name="wilaya" value={filters.wilaya || ""} onValueChange={(value) => handleSelectChange("wilaya", value)}>
+            <Select name="wilaya" value={filters.wilaya || ALL_WILAYAS_VALUE} onValueChange={(value) => handleSelectChange("wilaya", value)}>
               <SelectTrigger id="wilaya"><SelectValue placeholder="اختر الولاية" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_WILAYAS_VALUE}>الكل</SelectItem>
@@ -174,6 +174,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
           <div className="space-y-2">
             <Label>السعر (د.ج)</Label>
             <Slider
+              dir="rtl"
               defaultValue={[filters.minPrice || 0, filters.maxPrice || 50000000]}
               min={0}
               max={50000000}
@@ -190,6 +191,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
           <div className="space-y-2">
             <Label>عدد الغرف</Label>
             <Slider
+              dir="rtl"
               defaultValue={[filters.minRooms || 0, filters.maxRooms || 10]}
               min={0}
               max={10}
