@@ -1,19 +1,15 @@
-// src/middleware.ts (ULTRA-SIMPLIFIED DIAGNOSTIC - NO FIREBASE, NO MATCHER)
+// src/middleware.ts (ULTRA-DIAGNOSTIC v6 - Basic Function)
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export const runtime = 'nodejs'; // Keep this as it's generally needed
+console.log('[Middleware ULTRA-DIAGNOSTIC v6] src/middleware.ts is being loaded/evaluated.');
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  console.log(`[Middleware ULTRA-SIMPLIFIED DIAGNOSTIC] Triggered for path: ${pathname}.`);
-  
-  // NO Firebase Admin SDK logic
-  // NO imports from src/lib/firebase/admin.ts
-
-  console.log(`[Middleware ULTRA-SIMPLIFIED DIAGNOSTIC] ALLOWING ALL REQUESTS for path: ${pathname}.`);
+export function middleware(request: NextRequest) {
+  console.log('[Middleware ULTRA-DIAGNOSTIC v6] Middleware function executed for path:', request.nextUrl.pathname);
   return NextResponse.next();
 }
 
-// CRITICAL: NO 'export const config = { matcher: ... }' block
-console.log('[Middleware ULTRA-SIMPLIFIED DIAGNOSTIC] middleware.ts loaded.');
+// NO 'export const config' for this diagnostic step.
+// NO 'export const runtime' for this diagnostic step (let Next.js default or error if needed).
+
+console.log('[Middleware ULTRA-DIAGNOSTIC v6] src/middleware.ts finished loading.');
