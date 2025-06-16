@@ -39,18 +39,16 @@ export interface SearchFilters {
   searchTerm?: string;
 }
 
-interface PropertySearchSidebarProps {
-  onSearch: (filters: SearchFilters) => void;
-  initialFilters?: SearchFilters;
-}
+const MAX_PRICE = 100000000;
+const MAX_ROOMS = 10;
 
 const initialFormState: SearchFilters = {
-    wilaya: "", // Empty string to show placeholder initially
+    wilaya: "", 
     city: "",
     minPrice: undefined,
-    maxPrice: undefined,
+    maxPrice: undefined, // Will be set to MAX_PRICE by default if slider is at max initially
     minRooms: undefined,
-    maxRooms: undefined,
+    maxRooms: undefined, // Will be set to MAX_ROOMS by default
     features: {
       water: false,
       electricity: false,
@@ -65,7 +63,12 @@ const ALL_WILAYAS_VALUE = "_all_wilayas_";
 
 
 export function PropertySearchSidebar({ onSearch, initialFilters = {} }: PropertySearchSidebarProps) {
-  const [filters, setFilters] = useState<SearchFilters>({...initialFormState, ...initialFilters});
+  const [filters, setFilters] = useState<SearchFilters>({
+      ...initialFormState,
+      maxPrice: MAX_PRICE, // Default maxPrice to slider's max
+      maxRooms: MAX_ROOMS, // Default maxRooms to slider's max
+      ...initialFilters
+    });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -78,7 +81,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === "wilaya" && value === ALL_WILAYAS_VALUE) {
-      setFilters(prev => ({ ...prev, [name]: "" })); // Set to empty string to represent "All" / no filter
+      setFilters(prev => ({ ...prev, [name]: "" })); 
     } else {
       setFilters(prev => ({ ...prev, [name]: value }));
     }
@@ -98,7 +101,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     setFilters(prev => ({
         ...prev,
         minPrice: value[0] === 0 ? undefined : value[0],
-        maxPrice: value[1] === 50000000 ? undefined : value[1] 
+        maxPrice: value[1], 
     }));
   };
   
@@ -106,19 +109,30 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     setFilters(prev => ({
         ...prev,
         minRooms: value[0] === 0 ? undefined : value[0],
-        maxRooms: value[1] === 10 ? undefined : value[1] 
+        maxRooms: value[1] 
     }));
   };
 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(filters);
+    // Prepare filters for search, ensuring maxPrice/maxRooms are undefined if they are at slider max for "no limit"
+    const searchFilters = {
+        ...filters,
+        maxPrice: filters.maxPrice === MAX_PRICE ? undefined : filters.maxPrice,
+        maxRooms: filters.maxRooms === MAX_ROOMS ? undefined : filters.maxRooms,
+    };
+    onSearch(searchFilters);
   };
 
   const handleReset = () => {
-    setFilters(initialFormState);
-    onSearch(initialFormState);
+    const resetState = {
+        ...initialFormState,
+        maxPrice: MAX_PRICE,
+        maxRooms: MAX_ROOMS,
+    };
+    setFilters(resetState);
+    onSearch(initialFormState); // Pass initialFormState which has undefined for actual filtering
   };
 
   const featureLabels: Record<keyof Property['filters'], string> = {
@@ -175,16 +189,20 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
             <Label>السعر (د.ج)</Label>
             <Slider
               dir="rtl"
-              defaultValue={[filters.minPrice || 0, filters.maxPrice || 50000000]}
+              value={[filters.minPrice || 0, filters.maxPrice || MAX_PRICE]}
               min={0}
-              max={50000000}
+              max={MAX_PRICE}
               step={100000}
               onValueChange={handlePriceChange}
               className="my-4"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{filters.minPrice ? filters.minPrice.toLocaleString() : "الحد الأدنى"}</span>
-              <span>{filters.maxPrice ? filters.maxPrice.toLocaleString() : "الحد الأقصى"}</span>
+              <span>{filters.minPrice ? filters.minPrice.toLocaleString() + ' د.ج' : "الحد الأدنى"}</span>
+              <span>
+                {filters.maxPrice === MAX_PRICE 
+                  ? `${MAX_PRICE.toLocaleString()} د.ج+` 
+                  : (filters.maxPrice ? filters.maxPrice.toLocaleString() + ' د.ج' : `${MAX_PRICE.toLocaleString()} د.ج+`)}
+              </span>
             </div>
           </div>
           
@@ -192,16 +210,20 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
             <Label>عدد الغرف</Label>
             <Slider
               dir="rtl"
-              defaultValue={[filters.minRooms || 0, filters.maxRooms || 10]}
+              value={[filters.minRooms || 0, filters.maxRooms || MAX_ROOMS]}
               min={0}
-              max={10}
+              max={MAX_ROOMS}
               step={1}
               onValueChange={handleRoomsChange}
                className="my-4"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{filters.minRooms || "الحد الأدنى"}</span>
-              <span>{filters.maxRooms || "الحد الأقصى"}</span>
+              <span>
+                {filters.maxRooms === MAX_ROOMS
+                  ? `${MAX_ROOMS}+`
+                  : (filters.maxRooms || `${MAX_ROOMS}+`)}
+              </span>
             </div>
           </div>
 
@@ -236,4 +258,3 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     </Card>
   );
 }
-
