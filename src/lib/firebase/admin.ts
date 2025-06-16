@@ -1,3 +1,4 @@
+
 import * as admin from 'firebase-admin';
 import type { Auth } from 'firebase-admin/auth';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -5,17 +6,18 @@ import type { Firestore } from 'firebase-admin/firestore';
 let authInstance: Auth | undefined = undefined;
 let firestoreInstance: Firestore | undefined = undefined;
 
-// These are server-side environment variables.
-// Ensure they are set in your deployment environment.
 const privateKeyEnv = process.env.FIREBASE_PRIVATE_KEY;
 const clientEmailEnv = process.env.FIREBASE_CLIENT_EMAIL;
 const projectIdEnv = process.env.FIREBASE_PROJECT_ID;
+
+console.info('Attempting to initialize Firebase Admin SDK...');
 
 if (privateKeyEnv && clientEmailEnv && projectIdEnv) {
   const privateKey = privateKeyEnv.replace(/\\n/g, '\n');
   
   if (admin.apps.length === 0) {
     try {
+      console.info('No existing Firebase Admin app found. Initializing a new one...');
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId: projectIdEnv,
@@ -24,35 +26,40 @@ if (privateKeyEnv && clientEmailEnv && projectIdEnv) {
         }),
       });
       console.info('Firebase Admin SDK initialized successfully.');
-    } catch (initError) {
-      console.error('Firebase Admin SDK initialization error:', initError);
-      // authInstance and firestoreInstance will remain undefined
-    }
-  } else {
-    console.info('Firebase Admin SDK: An app was already initialized.');
-  }
-
-  // Attempt to get services only if an app is initialized (or was previously)
-  // Re-check admin.apps.length as initializeApp might have failed.
-  if (admin.apps.length > 0) {
-    try {
       authInstance = admin.auth();
       firestoreInstance = admin.firestore();
       console.info('Firebase Admin Auth and Firestore services obtained.');
-    } catch (serviceError) {
-      console.error('Error getting Firebase Admin Auth/Firestore services:', serviceError);
-      authInstance = undefined; // Ensure they are reset on error
+    } catch (initError) {
+      console.error('Firebase Admin SDK initialization or service retrieval error:', initError);
+      authInstance = undefined;
       firestoreInstance = undefined;
     }
   } else {
-     console.warn('Firebase Admin SDK: No app initialized after attempting. Services not available. Initialization might have failed due to missing/incorrect credentials or other issues.');
+    console.info('Firebase Admin SDK: An app was already initialized. Attempting to get services from existing app.');
+    try {
+        authInstance = admin.auth();
+        firestoreInstance = admin.firestore();
+        console.info('Firebase Admin Auth and Firestore services obtained from existing app.');
+    } catch (serviceError) {
+        console.error('Error getting Firebase Admin Auth/Firestore services from existing app:', serviceError);
+        authInstance = undefined;
+        firestoreInstance = undefined;
+    }
   }
-
 } else {
   console.warn(
-    'Firebase Admin SDK environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID) are not fully set in the server environment. Admin features will be disabled.'
+    'Firebase Admin SDK critical environment variables (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID) are not fully set in the server environment. Firebase Admin features will be disabled.'
   );
+  authInstance = undefined;
+  firestoreInstance = undefined;
 }
 
 export const auth = authInstance;
 export const db = firestoreInstance;
+
+if (typeof auth === 'undefined') {
+  console.warn('Firebase Admin `auth` service is UNDEFINED. Middleware authentication will likely fail or be bypassed if not handled.');
+}
+if (typeof db === 'undefined') {
+  console.warn('Firebase Admin `db` service is UNDEFINED.');
+}
