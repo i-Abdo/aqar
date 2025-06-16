@@ -2,20 +2,12 @@
 
 import { PropertyForm, PropertyFormValues } from "@/components/dashboard/PropertyForm";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation"; // App Router
+import { useRouter } from "next/navigation"; 
 import { useAuth } from "@/hooks/use-auth";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useState } from "react";
-// Assume Cloudinary upload function exists or will be implemented
-// import { uploadImagesToCloudinary } from "@/lib/cloudinary"; 
-
-// Placeholder for Cloudinary upload
-async function uploadImagesToCloudinary(files: File[]): Promise<string[]> {
-  // Simulate upload and return placeholder URLs
-  if (files.length === 0) return [];
-  return files.map((file, index) => `https://placehold.co/600x400.png?text=Property+Image+${index+1}`);
-}
+import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
 
 
 export default function NewPropertyPage() {
@@ -33,36 +25,37 @@ export default function NewPropertyPage() {
 
     setIsLoading(true);
     try {
-      // 1. Upload images to Cloudinary (or other service)
-      // This is a placeholder. In a real app, you'd handle actual uploads.
-      const imageUrls = await uploadImagesToCloudinary(imageFiles);
-      if (imageFiles.length > 0 && imageUrls.length === 0) {
-         throw new Error("Image upload failed");
+      let imageUrls: string[] = [];
+      if (imageFiles.length > 0) {
+        imageUrls = await uploadImagesToServerAction(imageFiles);
+        if (imageUrls.length === 0 && imageFiles.length > 0) {
+          // This case might happen if uploadImagesToServerAction returns empty on failure but doesn't throw
+          throw new Error("Image upload failed to return URLs.");
+        }
       }
-
-      // 2. Prepare property data for Firestore
+      
       const propertyData = {
         ...data,
         userId: user.uid,
         imageUrls,
-        status: "active", // Or "pending" if admin approval is needed
+        status: "active", 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        deletionReason: "", // Initialize deletionReason
       };
 
-      // 3. Save property data to Firestore
       const docRef = await addDoc(collection(db, "properties"), propertyData);
       
       toast({
         title: "تم إضافة العقار بنجاح!",
         description: `تم نشر عقارك "${data.title}".`,
       });
-      router.push(`/dashboard/properties`); // Or to the property's page: /properties/${docRef.id}
-    } catch (error) {
+      router.push(`/dashboard/properties`); 
+    } catch (error: any) {
       console.error("Error creating property:", error);
       toast({
         title: "خطأ في إضافة العقار",
-        description: "حدث خطأ أثناء محاولة حفظ العقار. يرجى المحاولة مرة أخرى.",
+        description: error.message || "حدث خطأ أثناء محاولة حفظ العقار. يرجى المحاولة مرة أخرى.",
         variant: "destructive",
       });
     } finally {
@@ -76,9 +69,3 @@ export default function NewPropertyPage() {
     </div>
   );
 }
-
-// Add metadata if it were a server component
-// export const metadata: Metadata = {
-//   title: "إضافة عقار جديد - DarDz",
-//   description: "أضف عقارًا جديدًا إلى قائمة ممتلكاتك في DarDz.",
-// };
