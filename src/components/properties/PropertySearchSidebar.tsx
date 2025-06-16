@@ -39,6 +39,11 @@ export interface SearchFilters {
   searchTerm?: string;
 }
 
+interface PropertySearchSidebarProps {
+  onSearch: (filters: SearchFilters) => void;
+  initialFilters?: SearchFilters;
+}
+
 const MAX_PRICE = 100000000;
 const MAX_ROOMS = 10;
 
@@ -46,9 +51,9 @@ const initialFormState: SearchFilters = {
     wilaya: "", 
     city: "",
     minPrice: undefined,
-    maxPrice: undefined, // Will be set to MAX_PRICE by default if slider is at max initially
+    maxPrice: undefined,
     minRooms: undefined,
-    maxRooms: undefined, // Will be set to MAX_ROOMS by default
+    maxRooms: undefined,
     features: {
       water: false,
       electricity: false,
@@ -65,8 +70,8 @@ const ALL_WILAYAS_VALUE = "_all_wilayas_";
 export function PropertySearchSidebar({ onSearch, initialFilters = {} }: PropertySearchSidebarProps) {
   const [filters, setFilters] = useState<SearchFilters>({
       ...initialFormState,
-      maxPrice: MAX_PRICE, // Default maxPrice to slider's max
-      maxRooms: MAX_ROOMS, // Default maxRooms to slider's max
+      maxPrice: MAX_PRICE, 
+      maxRooms: MAX_ROOMS, 
       ...initialFilters
     });
 
@@ -116,7 +121,6 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Prepare filters for search, ensuring maxPrice/maxRooms are undefined if they are at slider max for "no limit"
     const searchFilters = {
         ...filters,
         maxPrice: filters.maxPrice === MAX_PRICE ? undefined : filters.maxPrice,
@@ -126,13 +130,13 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
   };
 
   const handleReset = () => {
-    const resetState = {
-        ...initialFormState,
-        maxPrice: MAX_PRICE,
-        maxRooms: MAX_ROOMS,
+    const resetStateForUiSliders = {
+        ...initialFormState, 
+        maxPrice: MAX_PRICE,  
+        maxRooms: MAX_ROOMS, 
     };
-    setFilters(resetState);
-    onSearch(initialFormState); // Pass initialFormState which has undefined for actual filtering
+    setFilters(resetStateForUiSliders);
+    onSearch({...initialFormState}); // Pass a new object copy
   };
 
   const featureLabels: Record<keyof Property['filters'], string> = {
@@ -258,3 +262,4 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     </Card>
   );
 }
+
