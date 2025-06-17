@@ -106,7 +106,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold font-headline">مرحباً بك في لوحة تحكم DarDz</h1>
+      <h1 className="text-3xl font-bold font-headline text-right">مرحباً بك في لوحة تحكم DarDz</h1>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
@@ -116,7 +116,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="text-right">
             {user?.planId === 'vip_plus_plus' && userStats.activeListings === 0 ? (
-                 <p className="text-destructive">هناك خطأ هنا فقط في vip++ حيث لا يضهر عدد العقارات المرفوعة تضهر 0</p>
+                 <p className="text-destructive text-right">هناك خطأ هنا فقط في vip++ حيث لا يضهر عدد العقارات المرفوعة تضهر 0</p>
             ) : (
               <>
                 <div className="text-2xl font-bold">{userStats.activeListings} / {userStats.maxListings}</div>
@@ -150,9 +150,9 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="space-y-4 dir-ltr">
-        <h2 className="text-2xl font-semibold font-headline text-left">إجراءات سريعة</h2>
-        <div className="flex flex-wrap gap-4">
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold font-headline text-right">إجراءات سريعة</h2>
+        <div className="flex flex-wrap gap-4 justify-end">
           <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
             <Link href="/dashboard/properties"><Home className="mr-2 h-4 w-4" /> عرض كل عقاراتي</Link>
           </Button>
@@ -168,13 +168,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <Card className="shadow-md hover:shadow-lg transition-smooth dir-ltr">
+      <Card className="shadow-md hover:shadow-lg transition-smooth">
         <CardHeader>
-          <CardTitle className="text-left">آخر الأنشطة والرسائل</CardTitle>
+          <CardTitle className="text-right">آخر الأنشطة والرسائل</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-left">
+        <CardContent className="space-y-4 text-right">
           {userStats.unreadMessages > 0 ? (
-            <div className="p-3 rounded-md border border-accent bg-accent/10 text-left">
+            <div className="p-3 rounded-md border border-accent bg-accent/10 text-right">
                 <p className="text-accent-foreground">لديك <span className="font-bold">{userStats.unreadMessages}</span> رسائل جديدة غير مقروءة. <Link href="/dashboard/messages" className="underline hover:text-primary">عرض الرسائل</Link></p>
             </div>
           ) : (
