@@ -17,6 +17,8 @@ import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
 import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import type { Property } from "@/types";
+import { plans } from "@/config/plans"; // Import plans to check aiAssistantAccess
+import { useAuth } from "@/hooks/use-auth"; // Import useAuth to get user's plan
 
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
@@ -32,8 +34,6 @@ const wilayas = [
   { code: "41", name: "سوق أهراس" }, { code: "42", name: "تيبازة" }, { code: "43", name: "ميلة" }, { code: "44", name: "عين الدفلى" },
   { code: "45", name: "النعامة" }, { code: "46", name: "عين تموشنت" }, { code: "47", name: "غرداية" }, { code: "48", name: "غليزان" }
 ];
-
-const MAX_ADDITIONAL_IMAGES = 9;
 
 const propertyFormSchema = z.object({
   title: z.string().min(5, "العنوان يجب أن لا يقل عن 5 أحرف."),
@@ -58,12 +58,13 @@ export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 interface PropertyFormProps {
   onSubmit: (data: PropertyFormValues, mainImageFile: File | null, additionalImageFiles: File[]) => Promise<void>;
-  initialData?: Partial<Property>;
+  initialData?: Partial<Property>; // Making initialData more flexible to include filters default from plan
   isLoading?: boolean;
 }
 
 export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth(); // Get user to access planId
 
   const [mainImageFile, setMainImageFile] = React.useState<File | null>(null);
   const [mainImagePreview, setMainImagePreview] = React.useState<string | null>(
@@ -74,6 +75,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
   const [additionalImagePreviews, setAdditionalImagePreviews] = React.useState<string[]>(
     initialData?.imageUrls?.slice(1) || []
   );
+
+  const [maxAdditionalImages, setMaxAdditionalImages] = React.useState(0); // Default to 0, will be set by plan
+  const [aiAssistantAllowed, setAiAssistantAllowed] = React.useState(false);
+
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
@@ -90,6 +95,20 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
       filters: initialData?.filters || { water: false, electricity: false, internet: false, gas: false, contract: false },
     },
   });
+  
+  React.useEffect(() => {
+    if (user && user.planId) {
+      const planDetails = plans.find(p => p.id === user.planId);
+      if (planDetails) {
+        setMaxAdditionalImages(planDetails.imageLimitPerProperty > 0 ? planDetails.imageLimitPerProperty -1 : 0); // -1 because one is main image
+        setAiAssistantAllowed(planDetails.aiAssistantAccess);
+        if (!initialData?.filters && initialData?.filters !== undefined) { // If form is new, set default filters based on AI access
+             form.reset({ ...form.getValues(), filters: { water: false, electricity: false, internet: false, gas: false, contract: false }});
+        }
+      }
+    }
+  }, [user, form, initialData]);
+
 
   const handleMainImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -111,13 +130,23 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
   const handleAdditionalImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
-      const remainingSlots = MAX_ADDITIONAL_IMAGES - additionalImageFiles.length;
+      const remainingSlots = maxAdditionalImages - additionalImageFiles.length;
+      
+      if (remainingSlots <= 0 && filesArray.length > 0) {
+         toast({
+          title: "تنبيه",
+          description: `لقد وصلت للحد الأقصى للصور الإضافية (${maxAdditionalImages}).`,
+          variant: "default",
+        });
+        return;
+      }
+
       const filesToUpload = filesArray.slice(0, remainingSlots);
 
       if (filesArray.length > remainingSlots) {
         toast({
           title: "تنبيه",
-          description: `يمكنك تحميل ${MAX_ADDITIONAL_IMAGES} صور توضيحية كحد أقصى. تم تحميل ${remainingSlots} ملفات فقط.`,
+          description: `يمكنك تحميل ${maxAdditionalImages} صور توضيحية كحد أقصى. تم تحميل ${remainingSlots} ملفات فقط.`,
           variant: "default",
         });
       }
@@ -133,9 +162,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
     setAdditionalImagePreviews(prev => {
       const newPreviews = prev.filter((_, i) => i !== index);
       newPreviews.forEach(preview => {
-        // Revoke object URL if it was created by `URL.createObjectURL`
         if (preview.startsWith('blob:')) {
-          // No direct way to check if it's an active URL, but cleanup attempts are generally safe
+          // URL.revokeObjectURL(preview); // Not strictly necessary as browser might handle, but good practice
         }
       });
       return newPreviews;
@@ -143,6 +171,17 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
   };
   
   const handleFormSubmit = (data: PropertyFormValues) => {
+     const totalImages = (mainImageFile ? 1 : (mainImagePreview ? 1 : 0)) + additionalImageFiles.length;
+     const planDetails = user && user.planId ? plans.find(p => p.id === user.planId) : null;
+
+     if (planDetails && totalImages > planDetails.imageLimitPerProperty) {
+        toast({
+            title: "تجاوز حد الصور",
+            description: `خطتك (${planDetails.name}) تسمح بـ ${planDetails.imageLimitPerProperty} صور كحد أقصى. لديك حاليًا ${totalImages} صور.`,
+            variant: "destructive"
+        });
+        return;
+     }
     onSubmit(data, mainImageFile, additionalImageFiles);
   };
   
@@ -155,7 +194,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
     <Card className="w-full shadow-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">
-          {initialData ? "تعديل العقار" : "إضافة عقار جديد"}
+          {initialData?.id ? "تعديل العقار" : "إضافة عقار جديد"}
         </CardTitle>
         <CardDescription>
           املأ التفاصيل أدناه لنشر عقارك. الحقول المميزة بـ * إلزامية.
@@ -200,7 +239,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
                     name="wilaya"
                     control={form.control}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <SelectTrigger><SelectValue placeholder="اختر الولاية" /></SelectTrigger>
                         <SelectContent>
                           {wilayas.map(w => <SelectItem key={w.code} value={w.name}>{w.name}</SelectItem>)}
@@ -277,11 +316,14 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
                         <Image src={initialData.imageUrls[0]} alt="الصورة الرئيسية الحالية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
                      </div>
                 )}
+                 {!mainImagePreview && <p className="text-sm text-muted-foreground mt-1">يجب تحميل صورة رئيسية واحدة على الأقل.</p>}
             </div>
             <div>
                 <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageUp size={18}/>الصور التوضيحية الإضافية</h3>
-                <Input id="additionalImages" type="file" multiple onChange={handleAdditionalImagesChange} accept="image/*" disabled={additionalImageFiles.length >= MAX_ADDITIONAL_IMAGES} />
-                <p className="text-sm text-muted-foreground mt-1">يمكنك تحميل ما يصل إلى {MAX_ADDITIONAL_IMAGES} صور إضافية.</p>
+                <Input id="additionalImages" type="file" multiple onChange={handleAdditionalImagesChange} accept="image/*" disabled={additionalImageFiles.length >= maxAdditionalImages || maxAdditionalImages === 0} />
+                <p className="text-sm text-muted-foreground mt-1">
+                    {maxAdditionalImages > 0 ? `يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية.` : "لا تسمح خطتك الحالية بتحميل صور إضافية."}
+                </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
                 {additionalImagePreviews.map((preview, index) => (
                     <div key={index} className="relative group">
@@ -314,19 +356,35 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
             />
             {form.formState.errors.description && <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>}
             
-            <AiDescriptionAssistant 
-              currentDescription={currentDescription}
-              onDescriptionChange={onDescriptionChange}
-              imageDataUri={mainImagePreview || undefined} // Pass main image preview (data URI)
-            />
+            {aiAssistantAllowed ? (
+                 <AiDescriptionAssistant 
+                    currentDescription={currentDescription}
+                    onDescriptionChange={onDescriptionChange}
+                    imageDataUri={mainImagePreview || undefined}
+                 />
+            ) : (
+                <Card className="mt-6 bg-secondary/30">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                        <Loader2 className="text-muted-foreground" /> 
+                        <span>مساعد الوصف بالذكاء الاصطناعي</span>
+                        </CardTitle>
+                        <CardDescription>
+                        هذه الميزة متوفرة في الخطط المدفوعة. <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link> للاستفادة منها.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+            )}
           </div>
           
-          <Button type="submit" className="w-full md:w-auto transition-smooth hover:shadow-md" disabled={isLoading}>
+          <Button type="submit" className="w-full md:w-auto transition-smooth hover:shadow-md" disabled={isLoading || !mainImagePreview}>
             {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-            {initialData ? "حفظ التعديلات" : "نشر العقار"}
+            {initialData?.id ? "حفظ التعديلات" : "نشر العقار"}
           </Button>
+          {!mainImagePreview && <p className="text-sm text-destructive">يجب تحميل صورة رئيسية قبل النشر.</p>}
         </form>
       </CardContent>
     </Card>
   );
 }
+

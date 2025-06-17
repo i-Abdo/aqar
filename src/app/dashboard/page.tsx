@@ -1,22 +1,105 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, PlusCircle, BarChart3, Settings, UserCircle } from "lucide-react";
+import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState } from "react";
+import { collection, query, where, getCountFromServer } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
+import { plans } from "@/config/plans";
+import type { Plan } from "@/types";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
-// ملاحظة: export const metadata لا يمكن استخدامها مباشرة في مكونات العميل (Client Components).
-// يمكن تعيين عنوان الصفحة ديناميكيًا باستخدام useEffect و document.title إذا لزم الأمر،
-// أو بشكل أفضل، في مكون خادم (Server Component) رئيسي أو ملف layout.tsx.
 
 export default function DashboardPage() {
-  // بيانات مثال: في تطبيق حقيقي، سيتم جلب هذه البيانات ديناميكيًا للمستخدم الحالي.
-  const userStats = {
-    activeListings: 2, // مثال
-    maxListings: 5,    // مثال
-    planName: "VIP",   // مثال
-    propertyViews: 1234, // مثال
-    unreadMessages: 3, // مثال
+  const { user, loading: authLoading } = useAuth();
+  const [userStats, setUserStats] = useState({
+    activeListings: 0,
+    maxListings: 0,
+    planName: "...",
+    propertyViews: 0, 
+    unreadMessages: 0, 
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [canAddProperty, setCanAddProperty] = useState(false);
+  const [currentPlanDetails, setCurrentPlanDetails] = useState<Plan | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    const fetchDashboardData = async () => {
+      setIsLoadingStats(true);
+      try {
+        const userPlanId = user.planId || 'free';
+        const planDetails = plans.find(p => p.id === userPlanId);
+        setCurrentPlanDetails(planDetails || null);
+
+        let currentPropertyCount = 0;
+        if (planDetails) {
+          if (planDetails.maxListings === Infinity) {
+            setCanAddProperty(true);
+          } else {
+            const propertiesRef = collection(db, "properties");
+            const q = query(propertiesRef, where("userId", "==", user.uid), where("status", "in", ["active", "pending"]));
+            const snapshot = await getCountFromServer(q);
+            currentPropertyCount = snapshot.data().count;
+            setCanAddProperty(currentPropertyCount < planDetails.maxListings);
+          }
+          setUserStats(prev => ({
+            ...prev,
+            activeListings: currentPropertyCount,
+            maxListings: planDetails.maxListings === Infinity ? 'غير محدود' : planDetails.maxListings,
+            planName: planDetails.name,
+          }));
+        } else {
+          setCanAddProperty(false);
+           setUserStats(prev => ({ ...prev, planName: "غير محدد"}));
+        }
+        // Placeholder for other stats
+        // setUserStats(prev => ({ ...prev, propertyViews: 1234, unreadMessages: 3 }));
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات لوحة التحكم.", variant: "destructive" });
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user, authLoading, router, toast]);
+
+  const handleAddPropertyClick = () => {
+    if (canAddProperty) {
+      router.push("/dashboard/properties/new");
+    } else {
+      toast({
+        title: "تم الوصول للحد الأقصى",
+        description: `لقد وصلت إلى الحد الأقصى لعدد العقارات المسموح به في خطة "${currentPlanDetails?.name}". يرجى ترقية خطتك.`,
+        variant: "destructive",
+        action: <Button onClick={() => router.push('/pricing')} variant="secondary">الترقية الآن</Button>
+      });
+    }
   };
+
+  if (authLoading || isLoadingStats) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">جاري تحميل بيانات لوحة التحكم...</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-8">
@@ -44,7 +127,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{userStats.propertyViews.toLocaleString()}</div> 
             <p className="text-xs text-muted-foreground">
-              +15.2% عن الشهر الماضي (مثال)
+              (سيتم تفعيل هذه الميزة قريباً)
             </p>
           </CardContent>
         </Card>
@@ -52,8 +135,8 @@ export default function DashboardPage() {
          <Card className="shadow-lg flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/80 to-primary hover:shadow-xl transition-smooth">
           <PlusCircle className="h-12 w-12 text-primary-foreground mb-3" />
           <CardTitle className="text-xl font-semibold text-primary-foreground mb-2 text-center">هل لديك عقار جديد؟</CardTitle>
-          <Button asChild variant="secondary" className="w-full transition-smooth hover:shadow-md">
-            <Link href="/dashboard/properties/new">أضف عقار الآن</Link>
+          <Button onClick={handleAddPropertyClick} variant="secondary" className="w-full transition-smooth hover:shadow-md">
+            أضف عقار الآن
           </Button>
         </Card>
       </div>
@@ -76,7 +159,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Placeholder for a list of recent activities or messages */}
       <Card className="shadow-md hover:shadow-lg transition-smooth">
         <CardHeader>
           <CardTitle>آخر الأنشطة والرسائل</CardTitle>
@@ -87,10 +169,8 @@ export default function DashboardPage() {
                 <p className="text-accent-foreground">لديك <span className="font-bold">{userStats.unreadMessages}</span> رسائل جديدة غير مقروءة. <Link href="/dashboard/messages" className="underline hover:text-primary">عرض الرسائل</Link></p>
             </div>
           ) : (
-             <p className="text-muted-foreground">لا توجد أنشطة جديدة أو رسائل لعرضها حاليًا.</p>
+             <p className="text-muted-foreground">(سيتم تفعيل هذه الميزة قريباً لعرض الأنشطة والرسائل)</p>
           )}
-          {/* Example of another activity */}
-          <p className="text-sm text-muted-foreground">تمت الموافقة على عقارك "شقة فاخرة في حيدرة" بتاريخ 2024-07-28.</p>
         </CardContent>
       </Card>
     </div>
