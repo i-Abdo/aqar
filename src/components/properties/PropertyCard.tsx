@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Property } from "@/types";
-import { BedDouble, Bath, MapPin } from "lucide-react";
+import { BedDouble, Bath, MapPin, Phone } from "lucide-react"; // Added Phone icon
 
 interface PropertyCardProps {
   property: Property;
@@ -46,6 +46,12 @@ export function PropertyCard({ property }: PropertyCardProps) {
             <Bath size={16} className="text-muted-foreground" />
             <span>{property.bathrooms} حمامات</span>
           </div>
+          {property.phoneNumber && (
+            <div className="flex items-center gap-1">
+              <Phone size={16} className="text-muted-foreground" />
+              <span>{property.phoneNumber}</span>
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="p-4 border-t">
