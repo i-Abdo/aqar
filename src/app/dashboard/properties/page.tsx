@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { collection, query, where, getDocs, doc, updateDoc, getCountFromServer, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, getCountFromServer } from "firebase/firestore"; // Removed orderBy for now
 import { db } from "@/lib/firebase/client";
 import type { Property, Plan } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
 import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle } from "lucide-react";
-import { useRouter } from "next/navigation"; // Added missing import
+import { useRouter } from "next/navigation"; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -129,7 +129,9 @@ export default function MyPropertiesPage() {
     setIsLoading(true);
     try {
       // Fetch properties
-      const propsQuery = query(collection(db, "properties"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
+      // Temporarily removed orderBy("createdAt", "desc") to avoid missing index error.
+      // TODO: User should create the composite index in Firebase (userId ASC, createdAt DESC) and then re-add: orderBy("createdAt", "desc")
+      const propsQuery = query(collection(db, "properties"), where("userId", "==", user.uid));
       const querySnapshot = await getDocs(propsQuery);
       const props = querySnapshot.docs.map(doc => ({ 
           id: doc.id, 
@@ -137,6 +139,9 @@ export default function MyPropertiesPage() {
           createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt),
           updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date(doc.data().updatedAt),
       } as Property));
+      
+      // Manual sort client-side as a temporary replacement if orderBy was removed
+      props.sort((a, b) => (b.createdAt as any) - (a.createdAt as any));
       setProperties(props);
 
       // Check limits
@@ -254,3 +259,6 @@ export default function MyPropertiesPage() {
     </div>
   );
 }
+
+
+    
