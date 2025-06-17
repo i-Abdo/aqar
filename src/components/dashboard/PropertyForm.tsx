@@ -277,6 +277,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     form.setValue("description", newDescription, { shouldDirty: true });
   };
 
+  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !mainImageFile && additionalImageFiles.length === 0);
+
 
   return (
     <Card className="w-full shadow-xl">
@@ -482,8 +484,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button 
               type="submit" 
+              variant={isSaveButtonDisabled ? "secondary" : "default"}
               className="w-full sm:w-auto transition-smooth hover:shadow-md" 
-              disabled={isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !mainImageFile && additionalImageFiles.length === 0)}
+              disabled={isSaveButtonDisabled}
             >
               {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
               {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
@@ -507,5 +510,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     </Card>
   );
 }
+
+    
 
     
