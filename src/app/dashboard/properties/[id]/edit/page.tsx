@@ -54,9 +54,7 @@ export default function EditPropertyPage() {
           if (data.userId !== user.uid) {
             setAuthError("ليس لديك الصلاحية لتعديل هذا العقار.");
             toast({ title: "وصول غير مصرح به", description: "لا يمكنك تعديل هذا العقار.", variant: "destructive" });
-            // router.push("/dashboard/properties"); // Keep them on the page to see error message
           } else {
-            // Convert Timestamps to Dates
             const propertyDataWithDates: Property = {
               id: docSnap.id,
               ...data,
@@ -79,7 +77,6 @@ export default function EditPropertyPage() {
 
     fetchProperty();
 
-    // Set current plan for image limits etc.
     const userPlanId = user.planId || 'free';
     const planDetails = plans.find(p => p.id === userPlanId);
     setCurrentPlan(planDetails || null);
@@ -88,10 +85,10 @@ export default function EditPropertyPage() {
 
   const handleSubmit = async (
     formData: PropertyFormValues,
-    mainImageFile: File | null,
-    additionalImageFiles: File[],
-    currentMainImagePreviewFromState: string | null,
-    currentAdditionalImagePreviewsFromState: string[]
+    mainImageFile: File | null, // New main image file, if selected
+    additionalImageFiles: File[], // New additional image files
+    currentMainImagePreviewFromState: string | null, // URL (blob or existing) of main image in form
+    currentAdditionalImagePreviewsFromState: string[] // URLs (blob or existing) of additional images in form
   ) => {
     if (!user || !initialPropertyData || authError) {
       toast({ title: "خطأ", description: "لا يمكن حفظ التعديلات.", variant: "destructive" });
@@ -99,6 +96,12 @@ export default function EditPropertyPage() {
     }
     if (!currentPlan) {
       toast({ title: "خطأ", description: "لم يتم تحميل تفاصيل خطتك. لا يمكن الحفظ.", variant: "destructive" });
+      setIsSubmitting(false); 
+      return;
+    }
+     if (!id) {
+      toast({ title: "خطأ", description: "معرف العقار مفقود. لا يمكن الحفظ.", variant: "destructive" });
+      setIsSubmitting(false);
       return;
     }
 
@@ -106,110 +109,99 @@ export default function EditPropertyPage() {
 
     try {
       let finalImageUrls: string[] = [];
-      const newlyUploadedUrls: string[] = [];
-      const filesToUploadActually: File[] = [];
+      const uploadedUrls: string[] = [];
 
-      if (mainImageFile) { // A new main image was selected
-        filesToUploadActually.push(mainImageFile);
+      // 1. Collect files to upload
+      const filesToUpload: File[] = [];
+      if (mainImageFile) { // If a new main image file is provided
+        filesToUpload.push(mainImageFile);
       }
-      filesToUploadActually.push(...additionalImageFiles); // All newly selected additional images
+      filesToUpload.push(...additionalImageFiles); // Add all new additional image files
 
-      // Check overall image count against plan limits
-      let prospectiveTotalImages = 0;
-      if (mainImageFile) prospectiveTotalImages++;
-      else if (currentMainImagePreviewFromState) prospectiveTotalImages++;
+      // 2. Upload new files if any
+      if (filesToUpload.length > 0) {
+        const results = await uploadImagesToServerAction(filesToUpload);
+        uploadedUrls.push(...results);
+      }
+
+      // 3. Determine the final main image URL
+      let mainImageUrlToSave: string | undefined = undefined;
+      let uploadedMainImageConsumed = false;
+
+      if (mainImageFile) { // A new main image was selected and (presumably) uploaded
+        if (uploadedUrls.length > 0) {
+          mainImageUrlToSave = uploadedUrls[0];
+          uploadedMainImageConsumed = true;
+        } else if (filesToUpload.length > 0) { // New main image selected but upload failed or returned empty
+            throw new Error("فشل رفع الصورة الرئيسية الجديدة.");
+        }
+      } else if (currentMainImagePreviewFromState && initialPropertyData.imageUrls.includes(currentMainImagePreviewFromState)) {
+        // No new main image selected, keep the existing one if it's still in preview
+        mainImageUrlToSave = currentMainImagePreviewFromState;
+      }
+      // If mainImageUrlToSave is still undefined here, it means the main image was removed or never existed.
+
+      if (mainImageUrlToSave) {
+        finalImageUrls.push(mainImageUrlToSave);
+      }
       
-      currentAdditionalImagePreviewsFromState.forEach(preview => {
-          if (!preview.startsWith('blob:')) prospectiveTotalImages++; // Count existing image
+      // 4. Determine final additional image URLs
+      // Add existing additional images that are still in the preview list
+      currentAdditionalImagePreviewsFromState.forEach(previewUrl => {
+        if (!previewUrl.startsWith('blob:') && initialPropertyData.imageUrls.includes(previewUrl)) {
+          if (previewUrl !== mainImageUrlToSave && !finalImageUrls.includes(previewUrl)) {
+            finalImageUrls.push(previewUrl);
+          }
+        }
       });
-      prospectiveTotalImages += additionalImageFiles.length; // Add count of new additional files
 
-      // This is a bit off, we need to count distinct images that will be saved
-      let countFinalImages = 0;
-      if (mainImageFile) countFinalImages = 1;
-      else if (currentMainImagePreviewFromState && initialPropertyData.imageUrls.includes(currentMainImagePreviewFromState)) countFinalImages = 1;
-      
-      const keptAdditional = currentAdditionalImagePreviewsFromState.filter(p => !p.startsWith('blob:') && initialPropertyData.imageUrls.includes(p));
-      countFinalImages += keptAdditional.length + additionalImageFiles.length;
+      // Add newly uploaded additional images
+      const newAdditionalUploadedUrls = uploadedMainImageConsumed ? uploadedUrls.slice(1) : uploadedUrls;
+      newAdditionalUploadedUrls.forEach(url => {
+        if (!finalImageUrls.includes(url)) {
+          finalImageUrls.push(url);
+        }
+      });
+
+      // Remove duplicates, though the logic should prevent them
+      finalImageUrls = [...new Set(finalImageUrls.filter(url => url))];
 
 
-      if (countFinalImages > currentPlan.imageLimitPerProperty) {
+      // 5. Check image limit
+      if (finalImageUrls.length > currentPlan.imageLimitPerProperty) {
         toast({
           title: "تجاوز حد الصور",
-          description: `خطتك (${currentPlan.name}) تسمح بـ ${currentPlan.imageLimitPerProperty} صور كحد أقصى. لديك حاليًا ${countFinalImages} صور محددة.`,
+          description: `خطتك (${currentPlan.name}) تسمح بـ ${currentPlan.imageLimitPerProperty} صور كحد أقصى. لديك حاليًا ${finalImageUrls.length} صور محددة للحفظ.`,
           variant: "destructive"
         });
         setIsSubmitting(false);
         return;
       }
 
-
-      if (filesToUploadActually.length > 0) {
-        const uploaded = await uploadImagesToServerAction(filesToUploadActually);
-        newlyUploadedUrls.push(...uploaded);
-      }
-
-      let uploadedUrlTracker = 0;
-
-      // Determine final main image URL
-      if (mainImageFile) { // New main image uploaded
-        if (newlyUploadedUrls[uploadedUrlTracker]) {
-          finalImageUrls.push(newlyUploadedUrls[uploadedUrlTracker]);
-          uploadedUrlTracker++;
-        }
-      } else if (currentMainImagePreviewFromState && initialPropertyData.imageUrls.includes(currentMainImagePreviewFromState)) {
-        // Existing main image was kept
-        finalImageUrls.push(currentMainImagePreviewFromState);
-      }
-      // If main image was removed, finalImageUrls[0] will be undefined or an additional image if it exists
-
-      // Add existing additional images that were kept
-      currentAdditionalImagePreviewsFromState.forEach(previewUrl => {
-        if (!previewUrl.startsWith('blob:') && initialPropertyData.imageUrls.includes(previewUrl)) {
-            // Ensure it's not the main image if main image was also an existing one
-            if (finalImageUrls.length > 0 && finalImageUrls[0] === previewUrl && !mainImageFile && currentMainImagePreviewFromState === previewUrl) {
-                // This was the main image, already added.
-            } else {
-                 finalImageUrls.push(previewUrl);
-            }
-        }
-      });
-      
-      // Add newly uploaded additional images
-      finalImageUrls.push(...newlyUploadedUrls.slice(uploadedUrlTracker));
-      
-      // Deduplicate and ensure main image is first if it exists
-      const uniqueUrls = [...new Set(finalImageUrls.filter(url => url))];
-      finalImageUrls = [];
-      if (mainImageFile && newlyUploadedUrls[0]) { // If new main image was uploaded, ensure it's first
-          finalImageUrls.push(newlyUploadedUrls[0]);
-      } else if (currentMainImagePreviewFromState && initialPropertyData.imageUrls[0] === currentMainImagePreviewFromState) {
-          finalImageUrls.push(currentMainImagePreviewFromState);
-      }
-      uniqueUrls.forEach(url => {
-          if (!finalImageUrls.includes(url)) {
-              finalImageUrls.push(url);
-          }
-      });
-
-
-      const propertyUpdateData = {
+      const propertyUpdateData: Partial<Property> = {
         ...formData,
         imageUrls: finalImageUrls,
-        updatedAt: serverTimestamp(),
-        userId: user.uid, // Ensure userId is part of the update
+        updatedAt: serverTimestamp() as Timestamp, // Cast to Timestamp for Firebase
       };
+      
+      // Remove id from propertyUpdateData if it somehow got there via formData spread
+      delete (propertyUpdateData as any).id; 
 
-      const propRef = doc(db, "properties", id as string);
+
+      const propRef = doc(db, "properties", id);
       await updateDoc(propRef, propertyUpdateData);
 
       toast({ title: "تم تحديث العقار بنجاح!", description: `تم حفظ التعديلات على "${formData.title}".` });
       router.push("/dashboard/properties");
     } catch (error: any) {
       console.error("Error updating property:", error);
+      let description = "حدث خطأ أثناء محاولة حفظ التعديلات. يرجى المحاولة مرة أخرى.";
+      if (error.message) {
+          description = error.message;
+      }
       toast({
         title: "خطأ في تحديث العقار",
-        description: error.message || "حدث خطأ أثناء محاولة حفظ التعديلات. يرجى المحاولة مرة أخرى.",
+        description: description,
         variant: "destructive",
       });
     } finally {
@@ -254,7 +246,6 @@ export default function EditPropertyPage() {
          </div>
     );
   }
-
 
   return (
     <div>
