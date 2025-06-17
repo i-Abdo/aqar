@@ -1,3 +1,4 @@
+
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export interface CustomUser extends FirebaseUser {
@@ -30,6 +31,7 @@ export interface Property {
   city: string;
   neighborhood?: string;
   address?: string;
+  phoneNumber?: string; // Added phone number
   filters: {
     water: boolean;
     electricity: boolean;

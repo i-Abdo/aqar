@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/types";
@@ -37,6 +37,9 @@ const wilayas = [
   { code: "45", name: "النعامة" }, { code: "46", name: "عين تموشنت" }, { code: "47", name: "غرداية" }, { code: "48", name: "غليزان" }
 ];
 
+// Basic Algerian phone number regex (starts with 0, followed by 5, 6, or 7, then 8 digits)
+const algerianPhoneNumberRegex = /^0[567]\d{8}$/;
+
 const propertyFormSchema = z.object({
   title: z.string().min(5, "العنوان يجب أن لا يقل عن 5 أحرف."),
   price: z.coerce.number().positive("السعر يجب أن يكون رقمًا موجبًا."),
@@ -46,6 +49,11 @@ const propertyFormSchema = z.object({
   city: z.string().min(2, "المدينة مطلوبة."),
   neighborhood: z.string().optional(),
   address: z.string().optional(),
+  phoneNumber: z.string()
+    .optional()
+    .refine(val => !val || algerianPhoneNumberRegex.test(val), {
+        message: "رقم الهاتف غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.",
+    }),
   description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا."),
   filters: z.object({
     water: z.boolean().default(false),
@@ -98,6 +106,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       city: "",
       neighborhood: "",
       address: "",
+      phoneNumber: "",
       description: "",
       filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
     },
@@ -114,6 +123,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         city: initialData.city || "",
         neighborhood: initialData.neighborhood || "",
         address: initialData.address || "",
+        phoneNumber: initialData.phoneNumber || "",
         description: initialData.description || "",
         filters: initialData.filters || { water: false, electricity: false, internet: false, gas: false, contract: false },
       });
@@ -134,6 +144,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             city: "",
             neighborhood: "",
             address: "",
+            phoneNumber: "",
             description: "",
             filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
         });
@@ -288,12 +299,19 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
               <Input id="title" {...form.register("title")} placeholder="مثال: شقة فاخرة مطلة على البحر" />
               {form.formState.errors.title && <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>}
             </div>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="price" className="flex items-center gap-1"><DollarSign size={16}/>السعر (د.ج) *</Label>
                 <Input id="price" type="number" {...form.register("price")} placeholder="2000000" />
                 {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
               </div>
+              <div>
+                <Label htmlFor="phoneNumber" className="flex items-center gap-1"><Phone size={16}/>رقم الهاتف (اختياري)</Label>
+                <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
+                {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="rooms" className="flex items-center gap-1"><BedDouble size={16}/>عدد الغرف *</Label>
                 <Input id="rooms" type="number" {...form.register("rooms")} placeholder="3" />
@@ -466,7 +484,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <Button 
               type="submit" 
               className="w-full sm:w-auto transition-smooth hover:shadow-md" 
-              disabled={isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty)}
+              disabled={isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !mainImageFile && additionalImageFiles.length === 0)}
             >
               {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
               {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
@@ -490,4 +508,3 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     </Card>
   );
 }
-

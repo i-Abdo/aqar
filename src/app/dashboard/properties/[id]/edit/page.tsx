@@ -85,10 +85,10 @@ export default function EditPropertyPage() {
 
   const handleSubmit = async (
     formData: PropertyFormValues,
-    mainImageFile: File | null, // New main image file, if selected
-    additionalImageFiles: File[], // New additional image files
-    currentMainImagePreviewFromState: string | null, // URL (blob or existing) of main image in form
-    currentAdditionalImagePreviewsFromState: string[] // URLs (blob or existing) of additional images in form
+    mainImageFile: File | null, 
+    additionalImageFiles: File[], 
+    currentMainImagePreviewFromState: string | null, 
+    currentAdditionalImagePreviewsFromState: string[] 
   ) => {
     if (!user || !initialPropertyData || authError) {
       toast({ title: "خطأ", description: "لا يمكن حفظ التعديلات.", variant: "destructive" });
@@ -111,42 +111,36 @@ export default function EditPropertyPage() {
       let finalImageUrls: string[] = [];
       const uploadedUrls: string[] = [];
 
-      // 1. Collect files to upload
       const filesToUpload: File[] = [];
-      if (mainImageFile) { // If a new main image file is provided
+      if (mainImageFile) { 
         filesToUpload.push(mainImageFile);
       }
-      filesToUpload.push(...additionalImageFiles); // Add all new additional image files
+      filesToUpload.push(...additionalImageFiles); 
 
-      // 2. Upload new files if any
       if (filesToUpload.length > 0) {
         const results = await uploadImagesToServerAction(filesToUpload);
         uploadedUrls.push(...results);
       }
 
-      // 3. Determine the final main image URL
       let mainImageUrlToSave: string | undefined = undefined;
       let uploadedMainImageConsumed = false;
 
-      if (mainImageFile) { // A new main image was selected and (presumably) uploaded
+      if (mainImageFile) { 
         if (uploadedUrls.length > 0) {
           mainImageUrlToSave = uploadedUrls[0];
           uploadedMainImageConsumed = true;
-        } else if (filesToUpload.length > 0) { // New main image selected but upload failed or returned empty
+        } else if (filesToUpload.length > 0) { 
             throw new Error("فشل رفع الصورة الرئيسية الجديدة.");
         }
       } else if (currentMainImagePreviewFromState && initialPropertyData.imageUrls.includes(currentMainImagePreviewFromState)) {
-        // No new main image selected, keep the existing one if it's still in preview
         mainImageUrlToSave = currentMainImagePreviewFromState;
       }
-      // If mainImageUrlToSave is still undefined here, it means the main image was removed or never existed.
+      
 
       if (mainImageUrlToSave) {
         finalImageUrls.push(mainImageUrlToSave);
       }
       
-      // 4. Determine final additional image URLs
-      // Add existing additional images that are still in the preview list
       currentAdditionalImagePreviewsFromState.forEach(previewUrl => {
         if (!previewUrl.startsWith('blob:') && initialPropertyData.imageUrls.includes(previewUrl)) {
           if (previewUrl !== mainImageUrlToSave && !finalImageUrls.includes(previewUrl)) {
@@ -155,7 +149,6 @@ export default function EditPropertyPage() {
         }
       });
 
-      // Add newly uploaded additional images
       const newAdditionalUploadedUrls = uploadedMainImageConsumed ? uploadedUrls.slice(1) : uploadedUrls;
       newAdditionalUploadedUrls.forEach(url => {
         if (!finalImageUrls.includes(url)) {
@@ -163,11 +156,9 @@ export default function EditPropertyPage() {
         }
       });
 
-      // Remove duplicates, though the logic should prevent them
       finalImageUrls = [...new Set(finalImageUrls.filter(url => url))];
 
 
-      // 5. Check image limit
       if (finalImageUrls.length > currentPlan.imageLimitPerProperty) {
         toast({
           title: "تجاوز حد الصور",
@@ -180,11 +171,11 @@ export default function EditPropertyPage() {
 
       const propertyUpdateData: Partial<Property> = {
         ...formData,
+        phoneNumber: formData.phoneNumber || undefined, // Add phone number
         imageUrls: finalImageUrls,
-        updatedAt: serverTimestamp() as Timestamp, // Cast to Timestamp for Firebase
+        updatedAt: serverTimestamp() as Timestamp, 
       };
       
-      // Remove id from propertyUpdateData if it somehow got there via formData spread
       delete (propertyUpdateData as any).id; 
 
 

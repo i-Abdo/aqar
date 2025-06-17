@@ -10,7 +10,7 @@ import { db } from "@/lib/firebase/client";
 import { useState, useEffect } from "react";
 import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
 import { plans } from "@/config/plans";
-import type { Plan } from "@/types";
+import type { Plan, Property } from "@/types";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,18 +112,23 @@ export default function NewPropertyPage() {
         }
       }
       
-      const propertyData = {
+      const propertyData: Omit<Property, 'id' | 'createdAt' | 'updatedAt'> = {
         ...data,
         userId: user.uid,
+        phoneNumber: data.phoneNumber || undefined, // Add phone number
         imageUrls,
         status: "active", 
+        deletionReason: "",
+        firebaseStudioTestField: "Hello from Firebase Studio! This is a test field.", 
+      };
+      
+      const propertyDataWithTimestamps = {
+        ...propertyData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        deletionReason: "",
-        firebaseStudioTestField: "Hello from Firebase Studio! This is a test field.", // Test field added
-      };
+      }
 
-      await addDoc(collection(db, "properties"), propertyData);
+      await addDoc(collection(db, "properties"), propertyDataWithTimestamps);
       
       toast({
         title: "تم إضافة العقار بنجاح!",
@@ -185,7 +190,11 @@ export default function NewPropertyPage() {
 
   return (
     <div>
-      <PropertyForm onSubmit={handleSubmit} isLoading={isSubmitting} initialData={{filters: currentPlan.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined}} />
+      <PropertyForm 
+        onSubmit={handleSubmit} 
+        isLoading={isSubmitting} 
+        initialData={{filters: currentPlan.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined} as Partial<Property>} 
+      />
     </div>
   );
 }
