@@ -20,7 +20,7 @@ import Link from "next/link";
 import type { Property } from "@/types";
 import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation"; 
 
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
@@ -66,7 +66,7 @@ interface PropertyFormProps {
     mainImagePreviewFromState: string | null, 
     additionalImagePreviewsFromState: string[] 
   ) => Promise<void>;
-  initialData?: Property | null; // Allow null for clarity
+  initialData?: Property | null; 
   isLoading?: boolean;
   isEditMode?: boolean;
 }
@@ -74,7 +74,7 @@ interface PropertyFormProps {
 export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = false }: PropertyFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const router = useRouter(); // Initialize router
+  const router = useRouter(); 
 
   const [mainImageFile, setMainImageFile] = React.useState<File | null>(null);
   const [mainImagePreview, setMainImagePreview] = React.useState<string | null>(null);
@@ -160,7 +160,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const handleMainImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) { 
         toast({ title: "خطأ", description: "حجم الصورة الرئيسية يجب أن لا يتجاوز 5MB.", variant: "destructive" });
         return;
       }
@@ -170,7 +170,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setMainImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      form.trigger(); // Trigger validation to update isDirty
+      form.trigger(); 
     }
   };
 
@@ -183,7 +183,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const handleAdditionalImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
-      const currentTotalAdditional = additionalImagePreviews.length; // Only count previews as files are managed separately now
+      const currentTotalAdditional = additionalImagePreviews.length; 
       const remainingSlots = maxAdditionalImages - currentTotalAdditional;
       
       if (remainingSlots <= 0 && filesArray.length > 0) {
@@ -199,7 +199,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       const previewsToUploadTemp: string[] = [];
 
       for (const file of filesArray) {
-        if (previewsToUploadTemp.length < remainingSlots) { // Check against previews being added in this batch
+        if (previewsToUploadTemp.length < remainingSlots) { 
             if (file.size > 5 * 1024 * 1024) { 
                 toast({ title: "خطأ", description: `حجم الملف ${file.name} يتجاوز 5MB.`, variant: "destructive" });
                 continue;
@@ -228,9 +228,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const removeAdditionalImage = (indexToRemove: number) => {
     const targetPreview = additionalImagePreviews[indexToRemove];
     if (targetPreview.startsWith('blob:')) {
-      // If it's a blob URL, it means it's from a new File object
-      // We need to find the corresponding File object in additionalImageFiles
-      // This assumes that blob URLs are unique and their order in additionalImagePreviews (among blobs) matches additionalImageFiles
       const blobPreviews = additionalImagePreviews.filter(p => p.startsWith('blob:'));
       let fileIndexToRemove = -1;
       let currentBlobIndex = 0;
@@ -270,7 +267,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     form.setValue("description", newDescription, { shouldDirty: true });
   };
 
-  const { formState: { isDirty } } = form;
 
   return (
     <Card className="w-full shadow-xl">
@@ -470,7 +466,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <Button 
               type="submit" 
               className="w-full sm:w-auto transition-smooth hover:shadow-md" 
-              disabled={isLoading || !mainImagePreview || (isEditMode && !isDirty)}
+              disabled={isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty)}
             >
               {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
               {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
@@ -487,9 +483,11 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
               </Button>
             )}
           </div>
-          {!mainImagePreview && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
+          {!mainImagePreview && !isEditMode && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
+          {isEditMode && !mainImagePreview && <p className="text-sm text-accent mt-1">يجب أن يكون هناك صورة رئيسية. إذا قمت بإزالتها، الرجاء تحميل واحدة جديدة.</p>}
         </form>
       </CardContent>
     </Card>
   );
 }
+
