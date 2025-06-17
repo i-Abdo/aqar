@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { onAuthStateChanged, User as FirebaseUser, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth as firebaseAuth } from '@/lib/firebase/client'; // Ensure this path is correct
 import type { CustomUser } from '@/types';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from "firebase/firestore"; // Import onSnapshot
 import { db } from '@/lib/firebase/client';
 
 interface AuthContextType {
@@ -22,42 +22,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async (firebaseUser: FirebaseUser | null) => {
+    let unsubscribeFirestore: (() => void) | undefined;
+
+    const unsubscribeAuth = onAuthStateChanged(firebaseAuth, (firebaseUser: FirebaseUser | null) => {
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore(); // Cleanup previous Firestore listener
+        unsubscribeFirestore = undefined;
+      }
+
       if (firebaseUser) {
-        // Fetch additional user data from Firestore
+        setLoading(true); // Set loading true while fetching/listening to Firestore
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          const customData = userDocSnap.data();
-          setUser({ ...firebaseUser, ...customData } as CustomUser);
-          setIsAdmin(customData.isAdmin === true);
-        } else {
-          // Handle case where user exists in Auth but not Firestore (e.g. new user)
-          // Potentially create a Firestore document here or set default values
-          setUser(firebaseUser as CustomUser); // Cast, assuming defaults if no Firestore doc
-          setIsAdmin(false); 
-        }
+        
+        unsubscribeFirestore = onSnapshot(userDocRef, (userDocSnap) => {
+          if (userDocSnap.exists()) {
+            const customData = userDocSnap.data();
+            setUser({ ...firebaseUser, ...customData } as CustomUser);
+            setIsAdmin(customData.isAdmin === true);
+          } else {
+            // User exists in Auth but not Firestore. 
+            // This case should ideally be handled during signup (AuthForm creates the doc).
+            // If doc is deleted manually, this is a fallback.
+            setUser(firebaseUser as CustomUser); 
+            setIsAdmin(false); 
+            console.warn(`User document for UID ${firebaseUser.uid} not found in Firestore during onSnapshot.`);
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error listening to user document:", error);
+          setUser(firebaseUser as CustomUser); // Fallback to auth data if Firestore listen fails
+          setIsAdmin(false);
+          setLoading(false);
+        });
       } else {
         setUser(null);
         setIsAdmin(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeFirestore) {
+        unsubscribeFirestore();
+      }
+    };
   }, []);
 
   const signOut = async () => {
     setLoading(true);
     try {
       await firebaseSignOut(firebaseAuth);
-      setUser(null);
-      setIsAdmin(false);
+      // setUser and setIsAdmin will be handled by onAuthStateChanged
     } catch (error) {
       console.error("Error signing out: ", error);
-      // Optionally, display a toast notification for the error
     } finally {
-      setLoading(false);
+      // setLoading(false) will be handled by onAuthStateChanged when user becomes null
     }
   };
   
