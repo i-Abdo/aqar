@@ -1,3 +1,4 @@
+
 "use client";
 
 import { PropertyForm, PropertyFormValues } from "@/components/dashboard/PropertyForm";
@@ -16,7 +17,7 @@ export default function NewPropertyPage() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (data: PropertyFormValues, imageFiles: File[]) => {
+  const handleSubmit = async (data: PropertyFormValues, mainImageFile: File | null, additionalImageFiles: File[]) => {
     if (!user) {
       toast({ title: "خطأ", description: "يجب تسجيل الدخول لإضافة عقار.", variant: "destructive" });
       router.push("/login");
@@ -26,10 +27,18 @@ export default function NewPropertyPage() {
     setIsLoading(true);
     try {
       let imageUrls: string[] = [];
-      if (imageFiles.length > 0) {
-        imageUrls = await uploadImagesToServerAction(imageFiles);
-        if (imageUrls.length === 0 && imageFiles.length > 0) {
-          // This case might happen if uploadImagesToServerAction returns empty on failure but doesn't throw
+      const allImageFiles: File[] = [];
+
+      if (mainImageFile) {
+        allImageFiles.push(mainImageFile);
+      }
+      if (additionalImageFiles.length > 0) {
+        allImageFiles.push(...additionalImageFiles);
+      }
+
+      if (allImageFiles.length > 0) {
+        imageUrls = await uploadImagesToServerAction(allImageFiles);
+        if (imageUrls.length === 0 && allImageFiles.length > 0) {
           throw new Error("Image upload failed to return URLs.");
         }
       }
@@ -37,11 +46,11 @@ export default function NewPropertyPage() {
       const propertyData = {
         ...data,
         userId: user.uid,
-        imageUrls,
+        imageUrls, // Main image will be imageUrls[0] if present
         status: "active", 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        deletionReason: "", // Initialize deletionReason
+        deletionReason: "",
       };
 
       const docRef = await addDoc(collection(db, "properties"), propertyData);

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -13,11 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole } from "lucide-react"; // Added UtilityPole for gas
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
-import type { Property } from "@/types"; // Assuming Property type includes all fields
+import type { Property } from "@/types";
 
-// Mock Algerian Wilayas - in a real app, this would come from a DB or a more comprehensive list
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
   { code: "05", name: "باتنة" }, { code: "06", name: "بجاية" }, { code: "07", name: "بسكرة" }, { code: "08", name: "بشار" },
@@ -32,6 +32,8 @@ const wilayas = [
   { code: "41", name: "سوق أهراس" }, { code: "42", name: "تيبازة" }, { code: "43", name: "ميلة" }, { code: "44", name: "عين الدفلى" },
   { code: "45", name: "النعامة" }, { code: "46", name: "عين تموشنت" }, { code: "47", name: "غرداية" }, { code: "48", name: "غليزان" }
 ];
+
+const MAX_ADDITIONAL_IMAGES = 9;
 
 const propertyFormSchema = z.object({
   title: z.string().min(5, "العنوان يجب أن لا يقل عن 5 أحرف."),
@@ -55,16 +57,23 @@ const propertyFormSchema = z.object({
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 interface PropertyFormProps {
-  onSubmit: (data: PropertyFormValues, imageFiles: File[]) => Promise<void>;
-  initialData?: Partial<Property>; // For editing
+  onSubmit: (data: PropertyFormValues, mainImageFile: File | null, additionalImageFiles: File[]) => Promise<void>;
+  initialData?: Partial<Property>;
   isLoading?: boolean;
 }
 
 export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormProps) {
   const { toast } = useToast();
-  const [imagePreviews, setImagePreviews] = React.useState<string[]>(initialData?.imageUrls || []);
-  const [imageFiles, setImageFiles] = React.useState<File[]>([]);
-  const [mainImageDataUri, setMainImageDataUri] = React.useState<string | undefined>(initialData?.imageUrls?.[0]); // For AI assistant
+
+  const [mainImageFile, setMainImageFile] = React.useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = React.useState<string | null>(
+    initialData?.imageUrls?.[0] || null
+  );
+
+  const [additionalImageFiles, setAdditionalImageFiles] = React.useState<File[]>([]);
+  const [additionalImagePreviews, setAdditionalImagePreviews] = React.useState<string[]>(
+    initialData?.imageUrls?.slice(1) || []
+  );
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
@@ -82,56 +91,65 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
     },
   });
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const filesArray = Array.from(event.target.files);
-      // TODO: Add check for plan's image limit
-      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
-      setImagePreviews(prev => [...prev, ...newPreviews].slice(0, 10)); // Example limit of 10 images
-      setImageFiles(prev => [...prev, ...filesArray].slice(0, 10));
-
-      // Set first image for AI assistant
-      if (filesArray.length > 0 && !mainImageDataUri) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setMainImageDataUri(reader.result as string);
-        };
-        reader.readAsDataURL(filesArray[0]);
-      } else if (imagePreviews.length === 0 && filesArray.length > 0) {
-         const reader = new FileReader();
-        reader.onloadend = () => {
-          setMainImageDataUri(reader.result as string);
-        };
-        reader.readAsDataURL(filesArray[0]);
-      }
+  const handleMainImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      setMainImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMainImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const removeImage = (index: number) => {
-    const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    const newFiles = imageFiles.filter((_, i) => i !== index);
-    
-    setImagePreviews(newPreviews);
-    setImageFiles(newFiles);
+  const removeMainImage = () => {
+    setMainImageFile(null);
+    setMainImagePreview(null);
+  };
 
-    if (index === 0 && newFiles.length > 0) { 
-        const reader = new FileReader();
-        reader.onloadend = () => { setMainImageDataUri(reader.result as string); };
-        reader.readAsDataURL(newFiles[0]); 
-    } else if (newFiles.length === 0) {
-        setMainImageDataUri(undefined);
+  const handleAdditionalImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const filesArray = Array.from(event.target.files);
+      const remainingSlots = MAX_ADDITIONAL_IMAGES - additionalImageFiles.length;
+      const filesToUpload = filesArray.slice(0, remainingSlots);
+
+      if (filesArray.length > remainingSlots) {
+        toast({
+          title: "تنبيه",
+          description: `يمكنك تحميل ${MAX_ADDITIONAL_IMAGES} صور توضيحية كحد أقصى. تم تحميل ${remainingSlots} ملفات فقط.`,
+          variant: "default",
+        });
+      }
+
+      const newPreviews = filesToUpload.map(file => URL.createObjectURL(file));
+      setAdditionalImageFiles(prev => [...prev, ...filesToUpload]);
+      setAdditionalImagePreviews(prev => [...prev, ...newPreviews]);
     }
+  };
+
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImageFiles(prev => prev.filter((_, i) => i !== index));
+    setAdditionalImagePreviews(prev => {
+      const newPreviews = prev.filter((_, i) => i !== index);
+      newPreviews.forEach(preview => {
+        // Revoke object URL if it was created by `URL.createObjectURL`
+        if (preview.startsWith('blob:')) {
+          // No direct way to check if it's an active URL, but cleanup attempts are generally safe
+        }
+      });
+      return newPreviews;
+    });
   };
   
   const handleFormSubmit = (data: PropertyFormValues) => {
-    onSubmit(data, imageFiles);
+    onSubmit(data, mainImageFile, additionalImageFiles);
   };
   
   const currentDescription = form.watch("description");
   const onDescriptionChange = (newDescription: string) => {
     form.setValue("description", newDescription);
   };
-
 
   return (
     <Card className="w-full shadow-xl">
@@ -236,27 +254,53 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
           </div>
 
           {/* Image Upload Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold font-headline border-b pb-2 flex items-center gap-1"><ImageUp size={18}/>صور العقار</h3>
-            <Input id="images" type="file" multiple onChange={handleImageChange} accept="image/*" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
-              {imagePreviews.map((preview, index) => (
-                <div key={index} className="relative group">
-                  <Image src={preview} alt={`معاينة الصورة ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => removeImage(index)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-              ))}
+          <div className="space-y-6">
+            <div>
+                <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageIcon size={18}/>صورة العقار الرئيسية *</h3>
+                <Input id="mainImage" type="file" onChange={handleMainImageChange} accept="image/*" />
+                {mainImagePreview && (
+                    <div className="mt-4 relative group w-48">
+                    <Image src={mainImagePreview} alt="معاينة الصورة الرئيسية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={removeMainImage}
+                    >
+                        <Trash2 size={16} />
+                    </Button>
+                    </div>
+                )}
+                {!mainImageFile && initialData?.imageUrls?.[0] && (
+                     <div className="mt-4 relative group w-48">
+                        <Image src={initialData.imageUrls[0]} alt="الصورة الرئيسية الحالية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
+                     </div>
+                )}
             </div>
-            {/* TODO: Add note about image limits based on plan */}
+            <div>
+                <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageUp size={18}/>الصور التوضيحية الإضافية</h3>
+                <Input id="additionalImages" type="file" multiple onChange={handleAdditionalImagesChange} accept="image/*" disabled={additionalImageFiles.length >= MAX_ADDITIONAL_IMAGES} />
+                <p className="text-sm text-muted-foreground mt-1">يمكنك تحميل ما يصل إلى {MAX_ADDITIONAL_IMAGES} صور إضافية.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+                {additionalImagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                    <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeAdditionalImage(index)}
+                    >
+                        <Trash2 size={16} />
+                    </Button>
+                    </div>
+                ))}
+                </div>
+            </div>
           </div>
+
 
           {/* Description Section */}
           <div className="space-y-4">
@@ -273,7 +317,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
             <AiDescriptionAssistant 
               currentDescription={currentDescription}
               onDescriptionChange={onDescriptionChange}
-              imageDataUri={mainImageDataUri}
+              imageDataUri={mainImagePreview || undefined} // Pass main image preview (data URI)
             />
           </div>
           
