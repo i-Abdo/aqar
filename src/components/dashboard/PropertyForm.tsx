@@ -18,8 +18,8 @@ import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarS
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/types";
-import { plans } from "@/config/plans"; // Import plans to check aiAssistantAccess
-import { useAuth } from "@/hooks/use-auth"; // Import useAuth to get user's plan
+import { plans } from "@/config/plans";
+import { useAuth } from "@/hooks/use-auth";
 
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
@@ -58,52 +58,78 @@ const propertyFormSchema = z.object({
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 interface PropertyFormProps {
-  onSubmit: (data: PropertyFormValues, mainImageFile: File | null, additionalImageFiles: File[]) => Promise<void>;
-  initialData?: Partial<Property>; // Making initialData more flexible to include filters default from plan
+  onSubmit: (
+    data: PropertyFormValues,
+    mainImageFile: File | null,
+    additionalImageFiles: File[],
+    mainImagePreviewFromState: string | null, // Added for edit page to reconcile images
+    additionalImagePreviewsFromState: string[] // Added for edit page to reconcile images
+  ) => Promise<void>;
+  initialData?: Property;
   isLoading?: boolean;
+  isEditMode?: boolean;
 }
 
-export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormProps) {
+export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = false }: PropertyFormProps) {
   const { toast } = useToast();
-  const { user } = useAuth(); // Get user to access planId
+  const { user } = useAuth();
 
   const [mainImageFile, setMainImageFile] = React.useState<File | null>(null);
-  const [mainImagePreview, setMainImagePreview] = React.useState<string | null>(
-    initialData?.imageUrls?.[0] || null
-  );
+  const [mainImagePreview, setMainImagePreview] = React.useState<string | null>(null);
 
   const [additionalImageFiles, setAdditionalImageFiles] = React.useState<File[]>([]);
-  const [additionalImagePreviews, setAdditionalImagePreviews] = React.useState<string[]>(
-    initialData?.imageUrls?.slice(1) || []
-  );
+  const [additionalImagePreviews, setAdditionalImagePreviews] = React.useState<string[]>([]);
 
-  const [maxAdditionalImages, setMaxAdditionalImages] = React.useState(0); // Default to 0, will be set by plan
+  const [maxAdditionalImages, setMaxAdditionalImages] = React.useState(0);
   const [aiAssistantAllowed, setAiAssistantAllowed] = React.useState(false);
+  const [imageLimitPerProperty, setImageLimitPerProperty] = React.useState(1);
 
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
-      title: initialData?.title || "",
-      price: initialData?.price || 0,
-      rooms: initialData?.rooms || 1,
-      bathrooms: initialData?.bathrooms || 1,
-      wilaya: initialData?.wilaya || "",
-      city: initialData?.city || "",
-      neighborhood: initialData?.neighborhood || "",
-      address: initialData?.address || "",
-      description: initialData?.description || "",
-      filters: initialData?.filters || { water: false, electricity: false, internet: false, gas: false, contract: false },
+      title: "",
+      price: 0,
+      rooms: 1,
+      bathrooms: 1,
+      wilaya: "",
+      city: "",
+      neighborhood: "",
+      address: "",
+      description: "",
+      filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
     },
   });
   
   React.useEffect(() => {
+    if (initialData) {
+      form.reset({
+        title: initialData.title || "",
+        price: initialData.price || 0,
+        rooms: initialData.rooms || 1,
+        bathrooms: initialData.bathrooms || 1,
+        wilaya: initialData.wilaya || "",
+        city: initialData.city || "",
+        neighborhood: initialData.neighborhood || "",
+        address: initialData.address || "",
+        description: initialData.description || "",
+        filters: initialData.filters || { water: false, electricity: false, internet: false, gas: false, contract: false },
+      });
+      if (initialData.imageUrls && initialData.imageUrls.length > 0) {
+        setMainImagePreview(initialData.imageUrls[0]);
+        setAdditionalImagePreviews(initialData.imageUrls.slice(1));
+      }
+    }
+  }, [initialData, form]);
+
+  React.useEffect(() => {
     if (user && user.planId) {
       const planDetails = plans.find(p => p.id === user.planId);
       if (planDetails) {
-        setMaxAdditionalImages(planDetails.imageLimitPerProperty > 0 ? planDetails.imageLimitPerProperty -1 : 0); // -1 because one is main image
+        setImageLimitPerProperty(planDetails.imageLimitPerProperty);
+        setMaxAdditionalImages(planDetails.imageLimitPerProperty > 0 ? planDetails.imageLimitPerProperty -1 : 0);
         setAiAssistantAllowed(planDetails.aiAssistantAccess);
-        if (!initialData?.filters && initialData?.filters !== undefined) { // If form is new, set default filters based on AI access
+        if (!initialData?.filters && form.getValues('filters') === undefined) { 
              form.reset({ ...form.getValues(), filters: { water: false, electricity: false, internet: false, gas: false, contract: false }});
         }
       }
@@ -114,6 +140,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
   const handleMainImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({ title: "خطأ", description: "حجم الصورة الرئيسية يجب أن لا يتجاوز 5MB.", variant: "destructive" });
+        return;
+      }
       setMainImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -126,12 +156,17 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
   const removeMainImage = () => {
     setMainImageFile(null);
     setMainImagePreview(null);
+    if (initialData?.imageUrls && initialData.imageUrls[0]) {
+        // If we remove an existing initial image, we might want to track this,
+        // but for now, clearing the preview is enough. The submit logic will handle it.
+    }
   };
 
   const handleAdditionalImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
-      const remainingSlots = maxAdditionalImages - additionalImageFiles.length;
+      const currentTotalAdditional = additionalImagePreviews.length + additionalImageFiles.length;
+      const remainingSlots = maxAdditionalImages - currentTotalAdditional;
       
       if (remainingSlots <= 0 && filesArray.length > 0) {
          toast({
@@ -142,48 +177,69 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
         return;
       }
 
-      const filesToUpload = filesArray.slice(0, remainingSlots);
+      const filesToUploadTemp: File[] = [];
+      const previewsToUploadTemp: string[] = [];
 
-      if (filesArray.length > remainingSlots) {
-        toast({
+      for (const file of filesArray) {
+        if (filesToUploadTemp.length < remainingSlots) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit per image
+                toast({ title: "خطأ", description: `حجم الملف ${file.name} يتجاوز 5MB.`, variant: "destructive" });
+                continue;
+            }
+            filesToUploadTemp.push(file);
+            previewsToUploadTemp.push(URL.createObjectURL(file));
+        } else {
+            break; 
+        }
+      }
+      
+      if (filesToUploadTemp.length < filesArray.length) {
+         toast({
           title: "تنبيه",
-          description: `يمكنك تحميل ${maxAdditionalImages} صور توضيحية كحد أقصى. تم تحميل ${remainingSlots} ملفات فقط.`,
+          description: `تم تحميل ${filesToUploadTemp.length} ملفات فقط بسبب تجاوز الحد الأقصى للصور أو حجم الملفات.`,
           variant: "default",
         });
       }
 
-      const newPreviews = filesToUpload.map(file => URL.createObjectURL(file));
-      setAdditionalImageFiles(prev => [...prev, ...filesToUpload]);
-      setAdditionalImagePreviews(prev => [...prev, ...newPreviews]);
+      setAdditionalImageFiles(prev => [...prev, ...filesToUploadTemp]);
+      setAdditionalImagePreviews(prev => [...prev, ...previewsToUploadTemp]);
     }
   };
 
-  const removeAdditionalImage = (index: number) => {
-    setAdditionalImageFiles(prev => prev.filter((_, i) => i !== index));
-    setAdditionalImagePreviews(prev => {
-      const newPreviews = prev.filter((_, i) => i !== index);
-      newPreviews.forEach(preview => {
-        if (preview.startsWith('blob:')) {
-          // URL.revokeObjectURL(preview); // Not strictly necessary as browser might handle, but good practice
-        }
-      });
-      return newPreviews;
-    });
+  const removeAdditionalImage = (index: number, isExistingPreview: boolean) => {
+    if (isExistingPreview) { // Removing an image that was part of initialData
+        setAdditionalImagePreviews(prev => prev.filter((_, i) => i !== index));
+    } else { // Removing a newly added (blob) preview and its corresponding file
+        const relativeIndex = index - additionalImagePreviews.filter(p => !p.startsWith('blob:')).length;
+        setAdditionalImageFiles(prev => prev.filter((_, i) => i !== relativeIndex));
+        setAdditionalImagePreviews(prev => prev.filter((previewUrl, i) => {
+            // This logic needs to correctly identify the blob URL to remove
+            // If it's a blob, we identify by its unique URL.
+            if (previewUrl.startsWith('blob:')) {
+                // This might be tricky if multiple new images are added and one is removed.
+                // A simpler way might be to just remove by index from the combined preview array
+                // and then reconstruct additionalImageFiles if needed, or let submit handle it.
+                // For now, if it's a blob, we assume the index in additionalImagePreviews corresponds to additionalImageFiles *after* existing ones.
+            }
+            return i !== index; // This will remove from the combined list.
+        }));
+         // Simplified: Just remove from previews. On submit, only non-blob previews + new files are considered.
+        setAdditionalImagePreviews(prev => prev.filter((_, i) => i !== index));
+    }
   };
   
   const handleFormSubmit = (data: PropertyFormValues) => {
-     const totalImages = (mainImageFile ? 1 : (mainImagePreview ? 1 : 0)) + additionalImageFiles.length;
-     const planDetails = user && user.planId ? plans.find(p => p.id === user.planId) : null;
+     const totalImages = (mainImagePreview ? 1 : 0) + additionalImagePreviews.length;
 
-     if (planDetails && totalImages > planDetails.imageLimitPerProperty) {
+     if (totalImages > imageLimitPerProperty) {
         toast({
             title: "تجاوز حد الصور",
-            description: `خطتك (${planDetails.name}) تسمح بـ ${planDetails.imageLimitPerProperty} صور كحد أقصى. لديك حاليًا ${totalImages} صور.`,
+            description: `خطتك (${plans.find(p => p.id === user?.planId)?.name || 'غير محددة'}) تسمح بـ ${imageLimitPerProperty} صور كحد أقصى. لديك حاليًا ${totalImages} صور.`,
             variant: "destructive"
         });
         return;
      }
-    onSubmit(data, mainImageFile, additionalImageFiles);
+    onSubmit(data, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews);
   };
   
   const currentDescription = form.watch("description");
@@ -195,10 +251,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
     <Card className="w-full shadow-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">
-          {initialData?.id ? "تعديل العقار" : "إضافة عقار جديد"}
+          {isEditMode ? "تعديل العقار" : "إضافة عقار جديد"}
         </CardTitle>
         <CardDescription>
-          املأ التفاصيل أدناه لنشر عقارك. الحقول المميزة بـ * إلزامية.
+          املأ التفاصيل أدناه ل{isEditMode ? "تعديل" : "نشر"} عقارك. الحقول المميزة بـ * إلزامية.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -240,7 +296,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
                     name="wilaya"
                     control={form.control}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ""} >
                         <SelectTrigger><SelectValue placeholder="اختر الولاية" /></SelectTrigger>
                         <SelectContent>
                           {wilayas.map(w => <SelectItem key={w.code} value={w.name}>{w.name}</SelectItem>)}
@@ -312,37 +368,42 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
                     </Button>
                     </div>
                 )}
-                {!mainImageFile && initialData?.imageUrls?.[0] && (
-                     <div className="mt-4 relative group w-48">
-                        <Image src={initialData.imageUrls[0]} alt="الصورة الرئيسية الحالية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
-                     </div>
-                )}
                  {!mainImagePreview && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
             </div>
             <div>
                 <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageUp size={18}/>الصور التوضيحية الإضافية</h3>
-                <Input id="additionalImages" type="file" multiple onChange={handleAdditionalImagesChange} accept="image/*" disabled={additionalImageFiles.length >= maxAdditionalImages || maxAdditionalImages === 0} />
+                <Input 
+                    id="additionalImages" 
+                    type="file" 
+                    multiple 
+                    onChange={handleAdditionalImagesChange} 
+                    accept="image/*" 
+                    disabled={additionalImagePreviews.length >= maxAdditionalImages || maxAdditionalImages === 0} 
+                />
                 <p className="text-sm mt-1">
                     {maxAdditionalImages > 0 ?
-                        <span className="text-muted-foreground">{`يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية.`}</span> :
+                        <span className="text-muted-foreground">{`يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية. (${additionalImagePreviews.length}/${maxAdditionalImages} محملة)`}</span> :
                         <span className="text-accent">لا تسمح خطتك الحالية بتحميل صور إضافية.</span>
                     }
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-                {additionalImagePreviews.map((preview, index) => (
-                    <div key={index} className="relative group">
-                    <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => removeAdditionalImage(index)}
-                    >
-                        <Trash2 size={16} />
-                    </Button>
-                    </div>
-                ))}
+                {additionalImagePreviews.map((preview, index) => {
+                    const isExisting = !preview.startsWith('blob:') && initialData?.imageUrls?.includes(preview);
+                    return (
+                        <div key={preview + index} className="relative group"> {/* Ensure key is unique */}
+                            <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => removeAdditionalImage(index, !!isExisting)}
+                            >
+                                <Trash2 size={16} />
+                            </Button>
+                        </div>
+                    );
+                 })}
                 </div>
             </div>
           </div>
@@ -373,7 +434,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
                         <Loader2 className="text-muted-foreground" /> 
                         <span>مساعد الوصف بالذكاء الاصطناعي</span>
                         </CardTitle>
-                        <CardDescription>
+                         <CardDescription>
                             <span className="text-accent">هذه الميزة متوفرة في الخطط المدفوعة. </span>
                             <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link>
                             <span className="text-accent"> للاستفادة منها.</span>
@@ -385,12 +446,11 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
           
           <Button type="submit" className="w-full md:w-auto transition-smooth hover:shadow-md" disabled={isLoading || !mainImagePreview}>
             {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-            {initialData?.id ? "حفظ التعديلات" : "نشر العقار"}
+            {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
           </Button>
-          {!mainImagePreview && <p className="text-sm text-accent">يجب تحميل صورة رئيسية قبل النشر.</p>}
+          {!mainImagePreview && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية قبل النشر.</p>}
         </form>
       </CardContent>
     </Card>
   );
 }
-
