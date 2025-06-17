@@ -14,12 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/types";
 import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
@@ -62,10 +63,10 @@ interface PropertyFormProps {
     data: PropertyFormValues,
     mainImageFile: File | null,
     additionalImageFiles: File[],
-    mainImagePreviewFromState: string | null, // Added for edit page to reconcile images
-    additionalImagePreviewsFromState: string[] // Added for edit page to reconcile images
+    mainImagePreviewFromState: string | null, 
+    additionalImagePreviewsFromState: string[] 
   ) => Promise<void>;
-  initialData?: Property;
+  initialData?: Property | null; // Allow null for clarity
   isLoading?: boolean;
   isEditMode?: boolean;
 }
@@ -73,6 +74,7 @@ interface PropertyFormProps {
 export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = false }: PropertyFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter(); // Initialize router
 
   const [mainImageFile, setMainImageFile] = React.useState<File | null>(null);
   const [mainImagePreview, setMainImagePreview] = React.useState<string | null>(null);
@@ -118,9 +120,27 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
         setAdditionalImagePreviews(initialData.imageUrls.slice(1));
+      } else {
+        setMainImagePreview(null);
+        setAdditionalImagePreviews([]);
       }
+    } else if (!isEditMode) { 
+        form.reset({
+            title: "",
+            price: 0,
+            rooms: 1,
+            bathrooms: 1,
+            wilaya: "",
+            city: "",
+            neighborhood: "",
+            address: "",
+            description: "",
+            filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
+        });
+        setMainImagePreview(null);
+        setAdditionalImagePreviews([]);
     }
-  }, [initialData, form]);
+  }, [initialData, form, isEditMode]);
 
   React.useEffect(() => {
     if (user && user.planId) {
@@ -150,22 +170,20 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setMainImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+      form.trigger(); // Trigger validation to update isDirty
     }
   };
 
   const removeMainImage = () => {
     setMainImageFile(null);
     setMainImagePreview(null);
-    if (initialData?.imageUrls && initialData.imageUrls[0]) {
-        // If we remove an existing initial image, we might want to track this,
-        // but for now, clearing the preview is enough. The submit logic will handle it.
-    }
+    form.trigger(); 
   };
 
   const handleAdditionalImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
-      const currentTotalAdditional = additionalImagePreviews.length + additionalImageFiles.length;
+      const currentTotalAdditional = additionalImagePreviews.length; // Only count previews as files are managed separately now
       const remainingSlots = maxAdditionalImages - currentTotalAdditional;
       
       if (remainingSlots <= 0 && filesArray.length > 0) {
@@ -181,8 +199,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       const previewsToUploadTemp: string[] = [];
 
       for (const file of filesArray) {
-        if (filesToUploadTemp.length < remainingSlots) {
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit per image
+        if (previewsToUploadTemp.length < remainingSlots) { // Check against previews being added in this batch
+            if (file.size > 5 * 1024 * 1024) { 
                 toast({ title: "خطأ", description: `حجم الملف ${file.name} يتجاوز 5MB.`, variant: "destructive" });
                 continue;
             }
@@ -203,29 +221,34 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
       setAdditionalImageFiles(prev => [...prev, ...filesToUploadTemp]);
       setAdditionalImagePreviews(prev => [...prev, ...previewsToUploadTemp]);
+      form.trigger();
     }
   };
 
-  const removeAdditionalImage = (index: number, isExistingPreview: boolean) => {
-    if (isExistingPreview) { // Removing an image that was part of initialData
-        setAdditionalImagePreviews(prev => prev.filter((_, i) => i !== index));
-    } else { // Removing a newly added (blob) preview and its corresponding file
-        const relativeIndex = index - additionalImagePreviews.filter(p => !p.startsWith('blob:')).length;
-        setAdditionalImageFiles(prev => prev.filter((_, i) => i !== relativeIndex));
-        setAdditionalImagePreviews(prev => prev.filter((previewUrl, i) => {
-            // This logic needs to correctly identify the blob URL to remove
-            // If it's a blob, we identify by its unique URL.
-            if (previewUrl.startsWith('blob:')) {
-                // This might be tricky if multiple new images are added and one is removed.
-                // A simpler way might be to just remove by index from the combined preview array
-                // and then reconstruct additionalImageFiles if needed, or let submit handle it.
-                // For now, if it's a blob, we assume the index in additionalImagePreviews corresponds to additionalImageFiles *after* existing ones.
-            }
-            return i !== index; // This will remove from the combined list.
-        }));
-         // Simplified: Just remove from previews. On submit, only non-blob previews + new files are considered.
-        setAdditionalImagePreviews(prev => prev.filter((_, i) => i !== index));
+  const removeAdditionalImage = (indexToRemove: number) => {
+    const targetPreview = additionalImagePreviews[indexToRemove];
+    if (targetPreview.startsWith('blob:')) {
+      // If it's a blob URL, it means it's from a new File object
+      // We need to find the corresponding File object in additionalImageFiles
+      // This assumes that blob URLs are unique and their order in additionalImagePreviews (among blobs) matches additionalImageFiles
+      const blobPreviews = additionalImagePreviews.filter(p => p.startsWith('blob:'));
+      let fileIndexToRemove = -1;
+      let currentBlobIndex = 0;
+      for(let i=0; i<additionalImagePreviews.length; i++) {
+        if(additionalImagePreviews[i].startsWith('blob:')) {
+          if(i === indexToRemove) {
+            fileIndexToRemove = currentBlobIndex;
+            break;
+          }
+          currentBlobIndex++;
+        }
+      }
+      if(fileIndexToRemove !== -1) {
+        setAdditionalImageFiles(prevFiles => prevFiles.filter((_, i) => i !== fileIndexToRemove));
+      }
     }
+    setAdditionalImagePreviews(prevPreviews => prevPreviews.filter((_, i) => i !== indexToRemove));
+    form.trigger();
   };
   
   const handleFormSubmit = (data: PropertyFormValues) => {
@@ -244,8 +267,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   
   const currentDescription = form.watch("description");
   const onDescriptionChange = (newDescription: string) => {
-    form.setValue("description", newDescription);
+    form.setValue("description", newDescription, { shouldDirty: true });
   };
+
+  const { formState: { isDirty } } = form;
 
   return (
     <Card className="w-full shadow-xl">
@@ -296,7 +321,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                     name="wilaya"
                     control={form.control}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value || ""} >
+                      <Select onValueChange={(value) => field.onChange(value)} value={field.value || ""} >
                         <SelectTrigger><SelectValue placeholder="اختر الولاية" /></SelectTrigger>
                         <SelectContent>
                           {wilayas.map(w => <SelectItem key={w.code} value={w.name}>{w.name}</SelectItem>)}
@@ -356,7 +381,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 <Input id="mainImage" type="file" onChange={handleMainImageChange} accept="image/*" />
                 {mainImagePreview && (
                     <div className="mt-4 relative group w-48">
-                    <Image src={mainImagePreview} alt="معاينة الصورة الرئيسية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
+                    <Image src={mainImagePreview} alt="معاينة الصورة الرئيسية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" data-ai-hint="property interior room" />
                     <Button
                         type="button"
                         variant="destructive"
@@ -388,16 +413,15 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
                 {additionalImagePreviews.map((preview, index) => {
-                    const isExisting = !preview.startsWith('blob:') && initialData?.imageUrls?.includes(preview);
                     return (
-                        <div key={preview + index} className="relative group"> {/* Ensure key is unique */}
-                            <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
+                        <div key={preview + index} className="relative group">
+                            <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3]" data-ai-hint="property room detail" />
                             <Button
                                 type="button"
                                 variant="destructive"
                                 size="icon"
                                 className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removeAdditionalImage(index, !!isExisting)}
+                                onClick={() => removeAdditionalImage(index)}
                             >
                                 <Trash2 size={16} />
                             </Button>
@@ -434,21 +458,36 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         <Loader2 className="text-muted-foreground" /> 
                         <span>مساعد الوصف بالذكاء الاصطناعي</span>
                         </CardTitle>
-                         <CardDescription>
-                            <span className="text-accent">هذه الميزة متوفرة في الخطط المدفوعة. </span>
-                            <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link>
-                            <span className="text-accent"> للاستفادة منها.</span>
+                         <CardDescription className="text-accent">
+                            هذه الميزة متوفرة في الخطط المدفوعة. <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link> للاستفادة منها.
                         </CardDescription>
                     </CardHeader>
                 </Card>
             )}
           </div>
           
-          <Button type="submit" className="w-full md:w-auto transition-smooth hover:shadow-md" disabled={isLoading || !mainImagePreview}>
-            {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-            {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
-          </Button>
-          {!mainImagePreview && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية قبل النشر.</p>}
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button 
+              type="submit" 
+              className="w-full sm:w-auto transition-smooth hover:shadow-md" 
+              disabled={isLoading || !mainImagePreview || (isEditMode && !isDirty)}
+            >
+              {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
+            </Button>
+            {isEditMode && (
+              <Button 
+                type="button" 
+                variant="destructive_outline" 
+                className="w-full sm:w-auto transition-smooth"
+                onClick={() => router.push("/dashboard/properties")}
+              >
+                <XCircle size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>
+                إلغاء
+              </Button>
+            )}
+          </div>
+          {!mainImagePreview && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
         </form>
       </CardContent>
     </Card>
