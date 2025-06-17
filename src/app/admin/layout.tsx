@@ -5,12 +5,18 @@ import React, { useEffect } from "react";
 import { Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { DashboardNav } from "@/components/dashboard/DashboardNav"; // Can reuse or create AdminNav
+// import { DashboardNav } from "@/components/dashboard/DashboardNav"; // Can reuse or create AdminNav
 
-const adminNavItems = [ // Example, adjust as needed
+// Dummy imports for AdminSidebarNav example
+import { LayoutDashboard, UserCircle, Settings as SettingsIcon } from "lucide-react"; // Renamed Settings to SettingsIcon to avoid conflict
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+
+const adminNavItems = [ 
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard },
-  { title: "إدارة المستخدمين", href: "/admin/users", icon: UserCircle },
-  { title: "إعدادات الموقع", href: "/admin/settings", icon: Settings },
+  // { title: "إدارة المستخدمين", href: "/admin/users", icon: UserCircle }, // Example, adjust as needed
+  // { title: "إعدادات الموقع", href: "/admin/settings", icon: SettingsIcon }, // Example, adjust as needed
 ];
 
 function AdminSidebarNav() {
@@ -51,7 +57,7 @@ export default function AdminLayout({
       if (!user) {
         router.push("/login?redirect=/admin");
       } else if (!isAdmin) {
-        router.push("/dashboard"); // Or an unauthorized page
+        router.push("/dashboard"); 
       }
     }
   }, [user, isAdmin, loading, router]);
@@ -79,21 +85,15 @@ export default function AdminLayout({
   
   return (
     <div className="container mx-auto">
-        <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0 rtl:lg:space-x-reverse">
-            <aside className="lg:w-1/5">
+        <div className="flex flex-col lg:flex-row lg:space-x-12 lg:space-y-0 rtl:lg:space-x-reverse">
+            <aside className="lg:w-1/5 h-full lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto lg:border-r rtl:lg:border-l rtl:lg:border-r-transparent border-border py-6 lg:py-0">
                  <h2 className="text-xl font-semibold mb-4 px-3">لوحة الإدارة</h2>
                  <AdminSidebarNav />
             </aside>
             <div className="flex-1 lg:max-w-4xl xl:max-w-5xl">
-                {children}
+                <div className="p-1 pt-6 lg:pt-1">{children}</div>
             </div>
         </div>
     </div>
   );
 }
-
-// Dummy imports for AdminSidebarNav example
-import { LayoutDashboard, UserCircle, Settings } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
