@@ -34,7 +34,7 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
               iconElement = (
                 <>
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  <CheckCircle className="h-5 w-5 text-green-500 -mr-2.5" /> {/* RTL: negative margin-right pulls left */}
+                  <CheckCircle className="h-5 w-5 text-green-500" /> {/* Removed -mr-2.5 */}
                 </>
               );
               textElement = feature.slice(0, -3).trim(); // Remove " ✓✓"
@@ -52,9 +52,9 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
             return (
               <li key={index} className="flex items-start min-h-10">
                 <span className={cn(
-                  "inline-flex items-center justify-center h-5 ml-2 shrink-0",
-                  specificIconContainerClass, // w-6 or w-auto
-                  !feature.endsWith(" ✓✓") ? iconColorClass : "" // Apply color to container only if not double check
+                  "inline-flex items-center justify-center h-5 ml-2 shrink-0", // ml-2 for space between icon(s) and text (RTL)
+                  specificIconContainerClass, 
+                  !feature.endsWith(" ✓✓") ? iconColorClass : "" 
                 )}>
                   {iconElement}
                 </span>
