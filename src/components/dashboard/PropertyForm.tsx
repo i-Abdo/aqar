@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
 import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link"; // Added import
+import Link from "next/link";
 import type { Property } from "@/types";
 import { plans } from "@/config/plans"; // Import plans to check aiAssistantAccess
 import { useAuth } from "@/hooks/use-auth"; // Import useAuth to get user's plan
@@ -317,13 +317,16 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
                         <Image src={initialData.imageUrls[0]} alt="الصورة الرئيسية الحالية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" />
                      </div>
                 )}
-                 {!mainImagePreview && <p className="text-sm text-muted-foreground mt-1">يجب تحميل صورة رئيسية واحدة على الأقل.</p>}
+                 {!mainImagePreview && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
             </div>
             <div>
                 <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageUp size={18}/>الصور التوضيحية الإضافية</h3>
                 <Input id="additionalImages" type="file" multiple onChange={handleAdditionalImagesChange} accept="image/*" disabled={additionalImageFiles.length >= maxAdditionalImages || maxAdditionalImages === 0} />
-                <p className="text-sm text-muted-foreground mt-1">
-                    {maxAdditionalImages > 0 ? `يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية.` : "لا تسمح خطتك الحالية بتحميل صور إضافية."}
+                <p className="text-sm mt-1">
+                    {maxAdditionalImages > 0 ?
+                        <span className="text-muted-foreground">{`يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية.`}</span> :
+                        <span className="text-accent">لا تسمح خطتك الحالية بتحميل صور إضافية.</span>
+                    }
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
                 {additionalImagePreviews.map((preview, index) => (
@@ -371,7 +374,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
                         <span>مساعد الوصف بالذكاء الاصطناعي</span>
                         </CardTitle>
                         <CardDescription>
-                        هذه الميزة متوفرة في الخطط المدفوعة. <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link> للاستفادة منها.
+                            <span className="text-accent">هذه الميزة متوفرة في الخطط المدفوعة. </span>
+                            <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link>
+                            <span className="text-accent"> للاستفادة منها.</span>
                         </CardDescription>
                     </CardHeader>
                 </Card>
@@ -382,7 +387,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading }: PropertyFormP
             {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             {initialData?.id ? "حفظ التعديلات" : "نشر العقار"}
           </Button>
-          {!mainImagePreview && <p className="text-sm text-destructive">يجب تحميل صورة رئيسية قبل النشر.</p>}
+          {!mainImagePreview && <p className="text-sm text-accent">يجب تحميل صورة رئيسية قبل النشر.</p>}
         </form>
       </CardContent>
     </Card>
