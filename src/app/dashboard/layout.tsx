@@ -1,10 +1,11 @@
+
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+// import { ScrollArea } from "@/components/ui/scroll-area"; // Removed ScrollArea
 
 export default function DashboardLayout({
   children,
@@ -39,9 +40,8 @@ export default function DashboardLayout({
                  <DashboardNav />
             </aside>
             <div className="flex-1 lg:max-w-4xl xl:max-w-5xl">
-                <ScrollArea className="h-[calc(100vh-10rem)]"> {/* Adjust height as needed */}
-                    <div className="p-1">{children}</div>
-                </ScrollArea>
+                {/* Removed ScrollArea wrapper */}
+                <div className="p-1">{children}</div>
             </div>
         </div>
     </div>
