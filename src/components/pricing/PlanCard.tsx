@@ -13,16 +13,26 @@ interface PlanCardProps {
 }
 
 export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanCardProps) {
+  const renderPlanName = () => {
+    if (plan.name === "VIP++") {
+      return (
+        <>
+          VIP<span className="text-primary">++</span>
+        </>
+      );
+    }
+    return plan.name;
+  };
+
   return (
     <Card className={cn("flex flex-col shadow-lg transition-all duration-300 hover:shadow-xl", isCurrentPlan && "ring-2 ring-primary border-primary")}>
       <CardHeader className="items-center text-center">
-        <CardTitle className="text-2xl font-headline">{plan.name}</CardTitle>
+        <CardTitle className="text-2xl font-headline">{renderPlanName()}</CardTitle>
         <CardDescription className="text-3xl font-bold text-accent min-h-[2.5rem]"> {/* Added min-h for consistency */}
           {plan.priceMonthly > 0 ? (
             <>
               {`${plan.priceMonthly.toLocaleString()} د.ج`}
-              {/* Ensure the /month part is part of the conditional rendering if price is 0 */}
-              <span className="text-lg font-normal text-muted-foreground">/شهر</span> {/* Increased size */}
+              <span className="text-lg font-normal text-muted-foreground">/شهر</span>
             </>
           ) : (
             null // Render nothing if the price is 0 or less
