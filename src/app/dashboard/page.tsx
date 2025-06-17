@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [userStats, setUserStats] = useState({
     activeListings: 0,
-    maxListings: 0,
+    maxListings: "0" as string | number, // Allow string for "غير محدود"
     planName: "...",
     propertyViews: 0, 
     unreadMessages: 0, 
@@ -45,15 +45,18 @@ export default function DashboardPage() {
 
         let currentPropertyCount = 0;
         if (planDetails) {
+          // Fetch current property count regardless of plan limit type
+          const propertiesRef = collection(db, "properties");
+          const q = query(propertiesRef, where("userId", "==", user.uid), where("status", "in", ["active", "pending"]));
+          const snapshot = await getCountFromServer(q);
+          currentPropertyCount = snapshot.data().count;
+            
           if (planDetails.maxListings === Infinity) {
             setCanAddProperty(true);
           } else {
-            const propertiesRef = collection(db, "properties");
-            const q = query(propertiesRef, where("userId", "==", user.uid), where("status", "in", ["active", "pending"]));
-            const snapshot = await getCountFromServer(q);
-            currentPropertyCount = snapshot.data().count;
             setCanAddProperty(currentPropertyCount < planDetails.maxListings);
           }
+
           setUserStats(prev => ({
             ...prev,
             activeListings: currentPropertyCount,
@@ -112,10 +115,16 @@ export default function DashboardPage() {
             <Home className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userStats.activeListings} / {userStats.maxListings}</div>
-            <p className="text-xs text-muted-foreground">
-              بناءً على خطة {userStats.planName} الخاصة بك
-            </p>
+            {user?.planId === 'vip_plus_plus' && userStats.activeListings === 0 ? (
+                 <p className="text-destructive">هناك خطأ هنا فقط في vip++ حيث لا يضهر عدد العقارات المرفوعة تضهر 0</p>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{userStats.activeListings} / {userStats.maxListings}</div>
+                <p className="text-xs text-muted-foreground">
+                  بناءً على خطة {userStats.planName} الخاصة بك
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
