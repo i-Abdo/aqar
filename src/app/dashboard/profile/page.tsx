@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -11,12 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, UserCircle, Edit3, Image as ImageIcon, Trash2 } from "lucide-react";
-import Image from "next/image";
+import { Loader2, UserCircle, Edit3, LockKeyhole } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { updateProfile } from "firebase/auth";
+import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { auth as firebaseAuth } from "@/lib/firebase/client";
-import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
 import { plans } from "@/config/plans";
 
 const profileFormSchema = z.object({
@@ -25,6 +23,41 @@ const profileFormSchema = z.object({
     .min(2, { message: "الاسم يجب أن يكون حرفين على الأقل." })
     .max(50, { message: "الاسم طويل جدًا (الحد الأقصى 50 حرفًا)." })
     .optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().optional(),
+  confirmNewPassword: z.string().optional(),
+})
+.superRefine((data, ctx) => {
+    // If any password field is filled, validate all password fields
+    if (data.currentPassword || data.newPassword || data.confirmNewPassword) {
+        if (!data.currentPassword) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "كلمة المرور الحالية مطلوبة لتغيير كلمة المرور.",
+                path: ["currentPassword"],
+            });
+        }
+        if (!data.newPassword || data.newPassword.length < 6) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل.",
+                path: ["newPassword"],
+            });
+        } else if (data.newPassword === data.currentPassword) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية.",
+                path: ["newPassword"],
+            });
+        }
+        if (data.newPassword !== data.confirmNewPassword) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "كلمتا المرور الجديدتان غير متطابقتين.",
+                path: ["confirmNewPassword"],
+            });
+        }
+    }
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -33,52 +66,30 @@ export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [newProfileImageFile, setNewProfileImageFile] = React.useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = React.useState<string | null>(null);
   const [currentPlanName, setCurrentPlanName] = React.useState("...");
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       displayName: "",
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
     },
   });
 
   React.useEffect(() => {
     if (user) {
-      form.reset({ displayName: user.displayName || "" });
-      setProfileImagePreview(user.photoURL || null);
-
+      form.reset({ 
+        displayName: user.displayName || "",
+        currentPassword: "", // Always clear password fields on load
+        newPassword: "",
+        confirmNewPassword: "",
+       });
       const planDetails = plans.find(p => p.id === (user.planId || 'free'));
       setCurrentPlanName(planDetails?.name || "غير محدد");
     }
   }, [user, form]);
-
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit for profile picture
-        toast({ title: "خطأ", description: "حجم الصورة يجب أن لا يتجاوز 2MB.", variant: "destructive" });
-        return;
-      }
-      setNewProfileImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      form.trigger('displayName'); // Trigger validation if needed, or just to mark form as dirty
-    }
-  };
-
-  const removeProfileImage = () => {
-    setNewProfileImageFile(null);
-    // If user had an existing photoURL, removing means setting it to null
-    // If it was just a preview of a new file, just clear the preview.
-    // For simplicity, if they remove, we intend to set photoURL to null on save.
-    setProfileImagePreview(null); 
-    form.trigger('displayName');
-  }
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user || !firebaseAuth.currentUser) {
@@ -87,35 +98,57 @@ export default function ProfilePage() {
     }
 
     setIsSubmitting(true);
-    let newPhotoURL: string | null = user.photoURL; // Default to existing
+    let displayNameUpdated = false;
+    let passwordUpdated = false;
 
     try {
-      if (newProfileImageFile) {
-        const uploadedUrls = await uploadImagesToServerAction([newProfileImageFile]);
-        if (uploadedUrls && uploadedUrls.length > 0) {
-          newPhotoURL = uploadedUrls[0];
-        } else {
-          throw new Error("فشل رفع الصورة الشخصية.");
-        }
-      } else if (profileImagePreview === null && user.photoURL !== null) {
-        // Image was explicitly removed
-        newPhotoURL = null;
+      // Update Display Name if changed
+      if (form.formState.dirtyFields.displayName && data.displayName !== user.displayName) {
+        await updateProfile(firebaseAuth.currentUser, {
+          displayName: data.displayName || user.displayName || "", 
+        });
+        displayNameUpdated = true;
       }
 
-      await updateProfile(firebaseAuth.currentUser, {
-        displayName: data.displayName || user.displayName || "", // Ensure displayName is not undefined
-        photoURL: newPhotoURL,
+      // Update Password if fields are filled and valid (superRefine handles actual validation)
+      if (data.newPassword && data.currentPassword && data.confirmNewPassword) {
+        const credential = EmailAuthProvider.credential(user.email!, data.currentPassword);
+        await reauthenticateWithCredential(firebaseAuth.currentUser, credential);
+        await updatePassword(firebaseAuth.currentUser, data.newPassword);
+        passwordUpdated = true;
+      }
+
+      if (displayNameUpdated && passwordUpdated) {
+        toast({ title: "تم تحديث الملف الشخصي وكلمة المرور بنجاح!" });
+      } else if (displayNameUpdated) {
+        toast({ title: "تم تحديث اسم العرض بنجاح!" });
+      } else if (passwordUpdated) {
+        toast({ title: "تم تحديث كلمة المرور بنجاح!" });
+      } else if (!form.formState.isDirty) {
+         toast({ title: "لا توجد تغييرات لحفظها."});
+      }
+      
+      // Reset form to clear dirty state and password fields
+       form.reset({
+        displayName: data.displayName || user.displayName || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
       });
 
-      toast({ title: "تم تحديث الملف الشخصي بنجاح!" });
-      setNewProfileImageFile(null); // Reset file input state
-      // The useAuth hook should automatically pick up the changes from onAuthStateChanged
-      // and update the user object, causing a re-render with new data.
     } catch (error: any) {
       console.error("Error updating profile:", error);
+      let description = "حدث خطأ ما. يرجى المحاولة مرة أخرى.";
+      if (error.code === 'auth/wrong-password') {
+        description = "كلمة المرور الحالية غير صحيحة.";
+      } else if (error.code === 'auth/weak-password') {
+        description = "كلمة المرور الجديدة ضعيفة جدًا (يجب أن تكون 6 أحرف على الأقل).";
+      } else if (error.code === 'auth/requires-recent-login') {
+        description = "تتطلب هذه العملية تسجيل دخول حديث. الرجاء تسجيل الخروج ثم الدخول مرة أخرى والمحاولة.";
+      }
       toast({
         title: "خطأ في تحديث الملف الشخصي",
-        description: error.message || "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+        description: description,
         variant: "destructive",
       });
     } finally {
@@ -133,7 +166,6 @@ export default function ProfilePage() {
   }
 
   if (!user) {
-    // This case should ideally be handled by the layout, but as a fallback:
     return <p className="text-center text-muted-foreground">الرجاء تسجيل الدخول لعرض ملفك الشخصي.</p>;
   }
   
@@ -146,31 +178,13 @@ export default function ProfilePage() {
       <Card className="shadow-xl">
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader className="text-center">
-            <div className="relative mx-auto w-32 h-32 mb-4 group">
-              <Avatar className="w-32 h-32 text-4xl border-4 border-primary/50 shadow-md">
-                <AvatarImage src={profileImagePreview || user.photoURL || ""} alt={user.displayName || "User Avatar"} />
+            <div className="relative mx-auto w-24 h-24 mb-4">
+              <Avatar className="w-24 h-24 text-3xl border-4 border-primary/50 shadow-md">
+                 <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
                 <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>
-              <Label 
-                htmlFor="profileImageInput" 
-                className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 rounded-full cursor-pointer transition-opacity"
-              >
-                <Edit3 size={32} />
-              </Label>
-              <Input 
-                id="profileImageInput" 
-                type="file" 
-                className="hidden" 
-                accept="image/png, image/jpeg, image/jpg" 
-                onChange={handleImageChange} 
-              />
             </div>
-            {profileImagePreview && (
-                 <Button type="button" variant="ghost" size="sm" onClick={removeProfileImage} className="mx-auto text-destructive hover:text-destructive/80">
-                    <Trash2 size={16} className="ml-1 rtl:mr-1 rtl:ml-0"/> إزالة الصورة
-                </Button>
-            )}
-            <CardTitle className="mt-2">{user.displayName || "المستخدم"}</CardTitle>
+            <CardTitle className="mt-2">{form.watch("displayName") || user.displayName || "المستخدم"}</CardTitle>
             <CardDescription>{user.email}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -197,12 +211,57 @@ export default function ProfilePage() {
               <Label>الخطة الحالية</Label>
               <Input value={currentPlanName} readOnly disabled className="bg-muted/50" />
             </div>
+
+            <hr className="my-6 border-border" />
+            
+            <h3 className="text-lg font-semibold flex items-center gap-2"><LockKeyhole size={20}/>تغيير كلمة المرور</h3>
+            <CardDescription>اترك الحقول التالية فارغة إذا كنت لا ترغب في تغيير كلمة المرور.</CardDescription>
+
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">كلمة المرور الحالية</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                {...form.register("currentPassword")}
+                placeholder="••••••••"
+              />
+              {form.formState.errors.currentPassword && (
+                <p className="text-sm text-destructive">{form.formState.errors.currentPassword.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                {...form.register("newPassword")}
+                placeholder="••••••••"
+              />
+              {form.formState.errors.newPassword && (
+                <p className="text-sm text-destructive">{form.formState.errors.newPassword.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmNewPassword">تأكيد كلمة المرور الجديدة</Label>
+              <Input
+                id="confirmNewPassword"
+                type="password"
+                {...form.register("confirmNewPassword")}
+                placeholder="••••••••"
+              />
+              {form.formState.errors.confirmNewPassword && (
+                <p className="text-sm text-destructive">{form.formState.errors.confirmNewPassword.message}</p>
+              )}
+            </div>
+
           </CardContent>
           <CardFooter>
             <Button 
               type="submit" 
               className="w-full transition-smooth hover:shadow-md" 
-              disabled={isSubmitting || !form.formState.isDirty && !newProfileImageFile && !(profileImagePreview === null && user.photoURL !== null) }
+              disabled={isSubmitting || !form.formState.isDirty}
             >
               {isSubmitting ? (
                 <Loader2 className="ml-2 h-4 w-4 animate-spin" />
@@ -217,5 +276,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+    
 
     
