@@ -23,7 +23,7 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
-        <ul className="space-y-2 list-none p-0"> {/* Added list-none p-0 */}
+        <ul className="space-y-2 list-none p-0">
           {plan.features.map((feature, index) => {
             let iconElement = null;
             let textElement = feature;
@@ -40,9 +40,9 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
             }
 
             return (
-              <li key={index} className="flex items-center">
+              <li key={index} className="flex items-start min-h-10"> {/* Ensures consistent height and top alignment */}
                 <span className={cn(
-                  "inline-flex items-center justify-center w-6 h-6 ml-2 shrink-0", // Standardized to ml-2 for RTL
+                  "inline-flex items-center justify-center w-6 h-5 ml-2 shrink-0", // Adjusted height to h-5 for better alignment with text line
                   iconColorClass
                 )}>
                   {iconElement}
@@ -66,4 +66,3 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
     </Card>
   );
 }
-
