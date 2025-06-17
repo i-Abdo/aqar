@@ -110,7 +110,7 @@ export default function DashboardPage() {
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2 text-right">
             <CardTitle className="text-sm font-medium text-right">العقارات النشطة</CardTitle>
             <Home className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
@@ -129,7 +129,7 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2 text-right">
             <CardTitle className="text-sm font-medium text-right">زيارات العقارات (آخر 30 يوم)</CardTitle>
             <BarChart3 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
@@ -152,7 +152,7 @@ export default function DashboardPage() {
 
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold font-headline text-right">إجراءات سريعة</h2>
-        <div className="flex flex-wrap gap-4 justify-end">
+        <div className="flex flex-wrap gap-4 justify-center">
           <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
             <Link href="/dashboard/properties"><Home className="mr-2 h-4 w-4" /> عرض كل عقاراتي</Link>
           </Button>
