@@ -97,7 +97,6 @@ export default function NewPropertyPage() {
         allImageFiles.push(...additionalImageFiles);
       }
       
-      // Validate image count against plan limits (main + additional)
       const totalImagesToUpload = allImageFiles.length;
       if (currentPlan && totalImagesToUpload > currentPlan.imageLimitPerProperty) {
          toast({ title: "تم تجاوز حد الصور", description: `تسمح خطتك "${currentPlan.name}" بتحميل ${currentPlan.imageLimitPerProperty} صور كحد أقصى لكل عقار. لديك ${totalImagesToUpload} صور.`, variant: "destructive" });
@@ -175,7 +174,7 @@ export default function NewPropertyPage() {
     );
   }
   
-  if (!currentPlan) { // Should not happen if user is logged in but as a fallback
+  if (!currentPlan) { 
       return (
         <div className="text-center py-10">
             <p>حدث خطأ في تحميل تفاصيل خطتك. يرجى المحاولة مرة أخرى.</p>
@@ -190,4 +189,3 @@ export default function NewPropertyPage() {
     </div>
   );
 }
-
