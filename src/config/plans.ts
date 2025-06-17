@@ -1,3 +1,4 @@
+
 import type { Plan } from "@/types";
 
 export const plans: Plan[] = [
@@ -7,42 +8,45 @@ export const plans: Plan[] = [
     priceMonthly: 0,
     priceYearly: 0,
     features: [
-      "نشر عقار واحد", // List 1 property
-      "صورتان لكل عقار", // 2 images per property
-      "دعم محدود", // Limited support
+      "إمكانية نشر أكثر من عقار ✕",
+      "صور تفصيلية للعقار ✕",
+      "مساعد الوصف بالذكاء الاصطناعي ✕",
+      "دعم محدود",
     ],
     maxListings: 1,
-    imageLimitPerProperty: 2,
+    imageLimitPerProperty: 1, // صورة رئيسية واحدة فقط
     aiAssistantAccess: false,
     cta: "ابدأ مجاناً", // Start for free
   },
   {
     id: "vip",
     name: "VIP",
-    priceMonthly: 1000, // Example price in DZD
-    priceYearly: 10000,
+    priceMonthly: 1500, // Updated price
+    priceYearly: 15000, // Assuming priceYearly is 10x monthly for consistency
     features: [
-      "نشر حتى 5 عقارات", // List up to 5 properties
-      "5 صور لكل عقار", // 5 images per property
-      "مساعد الوصف بالذكاء الاصطناعي (محدود)", // AI Description Assistant (limited)
-      "دعم ذو أولوية", // Priority support
+      "نشر عقار واحد", // Updated from "up to 5"
+      "صور رئيسية ✓",
+      "صور تفصيلية للعقار ✓", // Implies up to imageLimitPerProperty
+      "مساعد الوصف بالذكاء الاصطناعي (محدود)",
+      "دعم ذو أولوية",
     ],
-    maxListings: 5,
+    maxListings: 1, // Updated from 5
     imageLimitPerProperty: 5,
-    aiAssistantAccess: true, // Or limited access
+    aiAssistantAccess: true,
     cta: "اختر VIP", // Choose VIP
   },
   {
     id: "vip_plus_plus",
     name: "VIP++",
-    priceMonthly: 2500, // Example price in DZD
-    priceYearly: 25000,
+    priceMonthly: 2000, // Updated price
+    priceYearly: 20000, // Assuming priceYearly is 10x monthly for consistency
     features: [
-      "نشر عدد غير محدود من العقارات", // List unlimited properties
-      "10 صور لكل عقار", // 10 images per property
-      "مساعد الوصف بالذكاء الاصطناعي (كامل)", // AI Description Assistant (full)
-      "ظهور مميز للعقارات", // Featured listings
-      "دعم فوري", // Instant support
+      "نشر عدد غير محدود من العقارات",
+      "صور رئيسية ✓",
+      "صور تفصيلية للعقار ✓", // Implies up to imageLimitPerProperty
+      "مساعد الوصف بالذكاء الاصطناعي (كامل)",
+      "ظهور مميز للعقارات",
+      "دعم فوري",
     ],
     maxListings: Infinity,
     imageLimitPerProperty: 10,
