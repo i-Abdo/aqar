@@ -1,10 +1,10 @@
+
 "use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings } from "lucide-react"
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
+import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings, Home } from "lucide-react" // Added Home
 
 const dashboardNavItems = [
   {
@@ -15,21 +15,21 @@ const dashboardNavItems = [
   {
     title: "عقاراتي",
     href: "/dashboard/properties",
-    icon: ListPlus,
+    icon: Home, // Changed from ListPlus to Home for "My Properties"
   },
   {
     title: "إضافة عقار",
     href: "/dashboard/properties/new",
-    icon: ListPlus, // Could be HomePlus or similar
+    icon: ListPlus, 
   },
   {
     title: "الاشتراكات",
-    href: "/pricing", // Or a dedicated dashboard billing page
+    href: "/pricing", 
     icon: DollarSign,
   },
   {
     title: "الملف الشخصي",
-    href: "/dashboard/profile", // Placeholder for profile page
+    href: "/dashboard/profile", 
     icon: UserCircle,
   },
   {
@@ -43,24 +43,25 @@ export function DashboardNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="grid items-start gap-2">
+    <SidebarMenu className="p-2">
       {dashboardNavItems.map((item, index) => (
-        <Link
-          key={index}
-          href={item.href}
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "justify-start text-base p-3 transition-smooth",
-            pathname === item.href
-              ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-              : "hover:bg-accent hover:text-accent-foreground",
-            
-          )}
-        >
-          <item.icon className="mr-2 h-5 w-5 rtl:mr-0 rtl:ml-2" />
-          {item.title}
-        </Link>
+        <SidebarMenuItem key={index}>
+          <SidebarMenuButton
+            asChild
+            isActive={pathname === item.href}
+            className="justify-start text-base" 
+            tooltip={item.title}
+          >
+            <Link href={item.href} className="flex items-center w-full">
+              <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
+              <span className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                {item.title}
+              </span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       ))}
-    </nav>
+    </SidebarMenu>
   )
 }
+

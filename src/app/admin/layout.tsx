@@ -3,13 +3,13 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard } from "lucide-react"; 
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+import { AppLogo } from "@/components/layout/AppLogo";
 
 const adminNavItems = [ 
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard },
@@ -18,24 +18,25 @@ const adminNavItems = [
 function AdminSidebarNav() {
   const pathname = usePathname();
   return (
-    <nav className="grid items-start gap-2">
+    <SidebarMenu className="p-2">
       {adminNavItems.map((item, index) => (
-        <Link
-          key={index}
-          href={item.href}
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "justify-start text-base p-3 transition-smooth",
-            pathname === item.href
-              ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-              : "hover:bg-accent hover:text-accent-foreground",
-          )}
-        >
-          <item.icon className="mr-2 h-5 w-5 rtl:mr-0 rtl:ml-2" />
-          {item.title}
-        </Link>
+        <SidebarMenuItem key={index}>
+          <SidebarMenuButton
+            asChild
+            isActive={pathname === item.href}
+            className="justify-start text-base"
+            tooltip={item.title}
+          >
+            <Link href={item.href} className="flex items-center w-full">
+              <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
+              <span className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                {item.title}
+              </span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       ))}
-    </nav>
+    </SidebarMenu>
   );
 }
 
@@ -80,14 +81,20 @@ export default function AdminLayout({
   }
   
   return (
-    <div className="flex flex-col lg:flex-row lg:gap-x-8">
-        <aside className="lg:w-1/5 h-full lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto lg:border-r rtl:lg:border-l rtl:lg:border-r-transparent border-border py-6 lg:py-0">
-             <h2 className="text-xl font-semibold mb-4 px-3">لوحة الإدارة</h2>
+    <SidebarProvider defaultOpen={true}>
+      <Sidebar side="right" collapsible="icon" className="border-l rtl:border-r-0">
+        <SidebarHeader className="p-3 flex items-center justify-center">
+          {/* <AppLogo /> */}
+           <h2 className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة الإدارة</h2>
+        </SidebarHeader>
+        <SidebarContent className="p-0">
              <AdminSidebarNav />
-        </aside>
-        <div className="flex-1 lg:max-w-4xl xl:max-w-5xl">
-            <div className="p-6">{children}</div>
-        </div>
-    </div>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <div className="p-6">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
+

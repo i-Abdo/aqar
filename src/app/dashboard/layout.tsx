@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2 } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset } from "@/components/ui/sidebar";
+import { AppLogo } from "@/components/layout/AppLogo";
 
 export default function DashboardLayout({
   children,
@@ -33,14 +35,20 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex flex-col lg:flex-row lg:gap-x-8">
-        <aside className="lg:w-1/5 h-full lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto lg:border-r rtl:lg:border-l rtl:lg:border-r-transparent border-border py-6 lg:py-0">
-             <h2 className="text-xl font-semibold mb-4 px-3 hidden lg:block">لوحة التحكم</h2>
-             <DashboardNav />
-        </aside>
-        <div className="flex-1 lg:max-w-4xl xl:max-w-5xl">
-            <div className="p-6">{children}</div>
-        </div>
-    </div>
+    <SidebarProvider defaultOpen={true}>
+      <Sidebar side="right" collapsible="icon" className="border-l rtl:border-r-0">
+        <SidebarHeader className="p-3 flex items-center justify-center">
+          {/* <AppLogo /> */}
+          <h2 className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة التحكم</h2>
+        </SidebarHeader>
+        <SidebarContent className="p-0">
+          <DashboardNav />
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <div className="p-6">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
+
