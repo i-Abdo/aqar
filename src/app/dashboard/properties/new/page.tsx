@@ -121,6 +121,7 @@ export default function NewPropertyPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         deletionReason: "",
+        firebaseStudioTestField: "Hello from Firebase Studio! This is a test field.", // Test field added
       };
 
       await addDoc(collection(db, "properties"), propertyData);
