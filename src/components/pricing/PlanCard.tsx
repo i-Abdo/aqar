@@ -17,9 +17,9 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
     <Card className={cn("flex flex-col shadow-lg transition-all duration-300 hover:shadow-xl", isCurrentPlan && "ring-2 ring-primary border-primary")}>
       <CardHeader className="items-center text-center">
         <CardTitle className="text-2xl font-headline">{plan.name}</CardTitle>
-        <CardDescription className="text-4xl font-bold text-primary">
-          {plan.priceMonthly > 0 ? `${plan.priceMonthly} د.ج` : "مجاني"}
-          {plan.priceMonthly > 0 && <span className="text-sm font-normal text-muted-foreground">/شهر</span>}
+        <CardDescription className="text-3xl font-bold text-accent">
+          {plan.priceMonthly > 0 ? `${plan.priceMonthly.toLocaleString()} د.ج` : "مجاني"}
+          {plan.priceMonthly > 0 && <span className="text-base font-normal text-muted-foreground">/شهر</span>}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -34,7 +34,7 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
               iconElement = (
                 <>
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  <CheckCircle className="h-5 w-5 text-green-500" /> {/* Removed -mr-2.5 */}
+                  <CheckCircle className="h-5 w-5 text-green-500" />
                 </>
               );
               textElement = feature.slice(0, -3).trim(); // Remove " ✓✓"
