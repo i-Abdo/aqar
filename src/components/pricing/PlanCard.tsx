@@ -1,6 +1,7 @@
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle } from "lucide-react"; // Added XCircle
+import { CheckCircle, XCircle } from "lucide-react";
 import type { Plan } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +40,13 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
             }
 
             return (
-              <li key={index} className="flex items-center gap-2">
-                {iconElement && <span className={iconColorClass}>{iconElement}</span>}
+              <li key={index} className="flex items-center">
+                <span className={cn(
+                  "inline-flex items-center justify-center w-6 h-6 rtl:ml-2 ltr:mr-2 shrink-0",
+                  iconColorClass
+                )}>
+                  {iconElement}
+                </span>
                 <span>{textElement}</span>
               </li>
             );
