@@ -1,13 +1,13 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react"; // Added XCircle
 import type { Plan } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface PlanCardProps {
   plan: Plan;
   isCurrentPlan?: boolean;
-  onSelectPlan: (planId: Plan["id"]) => void; // Callback for plan selection
+  onSelectPlan: (planId: Plan["id"]) => void;
   isLoading?: boolean;
 }
 
@@ -23,12 +23,28 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
       </CardHeader>
       <CardContent className="flex-grow">
         <ul className="space-y-2">
-          {plan.features.map((feature, index) => (
-            <li key={index} className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-500 ml-2 rtl:ml-0 rtl:mr-2" />
-              <span>{feature}</span>
-            </li>
-          ))}
+          {plan.features.map((feature, index) => {
+            let iconElement = null;
+            let textElement = feature;
+            let iconColorClass = "";
+
+            if (feature.endsWith(" ✓")) {
+              iconElement = <CheckCircle className="h-5 w-5" />;
+              textElement = feature.slice(0, -2).trim();
+              iconColorClass = "text-green-500";
+            } else if (feature.endsWith(" ✕")) {
+              iconElement = <XCircle className="h-5 w-5" />;
+              textElement = feature.slice(0, -2).trim();
+              iconColorClass = "text-destructive";
+            }
+
+            return (
+              <li key={index} className="flex items-center gap-2">
+                {iconElement && <span className={iconColorClass}>{iconElement}</span>}
+                <span>{textElement}</span>
+              </li>
+            );
+          })}
         </ul>
       </CardContent>
       <CardFooter>
