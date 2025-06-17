@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -13,10 +14,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/hooks/use-auth"; // Assuming useAuth hook for user and signOut
+import { useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function UserAccountNav() {
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-10 w-[90px]" /> {/* Approx width for "تسجيل الدخول" */}
+        <Skeleton className="h-10 w-[100px]" /> {/* Approx width for "إنشاء حساب" */}
+      </div>
+    );
+  }
 
   if (!user) {
     return (
