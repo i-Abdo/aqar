@@ -171,7 +171,7 @@ export default function EditPropertyPage() {
 
       const propertyUpdateData: Partial<Property> = {
         ...formData,
-        phoneNumber: formData.phoneNumber || undefined, // Add phone number
+        phoneNumber: formData.phoneNumber, 
         imageUrls: finalImageUrls,
         updatedAt: serverTimestamp() as Timestamp, 
       };
@@ -249,3 +249,5 @@ export default function EditPropertyPage() {
     </div>
   );
 }
+
+    

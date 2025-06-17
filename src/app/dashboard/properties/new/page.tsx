@@ -115,7 +115,7 @@ export default function NewPropertyPage() {
       const propertyData: Omit<Property, 'id' | 'createdAt' | 'updatedAt'> = {
         ...data,
         userId: user.uid,
-        phoneNumber: data.phoneNumber || undefined, // Add phone number
+        phoneNumber: data.phoneNumber, 
         imageUrls,
         status: "active", 
         deletionReason: "",
@@ -198,3 +198,5 @@ export default function NewPropertyPage() {
     </div>
   );
 }
+
+    

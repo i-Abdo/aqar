@@ -37,7 +37,6 @@ const wilayas = [
   { code: "45", name: "النعامة" }, { code: "46", name: "عين تموشنت" }, { code: "47", name: "غرداية" }, { code: "48", name: "غليزان" }
 ];
 
-// Basic Algerian phone number regex (starts with 0, followed by 5, 6, or 7, then 8 digits)
 const algerianPhoneNumberRegex = /^0[567]\d{8}$/;
 
 const propertyFormSchema = z.object({
@@ -50,8 +49,8 @@ const propertyFormSchema = z.object({
   neighborhood: z.string().optional(),
   address: z.string().optional(),
   phoneNumber: z.string()
-    .optional()
-    .refine(val => !val || algerianPhoneNumberRegex.test(val), {
+    .min(1, "رقم الهاتف مطلوب.")
+    .regex(algerianPhoneNumberRegex, {
         message: "رقم الهاتف غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.",
     }),
   description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا."),
@@ -306,7 +305,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
               </div>
               <div>
-                <Label htmlFor="phoneNumber" className="flex items-center gap-1"><Phone size={16}/>رقم الهاتف (اختياري)</Label>
+                <Label htmlFor="phoneNumber" className="flex items-center gap-1"><Phone size={16}/>رقم الهاتف *</Label>
                 <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
                 {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
               </div>
@@ -508,3 +507,5 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     </Card>
   );
 }
+
+    
