@@ -53,7 +53,7 @@ const propertyFormSchema = z.object({
     .regex(algerianPhoneNumberRegex, {
         message: "رقم الهاتف غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.",
     }),
-  description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا."),
+  description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(500, "الوصف يجب أن لا يتجاوز 500 حرفًا."),
   filters: z.object({
     water: z.boolean().default(false),
     electricity: z.boolean().default(false),
