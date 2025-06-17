@@ -28,8 +28,18 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
             let iconElement = null;
             let textElement = feature;
             let iconColorClass = "";
+            let specificIconContainerClass = "w-6"; // Default for single icons
 
-            if (feature.endsWith(" ✓")) {
+            if (feature.endsWith(" ✓✓")) {
+              iconElement = (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <CheckCircle className="h-5 w-5 text-green-500 -mr-2.5" /> {/* RTL: negative margin-right pulls left */}
+                </>
+              );
+              textElement = feature.slice(0, -3).trim(); // Remove " ✓✓"
+              specificIconContainerClass = "w-auto"; // Container adapts to content
+            } else if (feature.endsWith(" ✓")) {
               iconElement = <CheckCircle className="h-5 w-5" />;
               textElement = feature.slice(0, -2).trim();
               iconColorClass = "text-green-500";
@@ -40,10 +50,11 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
             }
 
             return (
-              <li key={index} className="flex items-start min-h-10"> {/* Ensures consistent height and top alignment */}
+              <li key={index} className="flex items-start min-h-10">
                 <span className={cn(
-                  "inline-flex items-center justify-center w-6 h-5 ml-2 shrink-0", // Adjusted height to h-5 for better alignment with text line
-                  iconColorClass
+                  "inline-flex items-center justify-center h-5 ml-2 shrink-0",
+                  specificIconContainerClass, // w-6 or w-auto
+                  !feature.endsWith(" ✓✓") ? iconColorClass : "" // Apply color to container only if not double check
                 )}>
                   {iconElement}
                 </span>
