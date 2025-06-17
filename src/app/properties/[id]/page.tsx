@@ -83,7 +83,7 @@ export default function PropertyDetailPage() {
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, filters, imageUrls, createdAt } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, filters, imageUrls, createdAt, phoneNumber } = property;
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -169,7 +169,7 @@ export default function PropertyDetailPage() {
             </p>
           </div>
 
-          {Object.values(filters).some(val => val === true) && (
+          {filters && Object.values(filters).some(val => val === true) && (
             <div className="mt-8">
               <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">الميزات والخدمات</h3>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
@@ -187,11 +187,39 @@ export default function PropertyDetailPage() {
         </CardContent>
         <CardFooter className="p-6 md:p-8 border-t bg-secondary/30">
             <div className="w-full">
-                 <h3 className="text-xl font-semibold mb-4 font-headline text-center">تواصل مع المالك</h3>
+                <h3 className="text-xl font-semibold mb-2 font-headline text-center">تواصل مع المالك</h3>
+                {phoneNumber ? (
+                    <p className="text-center text-lg font-semibold text-primary mb-4">
+                        <Phone className="inline-block ml-2 rtl:mr-2 rtl:ml-0" size={20} />
+                        {phoneNumber}
+                    </p>
+                ) : (
+                    <p className="text-center text-muted-foreground mb-4">
+                        رقم الهاتف غير متوفر من قبل المالك.
+                    </p>
+                )}
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button size="lg" className="flex-1 transition-smooth hover:shadow-md">
-                        <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> اتصال (سيتم تنفيذها لاحقاً)
-                    </Button>
+                    {phoneNumber ? (
+                        <Button 
+                            size="lg" 
+                            className="flex-1 transition-smooth hover:shadow-md"
+                            asChild
+                        >
+                            <a href={`tel:${phoneNumber}`}>
+                                <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0" />
+                                اتصل بالمالك
+                            </a>
+                        </Button>
+                    ) : (
+                        <Button 
+                            size="lg" 
+                            className="flex-1 transition-smooth hover:shadow-md"
+                            disabled
+                        >
+                            <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0" />
+                            اتصال (غير متاح)
+                        </Button>
+                    )}
                     <Button size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
                         <MessageSquare size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> مراسلة (سيتم تنفيذها لاحقاً)
                     </Button>
