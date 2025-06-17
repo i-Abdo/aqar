@@ -110,7 +110,7 @@ export default function DashboardPage() {
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-right">العقارات النشطة</CardTitle>
             <Home className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
@@ -129,7 +129,7 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-right">زيارات العقارات (آخر 30 يوم)</CardTitle>
             <BarChart3 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
@@ -150,31 +150,31 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-2xl font-semibold font-headline">إجراءات سريعة</h2>
+      <div className="space-y-4 dir-ltr">
+        <h2 className="text-2xl font-semibold font-headline text-left">إجراءات سريعة</h2>
         <div className="flex flex-wrap gap-4">
           <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-            <Link href="/dashboard/properties"><Home className="rtl:ml-2 ml-0 mr-2 h-4 w-4" /> عرض كل عقاراتي</Link>
+            <Link href="/dashboard/properties"><Home className="mr-2 h-4 w-4" /> عرض كل عقاراتي</Link>
           </Button>
           <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-            <Link href="/pricing"><PlusCircle className="rtl:ml-2 ml-0 mr-2 h-4 w-4" /> ترقية الخطة</Link>
+            <Link href="/pricing"><PlusCircle className="mr-2 h-4 w-4" /> ترقية الخطة</Link>
           </Button>
            <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-            <Link href="/dashboard/profile"><UserCircle className="rtl:ml-2 ml-0 mr-2 h-4 w-4" /> تعديل الملف الشخصي</Link>
+            <Link href="/dashboard/profile"><UserCircle className="mr-2 h-4 w-4" /> تعديل الملف الشخصي</Link>
           </Button>
           <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-            <Link href="/dashboard/settings"><Settings className="rtl:ml-2 ml-0 mr-2 h-4 w-4" /> الإعدادات</Link>
+            <Link href="/dashboard/settings"><Settings className="mr-2 h-4 w-4" /> الإعدادات</Link>
           </Button>
         </div>
       </div>
 
-      <Card className="shadow-md hover:shadow-lg transition-smooth">
+      <Card className="shadow-md hover:shadow-lg transition-smooth dir-ltr">
         <CardHeader>
-          <CardTitle>آخر الأنشطة والرسائل</CardTitle>
+          <CardTitle className="text-left">آخر الأنشطة والرسائل</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 text-left">
           {userStats.unreadMessages > 0 ? (
-            <div className="p-3 rounded-md border border-accent bg-accent/10">
+            <div className="p-3 rounded-md border border-accent bg-accent/10 text-left">
                 <p className="text-accent-foreground">لديك <span className="font-bold">{userStats.unreadMessages}</span> رسائل جديدة غير مقروءة. <Link href="/dashboard/messages" className="underline hover:text-primary">عرض الرسائل</Link></p>
             </div>
           ) : (
