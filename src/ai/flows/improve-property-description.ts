@@ -22,7 +22,7 @@ const ImprovePropertyDescriptionInputSchema = z.object({
 export type ImprovePropertyDescriptionInput = z.infer<typeof ImprovePropertyDescriptionInputSchema>;
 
 const ImprovePropertyDescriptionOutputSchema = z.object({
-  improvedDescription: z.string().describe('The improved property description.'),
+  improvedDescription: z.string().describe('The improved property description, in Arabic.'),
 });
 export type ImprovePropertyDescriptionOutput = z.infer<typeof ImprovePropertyDescriptionOutputSchema>;
 
@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
   name: 'improvePropertyDescriptionPrompt',
   input: {schema: ImprovePropertyDescriptionInputSchema},
   output: {schema: ImprovePropertyDescriptionOutputSchema},
-  prompt: `You are an expert real estate copywriter specializing in optimizing property descriptions for search engines and user engagement.\n\nGiven the current property description and an image of the property, suggest improvements to make the description more appealing to potential renters and optimized for search engines.\n\nCurrent Description: {{{currentDescription}}}\n\nImage: {{media url=imageDataUri}}\n\nFocus on highlighting key features and benefits that are visually evident in the image, and incorporate relevant keywords to improve search visibility. The improved description should be concise, engaging, and informative, encouraging potential renters to inquire further.\n\nImproved Description: `,
+  prompt: `You are an expert real estate copywriter specializing in optimizing property descriptions for search engines and user engagement.\n\nGiven the current property description and an image of the property, suggest improvements to make the description more appealing to potential renters and optimized for search engines.\n\nCurrent Description: {{{currentDescription}}}\n\nImage: {{media url=imageDataUri}}\n\nFocus on highlighting key features and benefits that are visually evident in the image, and incorporate relevant keywords to improve search visibility. The improved description should be concise, engaging, and informative, encouraging potential renters to inquire further. The improved description MUST be in Arabic.\n\nImproved Description: `,
 });
 
 const improvePropertyDescriptionFlow = ai.defineFlow(
