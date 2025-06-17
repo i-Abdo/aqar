@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
 import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link"; // Added import
 import type { Property } from "@/types";
 import { plans } from "@/config/plans"; // Import plans to check aiAssistantAccess
 import { useAuth } from "@/hooks/use-auth"; // Import useAuth to get user's plan
