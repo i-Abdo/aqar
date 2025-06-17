@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { collection, query, where, getDocs, doc, updateDoc, getCountFromServer } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, getCountFromServer, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { Property, Plan } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
 import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation"; // Added missing import
 import {
   AlertDialog,
   AlertDialogAction,
@@ -147,11 +148,18 @@ export default function MyPropertiesPage() {
         if (planDetails.maxListings === Infinity) {
           setCanAddProperty(true);
         } else {
-          const activePendingPropsCount = props.filter(p => p.status === 'active' || p.status === 'pending').length;
+          // Count only active and pending properties towards the limit
+          const activePendingPropsQuery = query(
+            collection(db, "properties"), 
+            where("userId", "==", user.uid), 
+            where("status", "in", ["active", "pending"])
+          );
+          const countSnapshot = await getCountFromServer(activePendingPropsQuery);
+          const activePendingPropsCount = countSnapshot.data().count;
           setCanAddProperty(activePendingPropsCount < planDetails.maxListings);
         }
       } else {
-        setCanAddProperty(false);
+        setCanAddProperty(false); // Default to false if plan details not found
       }
     } catch (error) {
       console.error("Error fetching properties or limits:", error);
@@ -246,4 +254,3 @@ export default function MyPropertiesPage() {
     </div>
   );
 }
-
