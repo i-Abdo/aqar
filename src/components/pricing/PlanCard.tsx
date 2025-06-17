@@ -17,9 +17,16 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
     <Card className={cn("flex flex-col shadow-lg transition-all duration-300 hover:shadow-xl", isCurrentPlan && "ring-2 ring-primary border-primary")}>
       <CardHeader className="items-center text-center">
         <CardTitle className="text-2xl font-headline">{plan.name}</CardTitle>
-        <CardDescription className="text-3xl font-bold text-accent">
-          {plan.priceMonthly > 0 ? `${plan.priceMonthly.toLocaleString()} د.ج` : "مجاني"}
-          {plan.priceMonthly > 0 && <span className="text-base font-normal text-muted-foreground">/شهر</span>}
+        <CardDescription className="text-3xl font-bold text-accent min-h-[2.5rem]"> {/* Added min-h for consistency */}
+          {plan.priceMonthly > 0 ? (
+            <>
+              {`${plan.priceMonthly.toLocaleString()} د.ج`}
+              {/* Ensure the /month part is part of the conditional rendering if price is 0 */}
+              <span className="text-lg font-normal text-muted-foreground">/شهر</span> {/* Increased size */}
+            </>
+          ) : (
+            null // Render nothing if the price is 0 or less
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -77,3 +84,4 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
     </Card>
   );
 }
+
