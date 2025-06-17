@@ -111,10 +111,10 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">العقارات النشطة</CardTitle>
+            <CardTitle className="text-sm font-medium text-right">العقارات النشطة</CardTitle>
             <Home className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-right">
             {user?.planId === 'vip_plus_plus' && userStats.activeListings === 0 ? (
                  <p className="text-destructive">هناك خطأ هنا فقط في vip++ حيث لا يضهر عدد العقارات المرفوعة تضهر 0</p>
             ) : (
@@ -130,10 +130,10 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">زيارات العقارات (آخر 30 يوم)</CardTitle>
+            <CardTitle className="text-sm font-medium text-right">زيارات العقارات (آخر 30 يوم)</CardTitle>
             <BarChart3 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-right">
             <div className="text-2xl font-bold">{userStats.propertyViews.toLocaleString()}</div> 
             <p className="text-xs text-muted-foreground">
               (سيتم تفعيل هذه الميزة قريباً)
