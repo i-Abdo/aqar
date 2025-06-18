@@ -72,7 +72,7 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <RadioGroup
                 value={themeSetting}
-                onValueChange={(value: ThemeSetting) => setThemeSetting(value)}
+                onValueChange={(value: string) => setThemeSetting(value as ThemeSetting)}
                 className="space-y-1"
               >
                 <div className="flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-md border hover:bg-accent/50 transition-colors">
