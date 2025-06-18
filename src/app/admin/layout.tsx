@@ -163,7 +163,7 @@ export default function AdminLayout({
   return (
     <SidebarProvider 
       defaultOpen={true}
-      style={{ '--sidebar-width': '14rem' } as React.CSSProperties}
+      style={{ '--sidebar-width': '16rem' } as React.CSSProperties}
     >
       <Sidebar side="right" collapsible="icon" className="border-l rtl:border-r-0">
         <SidebarHeader className="p-3 flex items-center justify-center">
