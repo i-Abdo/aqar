@@ -6,7 +6,7 @@ import Link from "next/link";
 import { CheckCircle, MapPin } from "lucide-react";
 
 const popularCities = [
-  { name: "الجزائر العاصمة", hint: "Algiers cityscape" , image: "https://placehold.co/400x300.png" },
+  { name: "الجزائر", hint: "Algiers cityscape" , image: "https://placehold.co/400x300.png" },
   { name: "وهران", hint: "Oran waterfront" , image: "https://placehold.co/400x300.png" },
   { name: "قسنطينة", hint: "Constantine bridge" , image: "https://placehold.co/400x300.png" },
   { name: "عنابة", hint: "Annaba beach" , image: "https://placehold.co/400x300.png" },
