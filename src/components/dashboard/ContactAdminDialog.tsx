@@ -105,11 +105,11 @@ export function ContactAdminDialog({
     }
   }, [isOpen, form]);
 
-  const dialogTitle = propertyTitle 
+  const dialogTitleText = propertyTitle 
     ? `الإبلاغ عن مشكلة بخصوص العقار: ${propertyTitle}` 
     : "الاتصال بالإدارة";
   
-  const dialogDescription = propertyTitle
+  const dialogDescriptionText = propertyTitle
     ? "صف المشكلة التي تواجهها بخصوص هذا العقار. سيتم مراجعة رسالتك."
     : "صف مشكلتك أو سبب اتصالك بالإدارة. سيتم مراجعة رسالتك في أقرب وقت.";
 
@@ -118,9 +118,9 @@ export function ContactAdminDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogTitle>{dialogTitleText}</DialogTitle>
           <DialogDescription>
-            {dialogDescription}
+            {dialogDescriptionText}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -149,3 +149,4 @@ export function ContactAdminDialog({
     </Dialog>
   );
 }
+
