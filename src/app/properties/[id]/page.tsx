@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'; // Added useRouter
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, DollarSign, CheckCircle, Phone, MessageSquare, Flag } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Phone, MessageSquare, Flag } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
@@ -145,8 +145,8 @@ export default function PropertyDetailPage() {
             <CardTitle className="font-headline text-3xl md:text-4xl text-primary mb-2 md:mb-0">
               {title}
             </CardTitle>
-            <div className="text-2xl md:text-3xl font-bold text-accent flex items-center gap-2 whitespace-nowrap">
-               <DollarSign size={28} /> {price.toLocaleString()} د.ج
+            <div className="text-2xl md:text-3xl font-bold text-accent flex items-center gap-1 whitespace-nowrap">
+               {price.toLocaleString()} د.ج
             </div>
           </div>
 
