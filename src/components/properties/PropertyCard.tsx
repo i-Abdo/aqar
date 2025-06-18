@@ -73,38 +73,51 @@ export function PropertyCard({ property }: PropertyCardProps) {
             </CardTitle>
           </Link>
           <p className="text-lg font-semibold text-green-600 mb-2">{formatDisplayPrice(property.price)}</p>
+          
           <div className="text-sm text-muted-foreground space-y-1">
-            <div className="flex items-center gap-1 truncate">
-              <MapPin size={16} className="text-muted-foreground" />
-              <span>{property.wilaya}, {property.city}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <BedDouble size={16} className="text-muted-foreground" />
-              <span>{property.rooms} غرف</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Bath size={16} className="text-muted-foreground" />
-              <span>{property.bathrooms} حمامات</span>
-            </div>
-            {property.area && (
-              <div className="flex items-center gap-1">
-                <Ruler size={16} className="text-muted-foreground" />
-                <span>المساحة: {property.area} م²</span>
+            {/* Row 1: Location & Area */}
+            <div className="grid grid-cols-2 gap-x-2">
+              <div className="flex items-center gap-1 truncate" title={`${property.wilaya}, ${property.city}`}>
+                <MapPin size={16} className="text-muted-foreground shrink-0" />
+                <span>{property.wilaya}, {property.city}</span>
               </div>
-            )}
-            {property.length && property.width && (
+              {property.area ? (
+                <div className="flex items-center gap-1">
+                  <Ruler size={16} className="text-muted-foreground shrink-0" />
+                  <span>المساحة: {property.area} م²</span>
+                </div>
+              ) : <div>&nbsp;</div> /* Placeholder to maintain grid structure */}
+            </div>
+
+            {/* Row 2: Rooms & Dimensions */}
+            <div className="grid grid-cols-2 gap-x-2">
               <div className="flex items-center gap-1">
-                <Ruler size={16} className="text-muted-foreground" />
-                <span>الأبعاد: {property.length}م × {property.width}م</span>
+                <BedDouble size={16} className="text-muted-foreground shrink-0" />
+                <span>{property.rooms} غرف</span>
               </div>
-            )}
-            {property.phoneNumber && (
+              {(property.length && property.width) ? (
+                <div className="flex items-center gap-1">
+                  <Ruler size={16} className="text-muted-foreground shrink-0" />
+                  <span>الأبعاد: {property.length}م × {property.width}م</span>
+                </div>
+              ) : <div>&nbsp;</div> /* Placeholder */}
+            </div>
+
+            {/* Row 3: Bathrooms & Phone */}
+            <div className="grid grid-cols-2 gap-x-2">
               <div className="flex items-center gap-1">
-                <Phone size={16} className="text-muted-foreground" />
-                <span>{property.phoneNumber}</span>
+                <Bath size={16} className="text-muted-foreground shrink-0" />
+                <span>{property.bathrooms} حمامات</span>
               </div>
-            )}
+              {property.phoneNumber ? (
+                <div className="flex items-center gap-1">
+                  <Phone size={16} className="text-muted-foreground shrink-0" />
+                  <span>{property.phoneNumber}</span>
+                </div>
+              ) : <div>&nbsp;</div> /* Placeholder */}
+            </div>
           </div>
+
         </CardContent>
         <CardFooter className="p-4 border-t flex gap-2">
           <Button asChild className="flex-1 transition-smooth hover:shadow-md">
