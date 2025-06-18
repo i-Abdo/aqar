@@ -3,12 +3,12 @@
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import type { Property, TransactionType, PropertyTypeEnum } from '@/types';
+import type { Property, TransactionType, PropertyTypeEnum, CustomUser } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
 import { ContactAdminDialog } from '@/components/dashboard/ContactAdminDialog';
@@ -61,13 +61,15 @@ export default function PropertyDetailPage() {
   const [deletionReason, setDeletionReason] = useState("");
   const [isDeletingProperty, setIsDeletingProperty] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [ownerInfoForAdmin, setOwnerInfoForAdmin] = useState<{ uid: string; email: string | null } | null>(null);
 
 
   useEffect(() => {
     if (id) {
-      const fetchProperty = async () => {
+      const fetchPropertyAndOwner = async () => {
         setIsLoading(true);
         setError(null);
+        setOwnerInfoForAdmin(null);
         try {
           const propRef = doc(db, "properties", id as string);
           const docSnap = await getDoc(propRef);
@@ -89,6 +91,18 @@ export default function PropertyDetailPage() {
               if (fetchedProperty.imageUrls && fetchedProperty.imageUrls.length > 0) {
                 setSelectedImageUrl(fetchedProperty.imageUrls[0]);
               }
+
+              // Fetch owner info if admin
+              if (isAdmin && fetchedProperty.userId) {
+                const ownerRef = doc(db, "users", fetchedProperty.userId);
+                const ownerSnap = await getDoc(ownerRef);
+                if (ownerSnap.exists()) {
+                  const ownerData = ownerSnap.data() as CustomUser;
+                  setOwnerInfoForAdmin({ uid: fetchedProperty.userId, email: ownerData.email || "غير متوفر" });
+                } else {
+                  setOwnerInfoForAdmin({ uid: fetchedProperty.userId, email: "بيانات المالك غير موجودة" });
+                }
+              }
             }
           } else {
             setError("لم يتم العثور على العقار.");
@@ -100,7 +114,7 @@ export default function PropertyDetailPage() {
           setIsLoading(false);
         }
       };
-      fetchProperty();
+      fetchPropertyAndOwner();
     } else {
       setIsLoading(false);
       setError("معرف العقار غير موجود.");
@@ -285,6 +299,22 @@ export default function PropertyDetailPage() {
             </div>
           </div>
           
+          {isAdmin && ownerInfoForAdmin && (
+            <div className="mb-8 p-4 border rounded-md bg-secondary/50">
+              <h3 className="text-lg font-semibold mb-2 font-headline flex items-center gap-2 text-primary">
+                <UserCircle size={20} />
+                معلومات المالك (للمسؤول فقط)
+              </h3>
+              <div className="space-y-1 text-sm">
+                <p><strong>UID:</strong> {ownerInfoForAdmin.uid}</p>
+                <p className="flex items-center gap-1">
+                  <Mail size={16} />
+                  <strong>البريد الإلكتروني:</strong> {ownerInfoForAdmin.email || "غير متوفر"}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div>
             <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">الوصف التفصيلي</h3>
             <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
@@ -439,3 +469,5 @@ export default function PropertyDetailPage() {
     </div>
   );
 }
+
+    
