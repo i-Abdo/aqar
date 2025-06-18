@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useAuth } from '@/hooks/use-auth'; // Added
 
 const reportStatusTranslations: Record<Report['status'], string> = {
   new: 'جديد',
@@ -60,7 +61,7 @@ export default function AdminReportsPage() {
   const [propertyDeletionReason, setPropertyDeletionReason] = useState("");
 
   const [isArchivePropertyDialogOpen, setIsArchivePropertyDialogOpen] = useState(false);
-  const [propertyArchiveReason, setPropertyArchiveReason] = useState(""); // Changed from propertyArchiveNotes
+  const [propertyArchiveReason, setPropertyArchiveReason] = useState(""); 
 
   const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false);
   const [targetUserForTrustLevel, setTargetUserForTrustLevel] = useState<{userId: string, propertyTitle: string, currentTrustLevel: UserTrustLevel} | null>(null);
@@ -68,6 +69,7 @@ export default function AdminReportsPage() {
 
 
   const { toast } = useToast();
+  const { refreshAdminNotifications } = useAuth(); // Added
 
   const fetchReports = async () => {
     setIsLoading(true);
@@ -128,7 +130,7 @@ export default function AdminReportsPage() {
 
   const openArchivePropertyDialog = (report: Report) => {
     setSelectedReport(report);
-    setPropertyArchiveReason(""); // Reset archive reason
+    setPropertyArchiveReason(""); 
     setIsArchivePropertyDialogOpen(true);
   };
 
@@ -173,7 +175,8 @@ export default function AdminReportsPage() {
         const userRef = doc(db, "users", targetUserForTrustLevel.userId);
         await updateDoc(userRef, { trustLevel: selectedTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${targetUserForTrustLevel.propertyTitle}" إلى "${trustLevelTranslations[selectedTrustLevel]}".` });
-        fetchReports();
+        await fetchReports(); // Refresh local, ownerCurrentTrustLevel might change
+        // No need to call refreshAdminNotifications here as it's not changing the 'new' report count
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -201,7 +204,8 @@ export default function AdminReportsPage() {
       }
       await updateDoc(reportRef, updateData);
       toast({ title: "تم التحديث", description: `تم تحديث حالة البلاغ إلى "${reportStatusTranslations[status]}".` });
-      fetchReports();
+      await fetchReports();
+      await refreshAdminNotifications();
     } catch (error) {
       console.error("Error updating report status:", error);
       toast({ title: "خطأ", description: "فشل تحديث حالة البلاغ.", variant: "destructive" });
@@ -226,7 +230,7 @@ export default function AdminReportsPage() {
       toast({ title: "خطأ", description: "سبب الحذف مطلوب.", variant: "destructive" });
       return;
     }
-    if (actionType === 'archive' && !propertyArchiveReason.trim()) { // Check for archive reason
+    if (actionType === 'archive' && !propertyArchiveReason.trim()) { 
       toast({ title: "خطأ", description: "سبب الأرشفة مطلوب.", variant: "destructive" });
       return;
     }
@@ -248,12 +252,12 @@ export default function AdminReportsPage() {
       if (actionType === 'delete') {
         propertyUpdate.status = 'deleted';
         propertyUpdate.deletionReason = propertyDeletionReason;
-        propertyUpdate.archivalReason = ""; // Clear archival reason if deleting
+        propertyUpdate.archivalReason = ""; 
         reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". (تصنيف المالك لم يتغير)`;
-      } else { // archive
+      } else { 
         propertyUpdate.status = 'archived';
         propertyUpdate.archivalReason = propertyArchiveReason;
-        propertyUpdate.deletionReason = ""; // Clear deletion reason if archiving
+        propertyUpdate.deletionReason = ""; 
         reportNotes = `تم أرشفة العقار بسبب: "${propertyArchiveReason}". (تصنيف المالك لم يتغير)`;
       }
       await updateDoc(propertyRef, propertyUpdate);
@@ -261,6 +265,7 @@ export default function AdminReportsPage() {
       await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
 
       toast({ title: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار`, description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedReport.propertyTitle}".` });
+      // refreshAdminNotifications is called within handleUpdateReportStatus
 
       if (actionType === 'delete') {
         setPropertyDeletionReason("");
@@ -292,6 +297,7 @@ export default function AdminReportsPage() {
 
         const reportNotes = `تم إعادة تنشيط العقار. (تصنيف المالك لم يتغير)`;
         await handleUpdateReportStatus(report.id, 'resolved', reportNotes);
+        // refreshAdminNotifications is called within handleUpdateReportStatus
 
         toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}".` });
     } catch (error) {
@@ -456,7 +462,10 @@ export default function AdminReportsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isDeletePropertyDialogOpen} onOpenChange={setIsDeletePropertyDialogOpen}>
+      <AlertDialog open={isDeletePropertyDialogOpen} onOpenChange={(open) => {
+          setIsDeletePropertyDialogOpen(open);
+          if (!open) {setSelectedReport(null); setPropertyDeletionReason("");}
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد حذف العقار</AlertDialogTitle>
@@ -511,7 +520,6 @@ export default function AdminReportsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Change User Trust Level Dialog */}
       <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={(open) => {
           setIsTrustLevelDialogOpen(open);
           if(!open) setTargetUserForTrustLevel(null);
@@ -550,4 +558,3 @@ export default function AdminReportsPage() {
     </div>
   );
 }
-

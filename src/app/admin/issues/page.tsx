@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Loader2, MessageSquare, UserCog, UserCheck, UserX, Mail, Eye, Building } from "lucide-react"; // Added Building icon
+import { MoreHorizontal, Loader2, MessageSquare, UserCog, UserCheck, UserX, Mail, Eye, Building } from "lucide-react"; 
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
@@ -25,7 +25,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label"; 
-import Link from 'next/link'; // Added Link for property link
+import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth'; // Added
 
 const issueStatusTranslations: Record<UserIssue['status'], string> = {
   new: 'جديد',
@@ -54,6 +55,7 @@ export default function AdminUserIssuesPage() {
   const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal');
   const [currentUserDetails, setCurrentUserDetails] = useState<Partial<CustomUser> | null>(null);
   const { toast } = useToast();
+  const { refreshAdminNotifications } = useAuth(); // Added
 
   const fetchIssues = async () => {
     setIsLoading(true);
@@ -114,18 +116,17 @@ export default function AdminUserIssuesPage() {
     
     setIsLoading(true);
     try {
-      // Update User Trust Level
       if (selectedIssue.userId && currentUserDetails?.trustLevel !== targetUserTrustLevel) {
           const userRef = doc(db, "users", selectedIssue.userId);
           await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
           toast({ title: "تم تحديث تصنيف المستخدم", description: `تم تغيير تصنيف المستخدم إلى ${trustLevelTranslations[targetUserTrustLevel]}.` });
       }
 
-      // Update Issue Status and Notes
       const issueRef = doc(db, "user_issues", selectedIssue.id);
       const updateData: Partial<UserIssue> = { 
         adminNotes: adminNotes.trim() || "",
-        updatedAt: Timestamp.now() 
+        updatedAt: Timestamp.now(),
+        dismissedByOwner: false, // Ensure not dismissed if admin updates
       };
       if (newStatus) {
         updateData.status = newStatus;
@@ -133,7 +134,8 @@ export default function AdminUserIssuesPage() {
       await updateDoc(issueRef, updateData);
       
       toast({ title: "تم تحديث المشكلة", description: `تم ${newStatus ? `تغيير حالة المشكلة إلى ${issueStatusTranslations[newStatus]} و` : ""} حفظ الملاحظات.` });
-      fetchIssues();
+      await fetchIssues();
+      await refreshAdminNotifications();
       setIsDetailsDialogOpen(false);
     } catch (error) {
       console.error("Error updating issue or user trust level:", error);
@@ -196,7 +198,6 @@ export default function AdminUserIssuesPage() {
         )}
       </Card>
 
-      {/* Issue Details Dialog */}
       <AlertDialog open={isDetailsDialogOpen} onOpenChange={(open) => {
           setIsDetailsDialogOpen(open);
           if (!open) {
@@ -280,4 +281,3 @@ export default function AdminUserIssuesPage() {
     </div>
   );
 }
-

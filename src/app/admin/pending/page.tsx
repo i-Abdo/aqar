@@ -28,6 +28,7 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/use-auth'; // Added
 
 interface PendingProperty extends Property {
   ownerEmail?: string;
@@ -51,10 +52,11 @@ export default function AdminPendingPropertiesPage() {
   const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false);
 
   const [rejectionReason, setRejectionReason] = useState("");
-  const [archiveReason, setArchiveReason] = useState(""); // For archive dialog
+  const [archiveReason, setArchiveReason] = useState(""); 
   const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal');
 
   const { toast } = useToast();
+  const { refreshAdminNotifications } = useAuth(); // Added
 
   const fetchPendingProperties = async () => {
     setIsLoading(true);
@@ -111,7 +113,7 @@ export default function AdminPendingPropertiesPage() {
 
   const openRejectArchiveDialog = (property: PendingProperty) => {
     setSelectedProperty(property);
-    setArchiveReason(""); // Reset archive reason
+    setArchiveReason(""); 
     setIsRejectArchiveDialogOpen(true);
   };
 
@@ -128,7 +130,8 @@ export default function AdminPendingPropertiesPage() {
       const propRef = doc(db, "properties", selectedProperty.id);
       await updateDoc(propRef, { status: 'active', updatedAt: Timestamp.now() });
       toast({ title: "تمت الموافقة", description: `تمت الموافقة على العقار "${selectedProperty.title}" وتغيير حالته إلى نشط. (تصنيف المالك لم يتغير)` });
-      fetchPendingProperties();
+      await fetchPendingProperties();
+      await refreshAdminNotifications();
     } catch (error) {
       console.error("Error approving property:", error);
       toast({ title: "خطأ", description: "فشل الموافقة على العقار.", variant: "destructive" });
@@ -145,7 +148,7 @@ export default function AdminPendingPropertiesPage() {
       toast({ title: "خطأ", description: "سبب الحذف (الرفض) مطلوب.", variant: "destructive" });
       return;
     }
-    if (actionType === 'archive' && !archiveReason.trim()) { // Check archive reason
+    if (actionType === 'archive' && !archiveReason.trim()) { 
       toast({ title: "خطأ", description: "سبب الأرشفة (الرفض) مطلوب.", variant: "destructive" });
       return;
     }
@@ -157,15 +160,16 @@ export default function AdminPendingPropertiesPage() {
       if (actionType === 'delete') {
         propUpdate.status = 'deleted';
         propUpdate.deletionReason = rejectionReason;
-        propUpdate.archivalReason = ""; // Clear archival if deleting
-      } else { // archive
+        propUpdate.archivalReason = ""; 
+      } else { 
         propUpdate.status = 'archived';
         propUpdate.archivalReason = archiveReason;
-        propUpdate.deletionReason = ""; // Clear deletion if archiving
+        propUpdate.deletionReason = ""; 
       }
       await updateDoc(propRef, propUpdate);
       toast({ title: "تم رفض العقار", description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedProperty.title}". (تصنيف المالك لم يتغير)` });
-      fetchPendingProperties();
+      await fetchPendingProperties();
+      await refreshAdminNotifications();
     } catch (error) {
       console.error(`Error rejecting property (${actionType}):`, error);
       toast({ title: "خطأ", description: `فشل ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار.`, variant: "destructive" });
@@ -176,7 +180,7 @@ export default function AdminPendingPropertiesPage() {
         setRejectionReason("");
       } else {
         setIsRejectArchiveDialogOpen(false);
-        setArchiveReason(""); // Reset archive reason
+        setArchiveReason(""); 
       }
       setSelectedProperty(null);
     }
@@ -192,7 +196,7 @@ export default function AdminPendingPropertiesPage() {
         const userRef = doc(db, "users", selectedProperty.userId);
         await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${selectedProperty.title}" إلى "${trustLevelTranslations[targetUserTrustLevel]}".` });
-        fetchPendingProperties();
+        await fetchPendingProperties(); // No need to refresh global admin count here as it's not directly related to 'new' items count
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -281,7 +285,6 @@ export default function AdminPendingPropertiesPage() {
         )}
       </Card>
 
-      {/* Approve Dialog */}
       <AlertDialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -301,7 +304,6 @@ export default function AdminPendingPropertiesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reject (Delete) Dialog */}
       <AlertDialog open={isRejectDeleteDialogOpen} onOpenChange={(open) => {
           setIsRejectDeleteDialogOpen(open);
           if(!open) { setSelectedProperty(null); setRejectionReason("");}
@@ -331,7 +333,6 @@ export default function AdminPendingPropertiesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reject (Archive) Dialog */}
       <AlertDialog open={isRejectArchiveDialogOpen} onOpenChange={(open) => {
           setIsRejectArchiveDialogOpen(open);
           if(!open) setSelectedProperty(null);
@@ -361,7 +362,6 @@ export default function AdminPendingPropertiesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Change User Trust Level Dialog */}
       <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={(open) => {
           setIsTrustLevelDialogOpen(open);
           if(!open) setSelectedProperty(null);
@@ -401,4 +401,3 @@ export default function AdminPendingPropertiesPage() {
     </div>
   );
 }
-

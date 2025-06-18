@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/use-auth'; // Added
 
 const appealStatusTranslations: Record<AppealStatus, string> = {
   new: 'جديد',
@@ -40,7 +41,7 @@ const appealStatusVariants: Record<AppealStatus, "default" | "secondary" | "outl
   under_review: 'secondary',
   resolved_deleted: 'destructive',
   resolved_kept_archived: 'outline',
-  resolved_published: 'default', // Consider a success variant if you add one to Badge
+  resolved_published: 'default', 
 };
 
 export default function AdminPropertyAppealsPage() {
@@ -53,6 +54,7 @@ export default function AdminPropertyAppealsPage() {
   const [adminNotes, setAdminNotes] = useState("");
   
   const { toast } = useToast();
+  const { refreshAdminNotifications } = useAuth(); // Added
 
   const fetchAppeals = async () => {
     setIsLoading(true);
@@ -79,12 +81,12 @@ export default function AdminPropertyAppealsPage() {
 
   useEffect(() => {
     fetchAppeals();
-  }, [toast]);
+  }, []); // Removed toast from dependency array as it's stable
 
   const openDecisionDialog = (appeal: PropertyAppeal, type: AdminAppealDecisionType) => {
     setSelectedAppeal(appeal);
     setDecisionType(type);
-    setAdminNotes(appeal.adminNotes || ""); // Load existing notes if any
+    setAdminNotes(appeal.adminNotes || "");
     setIsDecisionDialogOpen(true);
   };
 
@@ -108,38 +110,33 @@ export default function AdminPropertyAppealsPage() {
         case 'delete':
           newAppealStatus = 'resolved_deleted';
           propertyUpdate.status = 'deleted';
-          propertyUpdate.deletionReason = adminNotes; // Use admin notes as deletion reason
-          propertyUpdate.archivalReason = ""; // Clear archival reason
-          // Optionally, update owner's trust level if needed here based on policy
-          // For now, we don't auto-change trust on delete from appeal, admin can do it via users page
+          propertyUpdate.deletionReason = adminNotes; 
+          propertyUpdate.archivalReason = ""; 
           break;
         case 'keep_archived':
           newAppealStatus = 'resolved_kept_archived';
-          propertyUpdate.status = 'archived'; // Ensure it remains archived
-          propertyUpdate.archivalReason = adminNotes; // Update archival reason with decision notes
+          propertyUpdate.status = 'archived'; 
+          propertyUpdate.archivalReason = adminNotes; 
           break;
         case 'publish':
           newAppealStatus = 'resolved_published';
           propertyUpdate.status = 'active';
-          propertyUpdate.archivalReason = ""; // Clear archival reason
+          propertyUpdate.archivalReason = ""; 
           propertyUpdate.deletionReason = "";
-          // Consider setting owner's trustLevel to 'normal' if published
           ownerUpdate = { trustLevel: 'normal', updatedAt: Timestamp.now() };
           break;
       }
 
-      // Update Appeal Document
       await updateDoc(appealRef, {
         appealStatus: newAppealStatus,
         adminDecision: decisionType,
         adminNotes: adminNotes,
         adminDecisionAt: Timestamp.now(),
+        dismissedByOwner: false, // Ensure it's not dismissed by default after admin action
       });
 
-      // Update Property Document
       await updateDoc(propertyRef, propertyUpdate);
 
-      // Update Owner's Trust Level (if applicable)
       if (ownerUpdate && selectedAppeal.ownerUserId) {
         const userRef = doc(db, "users", selectedAppeal.ownerUserId);
         await updateDoc(userRef, ownerUpdate);
@@ -147,7 +144,8 @@ export default function AdminPropertyAppealsPage() {
       }
       
       toast({ title: "تم اتخاذ القرار", description: `تم تحديث حالة الطعن والعقار بنجاح.` });
-      fetchAppeals();
+      await fetchAppeals(); // Refresh local list
+      await refreshAdminNotifications(); // Refresh global admin counts
       setIsDecisionDialogOpen(false);
       setSelectedAppeal(null);
       setAdminNotes("");
@@ -167,11 +165,13 @@ export default function AdminPropertyAppealsPage() {
         const appealRef = doc(db, "property_appeals", appeal.id);
         await updateDoc(appealRef, {
             appealStatus: newStatus,
-            adminNotes: appeal.adminNotes || "", // Ensure notes are saved if any
-            updatedAt: Timestamp.now() // Assuming 'updatedAt' on appeal doc exists for general updates
+            adminNotes: appeal.adminNotes || "", 
+            updatedAt: Timestamp.now(),
+            dismissedByOwner: false, // Ensure not dismissed if status changes
         });
         toast({ title: "تم تحديث الحالة", description: `تم تغيير حالة الطعن إلى ${appealStatusTranslations[newStatus]}.` });
-        fetchAppeals();
+        await fetchAppeals();
+        await refreshAdminNotifications();
     } catch (error) {
         console.error("Error updating appeal status:", error);
         toast({ title: "خطأ", description: "فشل تحديث حالة الطعن.", variant: "destructive" });
@@ -180,7 +180,6 @@ export default function AdminPropertyAppealsPage() {
     }
   };
 
-  // Translations for trust levels
   const trustLevelTranslations: Record<UserTrustLevel, string> = {
     normal: 'عادي',
     untrusted: 'غير موثوق',
@@ -272,7 +271,6 @@ export default function AdminPropertyAppealsPage() {
         )}
       </Card>
 
-      {/* Decision Dialog */}
       <AlertDialog open={isDecisionDialogOpen} onOpenChange={(open) => {
           if (!open) {
             setSelectedAppeal(null);
@@ -317,4 +315,3 @@ export default function AdminPropertyAppealsPage() {
     </div>
   );
 }
-    
