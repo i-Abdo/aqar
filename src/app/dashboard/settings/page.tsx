@@ -4,11 +4,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { UserCog, Palette, ShieldCheck, BellDot, Trash2 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { UserCog, Palette, ShieldCheck, BellDot, Trash2, Sun, Moon, Computer } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/hooks/use-theme";
 import React from "react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import type { ThemeSetting } from "@/hooks/use-theme";
 
 
 export default function SettingsPage() {
@@ -18,10 +19,6 @@ export default function SettingsPage() {
   React.useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const handleThemeChange = (checked: boolean) => {
-    setThemeSetting(checked ? 'dark' : 'light');
-  };
 
   return (
     <div className="space-y-8">
@@ -72,30 +69,48 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           {isClient ? (
-            <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
-              <div className="space-y-0.5">
-                <Label htmlFor="dark-mode-switch" className="text-base font-medium">
-                  الوضع الداكن
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {effectiveTheme === 'dark' ? "الوضع الداكن مُفعل حالياً." : "الوضع الفاتح مُفعل حالياً."}
-                </p>
-              </div>
-              <Switch
-                id="dark-mode-switch"
-                checked={effectiveTheme === 'dark'}
-                onCheckedChange={handleThemeChange}
-                aria-label="Toggle dark mode"
-              />
+            <div className="space-y-4">
+              <RadioGroup
+                value={themeSetting}
+                onValueChange={(value: ThemeSetting) => setThemeSetting(value)}
+                className="space-y-1"
+              >
+                <div className="flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-md border hover:bg-accent/50 transition-colors">
+                  <RadioGroupItem value="light" id="theme-light" />
+                  <Label htmlFor="theme-light" className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Sun size={16} />
+                    الوضع الفاتح
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-md border hover:bg-accent/50 transition-colors">
+                  <RadioGroupItem value="dark" id="theme-dark" />
+                  <Label htmlFor="theme-dark" className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Moon size={16} />
+                    الوضع الداكن
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-md border hover:bg-accent/50 transition-colors">
+                  <RadioGroupItem value="system" id="theme-system" />
+                  <Label htmlFor="theme-system" className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Computer size={16} />
+                    حسب إعدادات الجهاز
+                  </Label>
+                </div>
+              </RadioGroup>
+              <p className="text-xs text-muted-foreground mt-2">
+                المظهر المطبق حالياً: {effectiveTheme === 'dark' ? "داكن" : "فاتح"}.
+                <br />
+                عند اختيار "حسب إعدادات الجهاز"، سيتبع التطبيق تفضيلات نظام التشغيل الخاص بك.
+              </p>
             </div>
           ) : (
-            <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm h-[76px] animate-pulse bg-muted/50">
-              {/* Placeholder for loading state to avoid hydration mismatch */}
+            <div className="space-y-2">
+              {[1,2,3].map(i => (
+                 <div key={i} className="h-12 rounded-md border animate-pulse bg-muted/50"></div>
+              ))}
+              <div className="h-10 w-3/4 rounded animate-pulse bg-muted/50 mt-2"></div>
             </div>
           )}
-          <p className="text-sm text-muted-foreground mt-4">
-            لتفضيل نظام التشغيل: (سيتم إضافة هذا الخيار قريبًا إذا كنت ترغب في مزامنة المظهر مع إعدادات نظامك).
-          </p>
         </CardContent>
       </Card>
 
