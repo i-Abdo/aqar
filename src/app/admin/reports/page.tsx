@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label"; // Added missing import
 
 const reportStatusTranslations: Record<Report['status'], string> = {
   new: 'جديد',
@@ -106,7 +107,7 @@ export default function AdminReportsPage() {
 
   const openArchivePropertyDialog = (report: Report) => {
     setSelectedReport(report);
-    setPropertyArchiveNotes(report.adminNotes || "");
+    setPropertyArchiveNotes(report.adminNotes || ""); // Changed from deletionReason to archiveNotes
     setTargetUserTrustLevel('untrusted'); // Default for archiving
     setIsArchivePropertyDialogOpen(true);
   };
@@ -133,8 +134,8 @@ export default function AdminReportsPage() {
       toast({ title: "خطأ", description: "فشل تحديث حالة البلاغ.", variant: "destructive" });
     }
     if (isNotesDialogOpen) setIsNotesDialogOpen(false);
-    setSelectedReport(null);
-    setAdminNotes("");
+    setSelectedReport(null); // Clear selected report after action
+    setAdminNotes(""); // Clear admin notes
   };
   
   const handleSaveNotesAndResolve = async () => {
@@ -164,6 +165,7 @@ export default function AdminReportsPage() {
 
       if (!propertySnap.exists()) {
         toast({ title: "خطأ", description: "لم يتم العثور على العقار المبلغ عنه.", variant: "destructive" });
+        setIsLoading(false);
         return;
       }
       const propertyData = propertySnap.data() as Property;
@@ -176,6 +178,7 @@ export default function AdminReportsPage() {
         propertyUpdate.deletionReason = propertyDeletionReason;
       } else {
         propertyUpdate.status = 'archived';
+        // propertyUpdate.deletionReason = propertyArchiveNotes; // Assuming deletionReason can hold archive notes for simplicity or add new field
       }
       await updateDoc(propertyRef, propertyUpdate);
 
@@ -192,7 +195,7 @@ export default function AdminReportsPage() {
       } else {
         reportNotes = `تم أرشفة العقار. ملاحظات الأرشفة: "${propertyArchiveNotes}". تم تغيير تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "${trustLevelTranslations[targetUserTrustLevel]}".`;
       }
-      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
+      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes); // This will also call fetchReports
       
       toast({ title: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار`, description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedReport.propertyTitle}" وتحديث تصنيف مالكه.` });
       
@@ -203,6 +206,7 @@ export default function AdminReportsPage() {
         setPropertyArchiveNotes("");
         setIsArchivePropertyDialogOpen(false);
       }
+      // setSelectedReport(null); // Already handled in handleUpdateReportStatus
     } catch (error) {
       console.error(`Error ${actionType} property from report:`, error);
       toast({ title: "خطأ", description: `فشل ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار أو تحديث المستخدم.`, variant: "destructive" });
@@ -218,12 +222,13 @@ export default function AdminReportsPage() {
         const propertySnap = await getDoc(propertyRef);
         if (!propertySnap.exists()) {
             toast({ title: "خطأ", description: "لم يتم العثور على العقار.", variant: "destructive" });
+            setIsLoading(false);
             return;
         }
         const propertyData = propertySnap.data() as Property;
         const ownerUserId = propertyData.userId;
 
-        await updateDoc(propertyRef, { status: 'active', updatedAt: Timestamp.now() });
+        await updateDoc(propertyRef, { status: 'active', updatedAt: Timestamp.now(), deletionReason: "" }); // Clear deletion reason on reactivation
 
         if (ownerUserId) {
             const userRef = doc(db, "users", ownerUserId);
@@ -231,9 +236,10 @@ export default function AdminReportsPage() {
         }
         
         const reportNotes = `تم إعادة تنشيط العقار. تم إعادة تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "عادي".`;
-        await handleUpdateReportStatus(report.id, 'resolved', reportNotes);
+        await handleUpdateReportStatus(report.id, 'resolved', reportNotes); // This will also call fetchReports
 
         toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}" وتصنيف المالك كـ "عادي".` });
+        // setSelectedReport(null); // Already handled in handleUpdateReportStatus
     } catch (error) {
         console.error("Error reactivating property:", error);
         toast({ title: "خطأ", description: "فشل إعادة تنشيط العقار.", variant: "destructive" });
@@ -474,3 +480,6 @@ export default function AdminReportsPage() {
     </div>
   );
 }
+
+
+    
