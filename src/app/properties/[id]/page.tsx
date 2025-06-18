@@ -276,7 +276,7 @@ export default function PropertyDetailPage() {
                         <>
                             <Button
                                 size="lg"
-                                variant="outline_secondary"
+                                variant="outline_accent" 
                                 className="flex-1 transition-smooth hover:shadow-md"
                                 onClick={() => setIsContactAdminDialogOpen(true)}
                             >
