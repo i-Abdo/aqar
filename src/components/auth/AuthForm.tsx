@@ -78,8 +78,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           isAdmin: false, // Default admin status
           createdAt: new Date(),
         });
-        toast({ title: "تم إنشاء الحساب بنجاح!", description: "يمكنك الآن تسجيل الدخول." });
-        router.push("/login");
+        toast({ title: "تم إنشاء الحساب بنجاح!", description: "جاري توجيهك إلى لوحة التحكم..." });
+        router.push("/dashboard");
       } else {
         // Ensure values are for login
         const loginValues = values as z.infer<typeof loginSchema>;
