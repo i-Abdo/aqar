@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning> {/* suppressHydrationWarning for theme switching */}
+    <html lang="ar" dir="rtl" suppressHydrationWarning>{/* suppressHydrationWarning for theme switching */}
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
