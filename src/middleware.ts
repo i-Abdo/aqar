@@ -1,4 +1,4 @@
-// src/middleware.ts (ULTRA-DIAGNOSTIC v6 - Basic Function)
+// src/middleware.ts (ULTRA-DIAGNOSTIC v6 - Basic Function with Matcher)
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -9,7 +9,17 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// NO 'export const config' for this diagnostic step.
-// NO 'export const runtime' for this diagnostic step (let Next.js default or error if needed).
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+};
 
-console.log('[Middleware ULTRA-DIAGNOSTIC v6] src/middleware.ts finished loading.');
+console.log('[Middleware ULTRA-DIAGNOSTIC v6] src/middleware.ts finished loading with matcher config.');
