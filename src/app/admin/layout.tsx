@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react"; // Added ShieldQuestion
+import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -19,14 +19,14 @@ const adminNavItems = [
   { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag, countKey: "reports" },
   { title: "مشاكل المستخدمين", href: "/admin/issues", icon: MessageCircleWarning, countKey: "issues" },
   { title: "عقارات قيد المراجعة", href: "/admin/pending", icon: ListChecks, countKey: "pending" },
-  { title: "إدارة الطعون", href: "/admin/appeals", icon: ShieldQuestion, countKey: "appeals" }, // Added appeals
+  { title: "إدارة الطعون", href: "/admin/appeals", icon: ShieldQuestion, countKey: "appeals" },
 ];
 
 interface AdminCounts {
   pending: number;
   reports: number;
   issues: number;
-  appeals: number; // Added appeals
+  appeals: number; 
   properties?: number;
 }
 
@@ -57,9 +57,9 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                     {item.title}
                   </span>
                 </div>
-                {count > 0 && (
+                {item.countKey !== "properties" && count > 0 && ( // Exclude "properties" from having this type of badge
                   <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
-                    {count}
+                    {count > 9 ? '9+' : count}
                   </Badge>
                 )}
               </Link>
@@ -81,8 +81,9 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname(); 
 
-  const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 }); // Added appeals
+  const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
   const [isLoadingCounts, setIsLoadingCounts] = useState(true);
+  const [totalAdminNotifications, setTotalAdminNotifications] = useState(0);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -93,24 +94,28 @@ export default function AdminLayout({
         const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
         const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
         const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
-        const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new")); // Added appeals query
+        const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
 
-        const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([ // Added appealsSnapshot
+        const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
           getCountFromServer(pendingPropsQuery),
           getCountFromServer(newReportsQuery),
           getCountFromServer(newUserIssuesQuery),
-          getCountFromServer(newAppealsQuery), // Added appeals query
+          getCountFromServer(newAppealsQuery),
         ]);
 
-        setCounts({
+        const currentCounts = {
           pending: pendingSnapshot.data().count,
           reports: reportsSnapshot.data().count,
           issues: issuesSnapshot.data().count,
-          appeals: appealsSnapshot.data().count, // Added appeals count
-        });
+          appeals: appealsSnapshot.data().count,
+        };
+        setCounts(currentCounts);
+        setTotalAdminNotifications(currentCounts.pending + currentCounts.reports + currentCounts.issues + currentCounts.appeals);
+
       } catch (error) {
         console.error("Error fetching admin counts:", error);
-        setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 }); // Added appeals
+        setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
+        setTotalAdminNotifications(0);
       } finally {
         setIsLoadingCounts(false);
       }
@@ -155,7 +160,14 @@ export default function AdminLayout({
     <SidebarProvider defaultOpen={true}>
       <Sidebar side="right" collapsible="icon" className="border-l rtl:border-r-0">
         <SidebarHeader className="p-3 flex items-center justify-center">
-           <h2 className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة الإدارة</h2>
+           <div className="flex items-center gap-2 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+             <h2 className="text-xl font-semibold">لوحة الإدارة</h2>
+             {totalAdminNotifications > 0 && !isLoadingCounts && (
+               <Badge variant="destructive">{totalAdminNotifications > 9 ? '9+' : totalAdminNotifications}</Badge>
+             )}
+           </div>
+           {/* Icon only view for collapsed sidebar header if needed */}
+           <LayoutDashboard className="h-6 w-6 shrink-0 hidden group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:block group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:block mx-auto" />
         </SidebarHeader>
         <SidebarContent className="p-0">
              <AdminSidebarNav counts={counts} />
@@ -167,4 +179,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-

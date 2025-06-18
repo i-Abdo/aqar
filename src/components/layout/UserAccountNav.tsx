@@ -16,64 +16,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import React, { useState, useEffect } from "react";
-import { db } from '@/lib/firebase/client';
-import { collection, query, where, getCountFromServer } from "firebase/firestore";
+import React from "react";
+// Removed Firestore imports as notification count is handled elsewhere now
 
 export function UserAccountNav() {
   const { user, signOut, isAdmin, loading: authLoading } = useAuth();
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
-
-  useEffect(() => {
-    if (authLoading || !user) {
-      setNotificationCount(0);
-      return;
-    }
-
-    const fetchNotifications = async () => {
-      setIsLoadingNotifications(true);
-      let totalCount = 0;
-      try {
-        if (isAdmin) {
-          const countsPromises = [
-            getCountFromServer(query(collection(db, "properties"), where("status", "==", "pending"))),
-            getCountFromServer(query(collection(db, "reports"), where("status", "==", "new"))),
-            getCountFromServer(query(collection(db, "user_issues"), where("status", "==", "new"))),
-            getCountFromServer(query(collection(db, "property_appeals"), where("appealStatus", "==", "new"))),
-          ];
-          const snapshots = await Promise.all(countsPromises);
-          totalCount = snapshots.reduce((sum, snapshot) => sum + snapshot.data().count, 0);
-        } else {
-          // Fetch counts for regular user dashboard notifications
-          const appealsQuery = query(
-            collection(db, "property_appeals"),
-            where("ownerUserId", "==", user.uid),
-            where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"])
-          );
-          const issuesQuery = query(
-            collection(db, "user_issues"),
-            where("userId", "==", user.uid),
-            where("status", "in", ["in_progress", "resolved"])
-          );
-          const [appealsSnapshot, issuesSnapshot] = await Promise.all([
-            getCountFromServer(appealsQuery),
-            getCountFromServer(issuesQuery),
-          ]);
-          totalCount = appealsSnapshot.data().count + issuesSnapshot.data().count;
-        }
-        setNotificationCount(totalCount);
-      } catch (error) {
-        console.error("Error fetching notification counts:", error);
-        setNotificationCount(0); // Reset on error
-      } finally {
-        setIsLoadingNotifications(false);
-      }
-    };
-
-    fetchNotifications();
-  }, [user, isAdmin, authLoading]);
-
+  // Removed notificationCount and isLoadingNotifications states
 
   if (authLoading) {
     return (
@@ -102,23 +50,13 @@ export function UserAccountNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div className="relative"> {/* Wrapper for badge positioning */}
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
-              <AvatarFallback>{userInitials}</AvatarFallback>
-            </Avatar>
-            {/* Notification Badge */}
-            {user && notificationCount > 0 && !isLoadingNotifications && (
-              <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center 
-                               rounded-full bg-destructive text-xs font-bold text-destructive-foreground 
-                               ring-2 ring-background pointer-events-none
-                               transform translate-x-1/3 -translate-y-1/3">
-                {notificationCount > 9 ? '9+' : notificationCount}
-              </span>
-            )}
-          </Button>
-        </div>
+        {/* Removed relative wrapper and notification badge span */}
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
+            <AvatarFallback>{userInitials}</AvatarFallback>
+          </Avatar>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">

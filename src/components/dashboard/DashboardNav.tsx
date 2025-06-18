@@ -5,17 +5,19 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
 import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings, Home } from "lucide-react" // Added Home
+import { Badge } from "@/components/ui/badge"; // Added Badge
 
 const dashboardNavItems = [
   {
     title: "نظرة عامة",
     href: "/dashboard",
     icon: LayoutDashboard,
+    countKey: "dashboard_overview_notifications" // Added a key for notifications
   },
   {
     title: "عقاراتي",
     href: "/dashboard/properties",
-    icon: Home, // Changed from ListPlus to Home for "My Properties"
+    icon: Home, 
   },
   {
     title: "إضافة عقار",
@@ -39,29 +41,42 @@ const dashboardNavItems = [
   },
 ]
 
-export function DashboardNav() {
+interface DashboardNavProps {
+  notificationCount?: number;
+}
+
+export function DashboardNav({ notificationCount }: DashboardNavProps) {
   const pathname = usePathname()
 
   return (
     <SidebarMenu className="p-2">
-      {dashboardNavItems.map((item, index) => (
-        <SidebarMenuItem key={index}>
-          <SidebarMenuButton
-            asChild
-            isActive={pathname === item.href}
-            className="justify-start text-base" 
-            tooltip={item.title}
-          >
-            <Link href={item.href} className="flex items-center w-full">
-              <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
-              <span className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
-                {item.title}
-              </span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
+      {dashboardNavItems.map((item, index) => {
+        const showBadge = item.countKey === "dashboard_overview_notifications" && notificationCount && notificationCount > 0;
+        return (
+          <SidebarMenuItem key={index}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === item.href}
+              className="justify-start text-base" 
+              tooltip={item.title}
+            >
+              <Link href={item.href} className="flex items-center justify-between w-full">
+                <div className="flex items-center">
+                  <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
+                  <span className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                    {item.title}
+                  </span>
+                </div>
+                {showBadge && (
+                  <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                    {notificationCount! > 9 ? '9+' : notificationCount}
+                  </Badge>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
     </SidebarMenu>
   )
 }
-
