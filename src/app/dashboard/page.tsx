@@ -308,7 +308,7 @@ export default function DashboardPage() {
               <Bell className="text-primary"/>
               <span>آخر الأنشطة والإشعارات</span>
               {totalVisibleNotifications > 0 && (
-                <Badge variant="default" className="h-6 px-2.5">{totalVisibleNotifications}</Badge>
+                <Badge variant="destructive" className="h-6 px-2.5">{totalVisibleNotifications > 9 ? '9+' : totalVisibleNotifications}</Badge>
               )}
             </CardTitle>
             {hasVisibleNotifications && (
