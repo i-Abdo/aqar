@@ -5,12 +5,12 @@ import { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Trash2, Archive, Eye, Loader2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Trash2, Archive, Eye, Loader2, RefreshCcwDot, UserCog, UserCheck, UserX } from "lucide-react"; // Added icons
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Property } from "@/types";
+import type { Property, UserTrustLevel } from "@/types";
 import Image from "next/image";
 import {
   AlertDialog,
@@ -23,7 +23,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
-import { Card } from "@/components/ui/card"; // Added import
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
+
+const trustLevelTranslations: Record<UserTrustLevel, string> = {
+  normal: 'عادي',
+  untrusted: 'غير موثوق',
+  blacklisted: 'قائمة سوداء',
+};
 
 export default function AdminPropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -31,7 +38,9 @@ export default function AdminPropertiesPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false); // New dialog
   const [deleteReason, setDeleteReason] = useState("");
+  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('untrusted'); // For trust level changes
   const { toast } = useToast();
 
   const fetchAllProperties = async () => {
@@ -42,7 +51,6 @@ export default function AdminPropertiesPage() {
       const propsData = querySnapshot.docs.map(doc => ({ 
           id: doc.id, 
           ...doc.data(),
-          // Ensure dates are Date objects if they are Timestamps
           createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt),
           updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date(doc.data().updatedAt),
       } as Property));
@@ -69,6 +77,20 @@ export default function AdminPropertiesPage() {
     setSelectedProperty(property);
     setIsArchiveDialogOpen(true);
   };
+
+  const openTrustLevelDialog = (property: Property) => {
+    setSelectedProperty(property);
+    // Fetch current trust level of owner if needed, or assume a default to change
+    const userDocRef = doc(db, "users", property.userId);
+    getDoc(userDocRef).then(snap => {
+        if (snap.exists()) {
+            setTargetUserTrustLevel(snap.data().trustLevel || 'normal');
+        } else {
+            setTargetUserTrustLevel('normal');
+        }
+    });
+    setIsTrustLevelDialogOpen(true);
+  };
   
   const handleSoftDeleteProperty = async () => {
     if (!selectedProperty || !deleteReason.trim()) {
@@ -79,7 +101,7 @@ export default function AdminPropertiesPage() {
       const propRef = doc(db, "properties", selectedProperty.id);
       await updateDoc(propRef, { status: 'deleted', deletionReason: deleteReason, updatedAt: new Date() });
       toast({ title: "تم الحذف", description: `تم نقل العقار "${selectedProperty.title}" إلى المحذوفات.` });
-      fetchAllProperties(); // Refresh
+      fetchAllProperties();
     } catch (error) {
       toast({ title: "خطأ", description: "فشل حذف العقار.", variant: "destructive" });
     }
@@ -93,7 +115,7 @@ export default function AdminPropertiesPage() {
       const propRef = doc(db, "properties", selectedProperty.id);
       await updateDoc(propRef, { status: 'archived', updatedAt: new Date() });
       toast({ title: "تمت الأرشفة", description: `تم أرشفة العقار "${selectedProperty.title}".` });
-      fetchAllProperties(); // Refresh
+      fetchAllProperties();
     } catch (error) {
       toast({ title: "خطأ", description: "فشل أرشفة العقار.", variant: "destructive" });
     }
@@ -101,16 +123,55 @@ export default function AdminPropertiesPage() {
     setSelectedProperty(null);
   };
 
+  const handleReactivateProperty = async (property: Property) => {
+    setIsLoading(true); // Can use a specific loader for this action
+    try {
+        const propRef = doc(db, "properties", property.id);
+        await updateDoc(propRef, { status: 'active', updatedAt: Timestamp.now() });
+        
+        // Optionally, reset user trust level to normal
+        const userRef = doc(db, "users", property.userId);
+        await updateDoc(userRef, { trustLevel: 'normal', updatedAt: Timestamp.now() });
+
+        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${property.title}" وتصنيف المالك كـ "عادي".` });
+        fetchAllProperties();
+    } catch (error) {
+        console.error("Error reactivating property:", error);
+        toast({ title: "خطأ", description: "فشل إعادة تنشيط العقار.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleChangeUserTrustLevel = async () => {
+    if (!selectedProperty) return;
+    setIsLoading(true);
+    try {
+        const userRef = doc(db, "users", selectedProperty.userId);
+        await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
+        toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${selectedProperty.title}" إلى "${trustLevelTranslations[targetUserTrustLevel]}".` });
+        // No need to fetchAllProperties unless we display trust level in the table
+    } catch (error) {
+        console.error("Error changing user trust level:", error);
+        toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+        setIsTrustLevelDialogOpen(false);
+        setSelectedProperty(null);
+    }
+  };
+
+
   if (isLoading) {
     return <div className="flex justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
   
   const getStatusVariant = (status: Property['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case 'active': return 'default'; // Greenish if styled in theme
-      case 'pending': return 'secondary'; // Yellowish
+      case 'active': return 'default';
+      case 'pending': return 'secondary';
       case 'deleted': return 'destructive';
-      case 'archived': return 'outline'; // Grayish
+      case 'archived': return 'outline';
       default: return 'secondary';
     }
   };
@@ -165,19 +226,34 @@ export default function AdminPropertiesPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => alert(`View property ${prop.id}`)}><Eye className="mr-2 h-4 w-4" /> عرض التفاصيل</DropdownMenuItem>
+                      <DropdownMenuLabel>إجراءات العقار</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => window.open(`/properties/${prop.id}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض التفاصيل</DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      {prop.status !== 'deleted' && prop.status !== 'archived' && (
+                      {prop.status === 'pending' && (
+                        <DropdownMenuItem onClick={() => handleReactivateProperty(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
+                            <CheckCircle className="mr-2 h-4 w-4" /> تفعيل العقار
+                        </DropdownMenuItem>
+                      )}
+                      {(prop.status === 'deleted' || prop.status === 'archived') && (
+                        <DropdownMenuItem onClick={() => handleReactivateProperty(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
+                          <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط
+                        </DropdownMenuItem>
+                      )}
+                      {prop.status !== 'deleted' && prop.status !== 'archived' && prop.status !== 'pending' && (
                         <DropdownMenuItem onClick={() => openDeleteDialog(prop)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                           <Trash2 className="mr-2 h-4 w-4" /> حذف (نقل للمحذوفات)
                         </DropdownMenuItem>
                       )}
-                       {prop.status === 'deleted' && (
+                       {(prop.status === 'active' || prop.status === 'pending') && ( // Can archive active or pending properties
                         <DropdownMenuItem onClick={() => openArchiveDialog(prop)}>
                           <Archive className="mr-2 h-4 w-4" /> أرشفة
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>إجراءات المالك</DropdownMenuLabel>
+                       <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)}>
+                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك
+                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -217,7 +293,7 @@ export default function AdminPropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد الأرشفة</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد أنك تريد أرشفة العقار "{selectedProperty?.title}"؟ لا يمكن التراجع عن هذا الإجراء بسهولة.
+              هل أنت متأكد أنك تريد أرشفة العقار "{selectedProperty?.title}"؟ 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -226,7 +302,38 @@ export default function AdminPropertiesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+       {/* Change User Trust Level Dialog */}
+      <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={setIsTrustLevelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تغيير تصنيف مالك العقار</AlertDialogTitle>
+            <AlertDialogDescription>
+              تغيير تصنيف مالك العقار "{selectedProperty?.title}" (المستخدم: {selectedProperty?.userId}).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="my-4 space-y-2">
+            <Label htmlFor="trustLevelChange">التصنيف الجديد</Label>
+            <Select value={targetUserTrustLevel} onValueChange={(value) => setTargetUserTrustLevel(value as UserTrustLevel)}>
+                <SelectTrigger id="trustLevelChange">
+                    <SelectValue placeholder="اختر تصنيف المالك..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="normal"><UserCheck className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.normal}</SelectItem>
+                    <SelectItem value="untrusted"><UserX className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.untrusted}</SelectItem>
+                    <SelectItem value="blacklisted"><UserCog className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.blacklisted}</SelectItem>
+                </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setSelectedProperty(null); setIsTrustLevelDialogOpen(false); }}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleChangeUserTrustLevel} disabled={isLoading}>
+                {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2"/>}
+                تحديث التصنيف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-

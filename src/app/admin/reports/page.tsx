@@ -1,16 +1,16 @@
 
 "use client";
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Edit, Loader2, CheckCircle, AlertOctagon, ArchiveX, MessageSquare, Trash2, Archive } from "lucide-react"; // Added Trash2, Archive
+import { MoreHorizontal, Eye, Edit, Loader2, CheckCircle, AlertOctagon, ArchiveX, MessageSquare, Trash2, Archive, RefreshCcwDot, UserCheck, UserX, UserCog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore"; // Added getDoc
+import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Report, Property } from "@/types"; // Added Property type
+import type { Report, Property, UserTrustLevel } from "@/types";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -23,8 +23,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input'; // Added Input
+import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const reportStatusTranslations: Record<Report['status'], string> = {
   new: 'جديد',
@@ -40,6 +41,11 @@ const reportStatusVariants: Record<Report['status'], "default" | "secondary" | "
   dismissed: 'destructive', 
 };
 
+const trustLevelTranslations: Record<UserTrustLevel, string> = {
+  normal: 'عادي',
+  untrusted: 'غير موثوق',
+  blacklisted: 'قائمة سوداء',
+};
 
 export default function AdminReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -51,6 +57,7 @@ export default function AdminReportsPage() {
 
   const [isDeletePropertyDialogOpen, setIsDeletePropertyDialogOpen] = useState(false);
   const [propertyDeletionReason, setPropertyDeletionReason] = useState("");
+  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('untrusted');
 
   const [isArchivePropertyDialogOpen, setIsArchivePropertyDialogOpen] = useState(false);
   const [propertyArchiveNotes, setPropertyArchiveNotes] = useState("");
@@ -82,7 +89,7 @@ export default function AdminReportsPage() {
 
   useEffect(() => {
     fetchReports();
-  }, []); // Removed toast from dependency array to prevent re-fetching on toast
+  }, []);
 
   const openNotesDialog = (report: Report) => {
     setSelectedReport(report);
@@ -93,12 +100,14 @@ export default function AdminReportsPage() {
   const openDeletePropertyDialog = (report: Report) => {
     setSelectedReport(report);
     setPropertyDeletionReason("");
+    setTargetUserTrustLevel('untrusted'); // Default for deletion
     setIsDeletePropertyDialogOpen(true);
   };
 
   const openArchivePropertyDialog = (report: Report) => {
     setSelectedReport(report);
-    setPropertyArchiveNotes(report.adminNotes || ""); // Pre-fill with report notes if any
+    setPropertyArchiveNotes(report.adminNotes || "");
+    setTargetUserTrustLevel('untrusted'); // Default for archiving
     setIsArchivePropertyDialogOpen(true);
   };
 
@@ -137,56 +146,17 @@ export default function AdminReportsPage() {
     await handleUpdateReportStatus(selectedReport.id, 'resolved', adminNotes);
   };
 
-  const confirmDeletePropertyFromReport = async () => {
-    if (!selectedReport || !propertyDeletionReason.trim()) {
+  const confirmPropertyAction = async (actionType: 'delete' | 'archive') => {
+    if (!selectedReport) return;
+    if (actionType === 'delete' && !propertyDeletionReason.trim()) {
       toast({ title: "خطأ", description: "سبب الحذف مطلوب.", variant: "destructive" });
       return;
     }
-    setIsLoading(true); // Indicate loading for this specific action
-    try {
-      const propertyRef = doc(db, "properties", selectedReport.propertyId);
-      const propertySnap = await getDoc(propertyRef);
-
-      if (!propertySnap.exists()) {
-        toast({ title: "خطأ", description: "لم يتم العثور على العقار المبلغ عنه.", variant: "destructive" });
-        return;
-      }
-      const propertyData = propertySnap.data() as Property;
-      const ownerUserId = propertyData.userId;
-
-      // Update property
-      await updateDoc(propertyRef, { 
-        status: 'deleted', 
-        deletionReason: propertyDeletionReason,
-        updatedAt: Timestamp.now() 
-      });
-
-      // Update user as untrusted
-      if (ownerUserId) {
-        const userRef = doc(db, "users", ownerUserId);
-        await updateDoc(userRef, { isTrusted: false, updatedAt: Timestamp.now() });
-      }
-
-      // Update report
-      const reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". تم تصنيف المالك (${ownerUserId || 'غير معروف'}) كغير موثوق.`;
-      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
-      
-      toast({ title: "تم حذف العقار", description: `تم حذف العقار "${selectedReport.propertyTitle}" وتصنيف مالكه كغير موثوق.` });
-      setPropertyDeletionReason("");
-      setIsDeletePropertyDialogOpen(false);
-    } catch (error) {
-      console.error("Error deleting property from report:", error);
-      toast({ title: "خطأ", description: "فشل حذف العقار أو تحديث المستخدم.", variant: "destructive" });
-    } finally {
-      setIsLoading(false); // Reset loading indicator
-    }
-  };
-
-  const confirmArchivePropertyFromReport = async () => {
-    if (!selectedReport || !propertyArchiveNotes.trim()) {
+    if (actionType === 'archive' && !propertyArchiveNotes.trim()) {
       toast({ title: "خطأ", description: "ملاحظات الأرشفة مطلوبة.", variant: "destructive" });
       return;
     }
+
     setIsLoading(true);
     try {
       const propertyRef = doc(db, "properties", selectedReport.propertyId);
@@ -200,34 +170,80 @@ export default function AdminReportsPage() {
       const ownerUserId = propertyData.userId;
 
       // Update property
-      await updateDoc(propertyRef, { 
-        status: 'archived',
-        updatedAt: Timestamp.now()
-      });
-      
-      // Update user as untrusted
+      const propertyUpdate: Partial<Property> = { updatedAt: Timestamp.now() };
+      if (actionType === 'delete') {
+        propertyUpdate.status = 'deleted';
+        propertyUpdate.deletionReason = propertyDeletionReason;
+      } else {
+        propertyUpdate.status = 'archived';
+      }
+      await updateDoc(propertyRef, propertyUpdate);
+
+      // Update user trust level
       if (ownerUserId) {
         const userRef = doc(db, "users", ownerUserId);
-        await updateDoc(userRef, { isTrusted: false, updatedAt: Timestamp.now() });
+        await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
       }
-      
-      // Update report
-      const reportNotes = `تم أرشفة العقار. ملاحظات الأرشفة: "${propertyArchiveNotes}". تم تصنيف المالك (${ownerUserId || 'غير معروف'}) كغير موثوق.`;
-      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
 
-      toast({ title: "تم أرشفة العقار", description: `تم أرشفة العقار "${selectedReport.propertyTitle}" وتصنيف مالكه كغير موثوق.` });
-      setPropertyArchiveNotes("");
-      setIsArchivePropertyDialogOpen(false);
+      // Update report
+      let reportNotes = "";
+      if (actionType === 'delete') {
+        reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". تم تغيير تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "${trustLevelTranslations[targetUserTrustLevel]}".`;
+      } else {
+        reportNotes = `تم أرشفة العقار. ملاحظات الأرشفة: "${propertyArchiveNotes}". تم تغيير تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "${trustLevelTranslations[targetUserTrustLevel]}".`;
+      }
+      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
+      
+      toast({ title: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار`, description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedReport.propertyTitle}" وتحديث تصنيف مالكه.` });
+      
+      if (actionType === 'delete') {
+        setPropertyDeletionReason("");
+        setIsDeletePropertyDialogOpen(false);
+      } else {
+        setPropertyArchiveNotes("");
+        setIsArchivePropertyDialogOpen(false);
+      }
     } catch (error) {
-      console.error("Error archiving property from report:", error);
-      toast({ title: "خطأ", description: "فشل أرشفة العقار أو تحديث المستخدم.", variant: "destructive" });
+      console.error(`Error ${actionType} property from report:`, error);
+      toast({ title: "خطأ", description: `فشل ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار أو تحديث المستخدم.`, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleReactivateProperty = async (report: Report) => {
+    setIsLoading(true);
+    try {
+        const propertyRef = doc(db, "properties", report.propertyId);
+        const propertySnap = await getDoc(propertyRef);
+        if (!propertySnap.exists()) {
+            toast({ title: "خطأ", description: "لم يتم العثور على العقار.", variant: "destructive" });
+            return;
+        }
+        const propertyData = propertySnap.data() as Property;
+        const ownerUserId = propertyData.userId;
 
-  if (isLoading && reports.length === 0) { // Keep loader only on initial load
+        await updateDoc(propertyRef, { status: 'active', updatedAt: Timestamp.now() });
+
+        if (ownerUserId) {
+            const userRef = doc(db, "users", ownerUserId);
+            await updateDoc(userRef, { trustLevel: 'normal', updatedAt: Timestamp.now() });
+        }
+        
+        const reportNotes = `تم إعادة تنشيط العقار. تم إعادة تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "عادي".`;
+        await handleUpdateReportStatus(report.id, 'resolved', reportNotes);
+
+        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}" وتصنيف المالك كـ "عادي".` });
+    } catch (error) {
+        console.error("Error reactivating property:", error);
+        toast({ title: "خطأ", description: "فشل إعادة تنشيط العقار.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+
+  if (isLoading && reports.length === 0) {
     return <div className="flex justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
@@ -310,10 +326,13 @@ export default function AdminReportsPage() {
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel>إجراءات على العقار والمالك</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => openDeletePropertyDialog(report)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="mr-2 h-4 w-4" /> حذف العقار وتصنيف المالك
+                        <Trash2 className="mr-2 h-4 w-4" /> حذف العقار وتحديث تصنيف المالك
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openArchivePropertyDialog(report)}>
-                        <Archive className="mr-2 h-4 w-4" /> أرشفة العقار وتصنيف المالك
+                        <Archive className="mr-2 h-4 w-4" /> أرشفة العقار وتحديث تصنيف المالك
+                      </DropdownMenuItem>
+                       <DropdownMenuItem onClick={() => handleReactivateProperty(report)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
+                        <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط العقار (وتصنيف المالك كـ عادي)
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -379,21 +398,33 @@ export default function AdminReportsPage() {
       <AlertDialog open={isDeletePropertyDialogOpen} onOpenChange={setIsDeletePropertyDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد حذف العقار وتصنيف المالك</AlertDialogTitle>
+            <AlertDialogTitle>تأكيد حذف العقار وتحديث تصنيف المالك</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد أنك تريد حذف العقار "{selectedReport?.propertyTitle}"؟ سيتم نقل العقار إلى المحذوفات، وتصنيف مالكه كـ "غير موثوق".
-              الرجاء إدخال سبب الحذف (سيتم إرساله للمالك نظريًا).
+              سيتم حذف العقار "{selectedReport?.propertyTitle}". الرجاء إدخال سبب الحذف وتحديد تصنيف المالك الجديد.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input 
             placeholder="سبب الحذف (مثال: مخالفة الشروط، معلومات مضللة)" 
             value={propertyDeletionReason}
             onChange={(e) => setPropertyDeletionReason(e.target.value)}
-            className="my-4"
+            className="my-2"
           />
+          <div className="my-2 space-y-1">
+            <Label htmlFor="trustLevelDelete">تصنيف المالك الجديد</Label>
+            <Select value={targetUserTrustLevel} onValueChange={(value) => setTargetUserTrustLevel(value as UserTrustLevel)}>
+                <SelectTrigger id="trustLevelDelete">
+                    <SelectValue placeholder="اختر تصنيف المالك..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="normal"><UserCheck className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.normal}</SelectItem>
+                    <SelectItem value="untrusted"><UserX className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.untrusted}</SelectItem>
+                    <SelectItem value="blacklisted"><UserCog className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.blacklisted}</SelectItem>
+                </SelectContent>
+            </Select>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsDeletePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeletePropertyFromReport} disabled={isLoading || !propertyDeletionReason.trim()}>
+            <AlertDialogAction onClick={() => confirmPropertyAction('delete')} disabled={isLoading || !propertyDeletionReason.trim()}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
               تأكيد الحذف والتصنيف
             </AlertDialogAction>
@@ -405,10 +436,9 @@ export default function AdminReportsPage() {
       <AlertDialog open={isArchivePropertyDialogOpen} onOpenChange={setIsArchivePropertyDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد أرشفة العقار وتصنيف المالك</AlertDialogTitle>
+            <AlertDialogTitle>تأكيد أرشفة العقار وتحديث تصنيف المالك</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد أنك تريد أرشفة العقار "{selectedReport?.propertyTitle}"؟ سيتم أرشفة العقار، وتصنيف مالكه كـ "غير موثوق".
-              الرجاء إدخال ملاحظات الأرشفة (سيتم إرسالها للمالك نظريًا).
+              سيتم أرشفة العقار "{selectedReport?.propertyTitle}". الرجاء إدخال ملاحظات الأرشفة وتحديد تصنيف المالك الجديد.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
@@ -416,11 +446,24 @@ export default function AdminReportsPage() {
             value={propertyArchiveNotes}
             onChange={(e) => setPropertyArchiveNotes(e.target.value)}
             rows={3}
-            className="my-4"
+            className="my-2"
           />
+           <div className="my-2 space-y-1">
+            <Label htmlFor="trustLevelArchive">تصنيف المالك الجديد</Label>
+             <Select value={targetUserTrustLevel} onValueChange={(value) => setTargetUserTrustLevel(value as UserTrustLevel)}>
+                <SelectTrigger id="trustLevelArchive">
+                    <SelectValue placeholder="اختر تصنيف المالك..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="normal"><UserCheck className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.normal}</SelectItem>
+                    <SelectItem value="untrusted"><UserX className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.untrusted}</SelectItem>
+                    <SelectItem value="blacklisted"><UserCog className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.blacklisted}</SelectItem>
+                </SelectContent>
+            </Select>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsArchivePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmArchivePropertyFromReport} disabled={isLoading || !propertyArchiveNotes.trim()}>
+            <AlertDialogAction onClick={() => confirmPropertyAction('archive')} disabled={isLoading || !propertyArchiveNotes.trim()}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
               تأكيد الأرشفة والتصنيف
             </AlertDialogAction>
@@ -431,4 +474,3 @@ export default function AdminReportsPage() {
     </div>
   );
 }
-

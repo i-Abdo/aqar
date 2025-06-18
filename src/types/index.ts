@@ -1,10 +1,13 @@
 
 import type { User as FirebaseUser } from 'firebase/auth';
 
+export type UserTrustLevel = 'normal' | 'untrusted' | 'blacklisted';
+
 export interface CustomUser extends FirebaseUser {
   planId?: PlanId;
   isAdmin?: boolean;
-  isTrusted?: boolean; // Added for admin to mark user trust status
+  trustLevel?: UserTrustLevel;
+  createdAt?: any; // To store Firestore Timestamp
 }
 
 export type PlanId = 'free' | 'vip' | 'vip_plus_plus';
@@ -32,25 +35,25 @@ export interface Property {
   city: string;
   neighborhood?: string;
   address?: string;
-  phoneNumber?: string; // Added phone number
+  phoneNumber?: string;
   filters: {
     water: boolean;
     electricity: boolean;
     internet: boolean;
-    gas: boolean; // Added gas as it's common
-    contract: boolean; // Assuming this means a formal contract is available
+    gas: boolean;
+    contract: boolean;
   };
-  imageUrls: string[]; // URLs from Cloudinary or placeholder
+  imageUrls: string[];
   description: string;
-  status: 'active' | 'pending' | 'deleted' | 'archived'; // Pending for admin approval maybe?
+  status: 'active' | 'pending' | 'deleted' | 'archived';
   deletionReason?: string;
   createdAt: Date;
   updatedAt: Date;
+  firebaseStudioTestField?: string;
 }
 
 export interface LocationData {
   wilayas: { code: string; name: string }[];
-  // Cities might be dependent on Wilaya, fetched dynamically or a large static list
 }
 
 export enum ReportReason {
@@ -67,12 +70,22 @@ export interface Report {
   propertyId: string;
   propertyTitle: string;
   reporterUserId: string;
-  reporterEmail: string; // For easier display for admin
+  reporterEmail: string;
   reason: ReportReason;
   comments: string;
   reportedAt: Date;
   status: 'new' | 'under_review' | 'resolved' | 'dismissed';
   adminNotes?: string;
-  updatedAt?: Date; // For tracking updates to the report status or notes
+  updatedAt?: Date;
 }
 
+export interface UserIssue {
+  id: string;
+  userId: string;
+  userEmail: string;
+  message: string;
+  submittedAt: Date;
+  status: 'new' | 'in_progress' | 'resolved';
+  adminNotes?: string;
+  updatedAt?: Date;
+}

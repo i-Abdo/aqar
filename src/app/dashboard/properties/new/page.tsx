@@ -11,25 +11,33 @@ import { useState, useEffect } from "react";
 import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
 import { plans } from "@/config/plans";
 import type { Plan, Property } from "@/types";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, ShieldX, MessageSquareWarning } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { ContactAdminDialog } from "@/components/dashboard/ContactAdminDialog";
 
 export default function NewPropertyPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, trustLevel } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingLimits, setIsLoadingLimits] = useState(true);
   const [canAddProperty, setCanAddProperty] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
+  const [isContactAdminDialogOpen, setIsContactAdminDialogOpen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
 
     if (!user) {
       router.push("/login?redirect=/dashboard/properties/new");
+      return;
+    }
+
+    if (trustLevel === 'blacklisted') {
+      setIsLoadingLimits(false);
+      setCanAddProperty(false); // Explicitly set for blacklisted
       return;
     }
 
@@ -40,7 +48,7 @@ export default function NewPropertyPage() {
       setCurrentPlan(planDetails || null);
 
       if (!planDetails) {
-        setCanAddProperty(false); // Default to no if plan not found
+        setCanAddProperty(false);
         setIsLoadingLimits(false);
         return;
       }
@@ -65,20 +73,24 @@ export default function NewPropertyPage() {
       } catch (error) {
         console.error("Error fetching property count:", error);
         toast({ title: "خطأ", description: "لم نتمكن من التحقق من حدود النشر.", variant: "destructive" });
-        setCanAddProperty(false); // Fail safe
+        setCanAddProperty(false);
       } finally {
         setIsLoadingLimits(false);
       }
     };
 
     checkLimits();
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, toast, trustLevel]);
 
   const handleSubmit = async (data: PropertyFormValues, mainImageFile: File | null, additionalImageFiles: File[]) => {
     if (!user) {
       toast({ title: "خطأ", description: "يجب تسجيل الدخول لإضافة عقار.", variant: "destructive" });
       router.push("/login");
       return;
+    }
+    if (trustLevel === 'blacklisted') {
+        toast({ title: "محظور", description: "حسابك محظور من إضافة عقارات جديدة. يرجى الاتصال بالإدارة.", variant: "destructive" });
+        return;
     }
     if (!canAddProperty && currentPlan?.maxListings !== Infinity) {
          toast({ title: "تم الوصول للحد الأقصى", description: `لقد وصلت إلى الحد الأقصى لعدد العقارات المسموح به في خطة "${currentPlan?.name}". يرجى ترقية خطتك.`, variant: "destructive" });
@@ -117,9 +129,8 @@ export default function NewPropertyPage() {
         userId: user.uid,
         phoneNumber: data.phoneNumber, 
         imageUrls,
-        status: "active", 
+        status: trustLevel === 'untrusted' ? "pending" : "active", 
         deletionReason: "",
-        firebaseStudioTestField: "Hello from Firebase Studio! This is a test field.", 
       };
       
       const propertyDataWithTimestamps = {
@@ -132,7 +143,7 @@ export default function NewPropertyPage() {
       
       toast({
         title: "تم إضافة العقار بنجاح!",
-        description: `تم نشر عقارك "${data.title}".`,
+        description: trustLevel === 'untrusted' ? `تم إرسال عقارك "${data.title}" للمراجعة.` : `تم نشر عقارك "${data.title}".`,
       });
       router.push(`/dashboard/properties`); 
     } catch (error: any) {
@@ -156,7 +167,40 @@ export default function NewPropertyPage() {
     );
   }
 
-  if (!canAddProperty && currentPlan) {
+  if (trustLevel === 'blacklisted') {
+    return (
+      <>
+        <Card className="text-center py-12 shadow-md">
+          <CardHeader>
+            <ShieldX className="mx-auto h-16 w-16 text-destructive" />
+            <CardTitle className="mt-4 text-2xl text-destructive">حساب محظور</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="text-lg">
+              عذرًا، لا يمكنك إضافة عقارات جديدة حاليًا. لقد تم تقييد حسابك بسبب انتهاكات سابقة.
+              <br />
+              إذا كنت تعتقد أن هذا خطأ، يرجى الاتصال بالإدارة.
+            </CardDescription>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <Button onClick={() => setIsContactAdminDialogOpen(true)} variant="outline_destructive" className="transition-smooth hover:shadow-md">
+              <MessageSquareWarning size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
+              الاتصال بالإدارة
+            </Button>
+          </CardFooter>
+        </Card>
+        {user && <ContactAdminDialog 
+            isOpen={isContactAdminDialogOpen} 
+            onOpenChange={setIsContactAdminDialogOpen} 
+            userId={user.uid} 
+            userEmail={user.email || "غير متوفر"} 
+        />}
+      </>
+    );
+  }
+
+
+  if (!canAddProperty && currentPlan && trustLevel !== 'blacklisted') {
     return (
       <Card className="text-center py-12 shadow-md">
         <CardHeader>
@@ -179,7 +223,7 @@ export default function NewPropertyPage() {
     );
   }
   
-  if (!currentPlan) { 
+  if (!currentPlan && trustLevel !== 'blacklisted') { 
       return (
         <div className="text-center py-10">
             <p>حدث خطأ في تحميل تفاصيل خطتك. يرجى المحاولة مرة أخرى.</p>
@@ -187,16 +231,13 @@ export default function NewPropertyPage() {
       )
   }
 
-
   return (
     <div>
       <PropertyForm 
         onSubmit={handleSubmit} 
         isLoading={isSubmitting} 
-        initialData={{filters: currentPlan.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined} as Partial<Property>} 
+        initialData={{filters: currentPlan?.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined} as Partial<Property>} 
       />
     </div>
   );
 }
-
-    

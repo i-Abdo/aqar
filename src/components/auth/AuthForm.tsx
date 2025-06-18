@@ -2,11 +2,11 @@
 "use client";
 
 import * as React from "react";
-import { useForm, Controller } from "react-hook-form"; // تم استيراد Controller
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // For App Router
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +14,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-
-// Firebase Auth imports
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as firebaseAuth, db } from '@/lib/firebase/client';
-import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // Added serverTimestamp
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import type { UserTrustLevel } from "@/types";
 
 const baseSchema = z.object({
   email: z.string().email({ message: "البريد الإلكتروني غير صالح." }),
@@ -67,22 +66,19 @@ export function AuthForm({ mode }: AuthFormProps) {
     setIsLoading(true);
     try {
       if (mode === "signup") {
-        // Ensure values are for signup
         const signupValues = values as z.infer<typeof signupSchema>;
         const userCredential = await createUserWithEmailAndPassword(firebaseAuth, signupValues.email, signupValues.password);
-        // Create user document in Firestore
         await setDoc(doc(db, "users", userCredential.user.uid), {
           uid: userCredential.user.uid,
           email: signupValues.email,
-          planId: "free", // Default plan
-          isAdmin: false, // Default admin status
-          isTrusted: true, // Default trust status
-          createdAt: serverTimestamp(), // Use serverTimestamp
+          planId: "free",
+          isAdmin: false,
+          trustLevel: 'normal' as UserTrustLevel, // Default trust level
+          createdAt: serverTimestamp(),
         });
         toast({ title: "تم إنشاء الحساب بنجاح!", description: "جاري توجيهك إلى لوحة التحكم..." });
         router.push("/dashboard");
       } else {
-        // Ensure values are for login
         const loginValues = values as z.infer<typeof loginSchema>;
         await signInWithEmailAndPassword(firebaseAuth, loginValues.email, loginValues.password);
         toast({ title: "تم تسجيل الدخول بنجاح!" });

@@ -3,15 +3,16 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, User as FirebaseUser, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth as firebaseAuth } from '@/lib/firebase/client'; // Ensure this path is correct
-import type { CustomUser } from '@/types';
-import { doc, getDoc, onSnapshot } from "firebase/firestore"; // Import onSnapshot
+import { auth as firebaseAuth } from '@/lib/firebase/client';
+import type { CustomUser, UserTrustLevel } from '@/types';
+import { doc, getDoc, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from '@/lib/firebase/client';
 
 interface AuthContextType {
   user: CustomUser | null;
   loading: boolean;
   isAdmin: boolean;
+  trustLevel: UserTrustLevel | null;
   signOut: () => Promise<void>;
 }
 
@@ -21,47 +22,70 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<CustomUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [trustLevel, setTrustLevel] = useState<UserTrustLevel | null>(null);
 
   useEffect(() => {
     let unsubscribeFirestore: (() => void) | undefined;
 
     const unsubscribeAuth = onAuthStateChanged(firebaseAuth, (firebaseUser: FirebaseUser | null) => {
       if (unsubscribeFirestore) {
-        unsubscribeFirestore(); // Cleanup previous Firestore listener
+        unsubscribeFirestore();
         unsubscribeFirestore = undefined;
       }
 
       if (firebaseUser) {
-        setLoading(true); // Set loading true while fetching/listening to Firestore
+        setLoading(true);
         const userDocRef = doc(db, "users", firebaseUser.uid);
         
         unsubscribeFirestore = onSnapshot(userDocRef, (userDocSnap) => {
           if (userDocSnap.exists()) {
             const customData = userDocSnap.data();
-            setUser({ 
-                ...firebaseUser, 
-                ...customData, 
-                isTrusted: customData.isTrusted === undefined ? true : customData.isTrusted // Default to true if undefined
-            } as CustomUser);
+            const userData: CustomUser = {
+              ...firebaseUser,
+              uid: firebaseUser.uid, // ensure uid from firebaseUser is prioritized
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              emailVerified: firebaseUser.emailVerified,
+              phoneNumber: firebaseUser.phoneNumber,
+              isAnonymous: firebaseUser.isAnonymous,
+              metadata: firebaseUser.metadata,
+              providerData: firebaseUser.providerData,
+              refreshToken: firebaseUser.refreshToken,
+              tenantId: firebaseUser.tenantId,
+              providerId: firebaseUser.providerId,
+              planId: customData.planId,
+              isAdmin: customData.isAdmin === true,
+              trustLevel: customData.trustLevel || 'normal',
+              createdAt: customData.createdAt ? (customData.createdAt as Timestamp).toDate() : new Date(),
+            };
+            setUser(userData);
             setIsAdmin(customData.isAdmin === true);
+            setTrustLevel(customData.trustLevel || 'normal');
           } else {
-            // User exists in Auth but not Firestore. 
-            // This case should ideally be handled during signup (AuthForm creates the doc).
-            // If doc is deleted manually, this is a fallback.
-            setUser(firebaseUser as CustomUser); 
-            setIsAdmin(false); 
-            console.warn(`User document for UID ${firebaseUser.uid} not found in Firestore during onSnapshot.`);
+            const defaultTrustLevel: UserTrustLevel = 'normal';
+            setUser({ 
+              ...firebaseUser, 
+              trustLevel: defaultTrustLevel,
+              isAdmin: false, 
+            } as CustomUser);
+            setIsAdmin(false);
+            setTrustLevel(defaultTrustLevel);
+            console.warn(`User document for UID ${firebaseUser.uid} not found in Firestore. Using defaults.`);
           }
           setLoading(false);
         }, (error) => {
           console.error("Error listening to user document:", error);
-          setUser(firebaseUser as CustomUser); // Fallback to auth data if Firestore listen fails
+          const defaultTrustLevel: UserTrustLevel = 'normal';
+          setUser({ ...firebaseUser, trustLevel: defaultTrustLevel, isAdmin: false } as CustomUser);
           setIsAdmin(false);
+          setTrustLevel(defaultTrustLevel);
           setLoading(false);
         });
       } else {
         setUser(null);
         setIsAdmin(false);
+        setTrustLevel(null);
         setLoading(false);
       }
     });
@@ -78,17 +102,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await firebaseSignOut(firebaseAuth);
-      // setUser and setIsAdmin will be handled by onAuthStateChanged
     } catch (error) {
       console.error("Error signing out: ", error);
-    } finally {
-      // setLoading(false) will be handled by onAuthStateChanged when user becomes null
     }
   };
   
-
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, trustLevel, signOut }}>
       {children}
     </AuthContext.Provider>
   );
