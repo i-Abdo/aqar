@@ -3,13 +3,15 @@
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, DollarSign, CheckCircle, Phone, MessageSquare } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, DollarSign, CheckCircle, Phone, MessageSquare, Flag } from 'lucide-react';
 import Image from 'next/image'; // Using next/image for placeholders
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Property } from '@/types';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"; // Assuming carousel exists
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { useAuth } from '@/hooks/use-auth';
+import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
 
 
 export default function PropertyDetailPage() {
@@ -18,6 +20,8 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user, isAdmin } = useAuth();
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -29,12 +33,17 @@ export default function PropertyDetailPage() {
           const docSnap = await getDoc(propRef);
           if (docSnap.exists()) {
             const data = docSnap.data() as Omit<Property, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any };
-            setProperty({
-              id: docSnap.id,
-              ...data,
-              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-              updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
-            } as Property);
+            // Ensure property is active for viewing unless user is admin
+            if (data.status !== 'active' && !(user && isAdmin)) {
+              setError("هذا العقار غير متاح للعرض حاليًا.");
+            } else {
+              setProperty({
+                id: docSnap.id,
+                ...data,
+                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
+              } as Property);
+            }
           } else {
             setError("لم يتم العثور على العقار.");
           }
@@ -50,7 +59,7 @@ export default function PropertyDetailPage() {
       setIsLoading(false);
       setError("معرف العقار غير موجود.");
     }
-  }, [id]);
+  }, [id, user, isAdmin]);
 
   if (isLoading) {
     return (
@@ -106,10 +115,11 @@ export default function PropertyDetailPage() {
                             <Image 
                                 src={url || "https://placehold.co/1200x600.png"} 
                                 alt={`${title} - صورة ${index + 1}`} 
-                                layout="fill"
+                                fill // Changed from layout="fill"
                                 objectFit="cover"
                                 className="rounded-t-lg"
                                 data-ai-hint="property interior room"
+                                priority={index === 0} // Prioritize loading the first image
                             />
                             </div>
                         </CarouselItem>
@@ -187,17 +197,7 @@ export default function PropertyDetailPage() {
         </CardContent>
         <CardFooter className="p-6 md:p-8 border-t bg-secondary/30">
             <div className="w-full">
-                <h3 className="text-xl font-semibold mb-2 font-headline text-center">تواصل مع المالك</h3>
-                {phoneNumber ? (
-                    <p className="text-center text-lg font-semibold text-primary mb-4">
-                        <Phone className="inline-block ml-2 rtl:mr-2 rtl:ml-0" size={20} />
-                        {phoneNumber}
-                    </p>
-                ) : (
-                    <p className="text-center text-muted-foreground mb-4">
-                        رقم الهاتف غير متوفر من قبل المالك.
-                    </p>
-                )}
+                <h3 className="text-xl font-semibold mb-4 font-headline text-center">تواصل مع المالك أو قم بالإبلاغ</h3>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     {phoneNumber ? (
                         <Button 
@@ -220,14 +220,31 @@ export default function PropertyDetailPage() {
                             اتصال (غير متاح)
                         </Button>
                     )}
-                    <Button size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
+                     <Button size="lg" variant="outline_secondary" className="flex-1 transition-smooth hover:shadow-md">
                         <MessageSquare size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> مراسلة (سيتم تنفيذها لاحقاً)
                     </Button>
+                   {user && !isAdmin && property.userId !== user.uid && (
+                     <Button 
+                        size="lg" 
+                        variant="destructive_outline" 
+                        className="flex-1 transition-smooth hover:shadow-md"
+                        onClick={() => setIsReportDialogOpen(true)}
+                     >
+                        <Flag size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إبلاغ عن العقار
+                    </Button>
+                   )}
                 </div>
             </div>
         </CardFooter>
       </Card>
+      {user && !isAdmin && (
+        <ReportPropertyDialog
+            isOpen={isReportDialogOpen}
+            onOpenChange={setIsReportDialogOpen}
+            propertyId={property.id}
+            propertyTitle={property.title}
+        />
+      )}
     </div>
   );
 }
-

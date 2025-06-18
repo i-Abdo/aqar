@@ -51,3 +51,25 @@ export interface LocationData {
   wilayas: { code: string; name: string }[];
   // Cities might be dependent on Wilaya, fetched dynamically or a large static list
 }
+
+export enum ReportReason {
+  MISLEADING_INFO = "معلومات مضللة",
+  SCAM_FRAUD = "احتيال أو نصب",
+  INAPPROPRIATE_CONTENT = "محتوى غير لائق",
+  PROPERTY_UNAVAILABLE = "العقار غير متوفر",
+  SOLD_RENTED = "تم بيعه/تأجيره",
+  OTHER = "سبب آخر",
+}
+
+export interface Report {
+  id: string;
+  propertyId: string;
+  propertyTitle: string;
+  reporterUserId: string;
+  reporterEmail: string; // For easier display for admin
+  reason: ReportReason;
+  comments: string;
+  reportedAt: Date;
+  status: 'new' | 'under_review' | 'resolved' | 'dismissed';
+  adminNotes?: string;
+}

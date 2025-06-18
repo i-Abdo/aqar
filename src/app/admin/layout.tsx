@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
-import { Loader2, ShieldAlert, LayoutDashboard } from "lucide-react";
+import { Loader2, ShieldAlert, LayoutDashboard, Flag } from "lucide-react"; // Added Flag
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -13,6 +13,7 @@ import { AppLogo } from "@/components/layout/AppLogo";
 
 const adminNavItems = [ 
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard },
+  { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag }, // Added reports link
 ];
 
 function AdminSidebarNav() {
@@ -23,7 +24,7 @@ function AdminSidebarNav() {
         <SidebarMenuItem key={index}>
           <SidebarMenuButton
             asChild
-            isActive={pathname === item.href}
+            isActive={pathname === item.href || (item.href === "/admin/reports" && pathname.startsWith("/admin/reports"))}
             className="justify-start text-base"
             tooltip={item.title}
           >
@@ -97,4 +98,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-
