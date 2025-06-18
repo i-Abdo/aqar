@@ -5,10 +5,11 @@ import Image from "next/image";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Property } from "@/types";
-import { BedDouble, Bath, MapPin, Phone, Flag } from "lucide-react"; // Added Flag icon
+import { BedDouble, Bath, MapPin, Phone, Flag } from "lucide-react"; 
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { ReportPropertyDialog } from "./ReportPropertyDialog"; // Assuming ReportPropertyDialog is in the same directory or adjust path
+import { ReportPropertyDialog } from "./ReportPropertyDialog"; 
+import { formatDisplayPrice } from '@/lib/utils';
 
 interface PropertyCardProps {
   property: Property;
@@ -41,7 +42,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
               {property.title}
             </CardTitle>
           </Link>
-          <p className="text-lg font-semibold text-green-600 mb-2">{property.price.toLocaleString()} د.ج</p>
+          <p className="text-lg font-semibold text-green-600 mb-2">{formatDisplayPrice(property.price)}</p>
           <div className="text-sm text-muted-foreground space-y-1">
             <div className="flex items-center gap-1 truncate">
               <MapPin size={16} className="text-muted-foreground" />

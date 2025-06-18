@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { formatDisplayPrice } from '@/lib/utils';
 
 
 export default function PropertyDetailPage() {
@@ -91,7 +92,7 @@ export default function PropertyDetailPage() {
   }, [id, user, isAdmin]);
 
   const handleDeleteProperty = async () => {
-    if (!property || !user || !(user.uid === property.userId || isAdmin)) { // Allow admin to delete too
+    if (!property || !user || !(user.uid === property.userId || isAdmin)) { 
       toast({ title: "خطأ", description: "غير مصرح لك بحذف هذا العقار.", variant: "destructive" });
       return;
     }
@@ -110,9 +111,9 @@ export default function PropertyDetailPage() {
       });
       toast({ title: "تم الحذف", description: `تم حذف العقار "${property.title}" بنجاح.` });
       if (isAdmin) {
-          router.push("/admin/properties"); // Admin goes to admin properties list
+          router.push("/admin/properties"); 
       } else {
-          router.push("/dashboard/properties"); // Owner goes to their properties list
+          router.push("/dashboard/properties"); 
       }
       setIsDeleteDialogOpen(false);
     } catch (e) {
@@ -229,7 +230,7 @@ export default function PropertyDetailPage() {
               {title}
             </CardTitle>
             <div className="text-2xl md:text-3xl font-bold text-green-600 flex items-center gap-1 whitespace-nowrap">
-               {price.toLocaleString()} د.ج
+               {formatDisplayPrice(price)}
             </div>
           </div>
 
@@ -352,10 +353,10 @@ export default function PropertyDetailPage() {
                             )}
                         </>
                     )}
-                     {(isAdmin && !isOwner) && ( // Admin specific actions if they are not the owner
+                     {(isAdmin && !isOwner) && ( 
                         <>
                             <Button asChild size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
-                                <Link href={`/admin/properties`}> {/* Or a specific admin edit page if exists */}
+                                <Link href={`/admin/properties`}> 
                                     <Edit3 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إدارة العقار (مسؤول)
                                 </Link>
                             </Button>
@@ -420,4 +421,3 @@ export default function PropertyDetailPage() {
     </div>
   );
 }
-

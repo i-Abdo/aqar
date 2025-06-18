@@ -28,9 +28,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { plans } from "@/config/plans";
 import { submitPropertyAppeal } from '@/actions/propertyAppealActions';
+import { formatDisplayPrice } from '@/lib/utils';
 
 
-// Dummy property card component for this page
 function PropertyListItemCard({ property, onDelete, onArchive }: { property: Property, onDelete: (id: string, reason: string) => void, onArchive: (id: string, reason: string) => void }) {
   const [deleteReason, setDeleteReason] = useState("");
   const [archiveReason, setArchiveReason] = useState("");
@@ -95,7 +95,6 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
 
   const actionButtons = [];
 
-  // Edit, Delete, Archive, Appeal buttons are added conditionally
   if (property.status !== 'deleted' && property.status !== 'archived') {
     actionButtons.push(
       <Button key="edit" variant="outline" size="sm" asChild className="transition-smooth w-full hover:shadow-sm">
@@ -179,7 +178,6 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
       <Link 
         href={`/properties/${property.id}`} 
-        passHref 
         className="flex flex-col flex-grow cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:rounded-t-lg"
       >
           <CardHeader className="p-0 group-hover:opacity-90 transition-opacity">
@@ -194,7 +192,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
           </CardHeader>
           <CardContent className="p-4 flex-grow group-hover:bg-muted/20 transition-colors">
             <CardTitle className="text-xl font-headline mb-1 truncate group-hover:text-primary transition-colors" title={property.title}>{property.title}</CardTitle>
-            <p className="text-lg font-semibold text-green-600 mb-2">{property.price.toLocaleString()} د.ج</p>
+            <p className="text-lg font-semibold text-green-600 mb-2">{formatDisplayPrice(property.price)}</p>
             <p className="text-sm text-muted-foreground mb-1 truncate">{property.wilaya}, {property.city}</p>
             <div className="text-sm text-muted-foreground">الحالة: <span className={`font-medium ${statusDisplay.color}`}>{statusDisplay.text}</span></div>
             {property.status === 'archived' && (
@@ -354,5 +352,4 @@ export default function MyPropertiesPage() {
     </div>
   );
 }
-
     

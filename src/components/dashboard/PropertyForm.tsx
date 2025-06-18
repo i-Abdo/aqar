@@ -81,35 +81,38 @@ interface PropertyFormProps {
   isEditMode?: boolean;
 }
 
-type PriceUnitKey = 'DA' | 'THOUSAND_DA' | 'MILLION_DA' | 'BILLION_DA';
+type PriceUnitKey = 'THOUSAND_DA' | 'MILLION_DA' | 'BILLION_DA';
 
 const unitMultipliers: Record<PriceUnitKey, number> = {
-  DA: 1,
   THOUSAND_DA: 1000,
   MILLION_DA: 1_000_000,
   BILLION_DA: 1_000_000_000,
 };
 
 const unitLabels: Record<PriceUnitKey, string> = {
-  DA: "د.ج",
   THOUSAND_DA: "ألف د.ج",
   MILLION_DA: "مليون د.ج",
   BILLION_DA: "مليار د.ج",
 };
 
 const formatPriceForInputUIDisplay = (price: number | undefined): { displayValue: string; unitKey: PriceUnitKey } => {
-  if (price === undefined || price === null || isNaN(price) || price <= 0) return { displayValue: "", unitKey: "THOUSAND_DA" }; // Default to ألف or DA for new entries
+  if (price === undefined || price === null || isNaN(price) || price <= 0) {
+    return { displayValue: "", unitKey: "THOUSAND_DA" }; // Default for new entries
+  }
 
   const unitsPriority: PriceUnitKey[] = ["BILLION_DA", "MILLION_DA", "THOUSAND_DA"];
 
   for (const unit of unitsPriority) {
+    // Check if the price is significant enough for this unit (e.g. at least 1 of this unit)
     if (price >= unitMultipliers[unit]) {
       const val = price / unitMultipliers[unit];
-      // Show decimals only if not a whole number, up to 2 decimal places
-      return { displayValue: Number.isInteger(val) ? val.toString() : val.toFixed(2).replace(/\.00$/, '').replace(/(\.\d*?)0+$/, '$1'), unitKey: unit };
+      // Use Number(val.toFixed(2)).toString() to remove trailing zeros like .00 or .50 to .5
+      return { displayValue: Number(val.toFixed(2)).toString(), unitKey: unit };
     }
   }
-  return { displayValue: price.toString(), unitKey: "DA" };
+  // If less than THOUSAND_DA, represent it in terms of THOUSAND_DA (e.g., 500 DA -> 0.5 ألف د.ج)
+  const valInThousand = price / unitMultipliers.THOUSAND_DA;
+  return { displayValue: Number(valInThousand.toFixed(2)).toString(), unitKey: "THOUSAND_DA" };
 };
 
 
@@ -130,7 +133,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
   const initialPriceFormat = React.useMemo(() => formatPriceForInputUIDisplay(initialData?.price), [initialData?.price]);
   const [manualPriceInput, setManualPriceInput] = React.useState<string>(initialPriceFormat.displayValue);
-  const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey);
+  const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey || "THOUSAND_DA");
 
 
   const form = useForm<PropertyFormValues>({
@@ -150,8 +153,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       setManualPriceInput(displayValue);
       setSelectedUnit(unitKey);
       form.reset({
-        ...initialData, // Spread initial data first
-        price: initialData.price || undefined, // Ensure RHF 'price' gets the full absolute value
+        ...initialData, 
+        price: initialData.price || undefined, 
       });
        if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
@@ -198,7 +201,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     if (!isNaN(lengthNum) && lengthNum > 0 && !isNaN(widthNum) && widthNum > 0) {
       const calculatedArea = lengthNum * widthNum;
       form.setValue("area", parseFloat(calculatedArea.toFixed(2)), { shouldValidate: true });
-    } else if (form.getValues("area") !== undefined) { // only clear if it was previously set
+    } else if (form.getValues("area") !== undefined) { 
       form.setValue("area", undefined as any, { shouldValidate: true }); 
     }
   }, [lengthValue, widthValue, form]);
@@ -208,13 +211,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     if (!isNaN(numericInput) && numericInput > 0) {
       form.setValue('price', numericInput * (unitMultipliers[selectedUnit] || 1), { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
     } else if (manualPriceInput === "" && form.getValues("price") !== undefined) {
-        // Allow clearing if user deletes input, set RHF price to undefined for validation
         form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
     } else if (isNaN(numericInput) && manualPriceInput !== "" && form.getValues("price") !== undefined) {
-        // Invalid number typed, set RHF price to undefined for validation
         form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
     }
-  // Trigger this effect when user types or changes unit, or when form is initially dirtied.
   }, [manualPriceInput, selectedUnit, form, isEditMode]);
 
 
@@ -320,7 +320,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         });
         return;
      }
-    // The 'price' in 'data' should already be the full calculated price due to form.setValue in useEffect.
     onSubmit(data, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews);
   };
   
@@ -330,29 +329,26 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   };
 
   const isFormDirtyForEdit = () => {
-    if (!isEditMode) return false; // Not relevant for new forms
+    if (!isEditMode) return false; 
 
-    // Check RHF's dirty fields for standard inputs
     const rhfDirty = Object.keys(form.formState.dirtyFields).length > 0;
 
-    // Check if images have changed
     let imagesChanged = false;
     if (initialData?.imageUrls) {
         const initialMain = initialData.imageUrls[0];
         const initialRest = initialData.imageUrls.slice(1);
         if (mainImageFile || mainImagePreview !== initialMain) imagesChanged = true;
         if (additionalImageFiles.length > 0) imagesChanged = true;
-        // More complex check for removed/reordered existing images
         if (additionalImagePreviews.length !== initialRest.length) imagesChanged = true;
         else {
             for(let i=0; i<additionalImagePreviews.length; i++) {
-                if(additionalImagePreviews[i] !== initialRest[i] && !additionalImagePreviews[i].startsWith("blob:")) { // only care if a non-new URL changed
+                if(additionalImagePreviews[i] !== initialRest[i] && !additionalImagePreviews[i].startsWith("blob:")) { 
                     imagesChanged = true;
                     break;
                 }
             }
         }
-    } else if (mainImageFile || additionalImageFiles.length > 0) { // If no initial images but new ones added
+    } else if (mainImageFile || additionalImageFiles.length > 0) { 
         imagesChanged = true;
     }
     return rhfDirty || imagesChanged;
@@ -394,7 +390,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                             value={manualPriceInput}
                             onChange={(e) => {
                                 const val = e.target.value;
-                                // Allow only numbers and one decimal point
                                 if (/^\d*\.?\d*$/.test(val)) {
                                     setManualPriceInput(val);
                                 }
@@ -624,7 +619,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 type="button" 
                 variant="destructive_outline" 
                 className="w-full sm:w-auto transition-smooth"
-                onClick={() => router.back()} // Changed to router.back() for better UX
+                onClick={() => router.back()} 
               >
                 <XCircle size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>
                 إلغاء
@@ -633,11 +628,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           </div>
           {!mainImagePreview && !isEditMode && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
           {isEditMode && !mainImagePreview && <p className="text-sm text-accent mt-1">يجب أن يكون هناك صورة رئيسية. إذا قمت بإزالتها، الرجاء تحميل واحدة جديدة.</p>}
-           {/* Display calculated price for debugging or info, can be removed */}
-            {/* <p className="text-xs text-muted-foreground">السعر المحسوب (للتصحيح): {form.watch('price') || 'غير محدد'}</p> */}
         </form>
       </CardContent>
     </Card>
   );
 }
-
