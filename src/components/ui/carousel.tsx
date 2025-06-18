@@ -200,7 +200,12 @@ const CarouselPrevious = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
-  const isRtl = document.dir === "rtl";
+  const [isRtl, setIsRtl] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsRtl(document.dir === "rtl");
+  }, []);
+
 
   return (
     <Button
@@ -230,7 +235,11 @@ const CarouselNext = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
   const { orientation, scrollNext, canScrollNext } = useCarousel()
-  const isRtl = document.dir === "rtl";
+  const [isRtl, setIsRtl] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsRtl(document.dir === "rtl");
+  }, []);
 
   return (
     <Button
@@ -263,3 +272,4 @@ export {
   CarouselPrevious,
   CarouselNext,
 }
+

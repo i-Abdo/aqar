@@ -57,3 +57,4 @@ export async function submitReport(input: SubmitReportInput): Promise<{ success:
     return { success: false, message: "حدث خطأ أثناء إرسال البلاغ. يرجى المحاولة مرة أخرى." };
   }
 }
+

@@ -117,7 +117,7 @@ export default function PropertyDetailPage() {
                                 src={url || "https://placehold.co/1200x600.png"} 
                                 alt={`${title} - صورة ${index + 1}`} 
                                 fill 
-                                objectFit="cover"
+                                style={{objectFit: "cover"}}
                                 className="rounded-t-lg"
                                 data-ai-hint="property interior room"
                                 priority={index === 0} 
@@ -249,3 +249,4 @@ export default function PropertyDetailPage() {
     </div>
   );
 }
+
