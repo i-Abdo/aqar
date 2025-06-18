@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle } from "lucide-react";
+import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { collection, query, where, getCountFromServer, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
@@ -18,7 +18,7 @@ interface UserStats {
   maxListings: string | number;
   planName: string;
   propertyViews: number;
-  unreadMessages: number; 
+  unreadMessages: number;
 }
 
 interface AppealNotification {
@@ -28,6 +28,7 @@ interface AppealNotification {
   translatedDecision?: string;
   adminNotes?: string;
   decisionDate?: string;
+  isDismissed?: boolean; // Added for client-side dismissal
 }
 
 interface UserIssueUpdateForDashboard {
@@ -38,6 +39,7 @@ interface UserIssueUpdateForDashboard {
   translatedStatus: string;
   adminNotes?: string;
   lastUpdateDate: string; // From issue's updatedAt field
+  isDismissed?: boolean; // Added for client-side dismissal
 }
 
 const decisionTranslations: Record<AdminAppealDecisionType, string> = {
@@ -64,7 +66,7 @@ export default function DashboardPage() {
   const [appealNotifications, setAppealNotifications] = useState<AppealNotification[]>([]);
   const [userIssueUpdates, setUserIssueUpdates] = useState<UserIssueUpdateForDashboard[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true); // Combined loading state
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
   const [canAddProperty, setCanAddProperty] = useState(false);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<Plan | null>(null);
   const router = useRouter();
@@ -90,7 +92,7 @@ export default function DashboardPage() {
           const q = query(propertiesRef, where("userId", "==", user.uid), where("status", "in", ["active", "pending"]));
           const snapshot = await getCountFromServer(q);
           currentPropertyCount = snapshot.data().count;
-            
+
           if (planDetails.maxListings === Infinity) {
             setCanAddProperty(true);
           } else {
@@ -123,7 +125,7 @@ export default function DashboardPage() {
           where("ownerUserId", "==", user.uid),
           where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]),
           orderBy("adminDecisionAt", "desc"),
-          limit(5) 
+          limit(5)
         );
         const querySnapshot = await getDocs(appealsQuery);
         const notifications = querySnapshot.docs.map(docSnap => {
@@ -135,6 +137,7 @@ export default function DashboardPage() {
             translatedDecision: data.adminDecision ? decisionTranslations[data.adminDecision] : "قرار غير محدد",
             adminNotes: data.adminNotes,
             decisionDate: data.adminDecisionAt ? (data.adminDecisionAt instanceof Timestamp ? data.adminDecisionAt.toDate() : new Date(data.adminDecisionAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric' }) : "غير محدد",
+            isDismissed: false,
           };
         });
         setAppealNotifications(notifications);
@@ -164,6 +167,7 @@ export default function DashboardPage() {
             translatedStatus: issueStatusTranslations[data.status] || data.status,
             adminNotes: data.adminNotes,
             lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "غير محدد",
+            isDismissed: false,
           };
         });
         setUserIssueUpdates(updates);
@@ -186,7 +190,6 @@ export default function DashboardPage() {
         }
     };
 
-
     fetchDashboardData();
     fetchAllNotifications();
   }, [user, authLoading, router, toast]);
@@ -204,7 +207,19 @@ export default function DashboardPage() {
     }
   };
 
-  if (authLoading || (isLoadingStats && !user)) { 
+  const handleDismissAppeal = (appealId: string) => {
+    setAppealNotifications(prev => 
+      prev.map(notif => notif.id === appealId ? { ...notif, isDismissed: true } : notif)
+    );
+  };
+
+  const handleDismissIssue = (issueId: string) => {
+    setUserIssueUpdates(prev =>
+      prev.map(notif => notif.id === issueId ? { ...notif, isDismissed: true } : notif)
+    );
+  };
+
+  if (authLoading || (isLoadingStats && !user)) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -213,11 +228,13 @@ export default function DashboardPage() {
     );
   }
 
+  const visibleAppealNotifications = appealNotifications.filter(n => !n.isDismissed);
+  const visibleUserIssueUpdates = userIssueUpdates.filter(u => !u.isDismissed);
 
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold font-headline text-right">مرحباً بك في لوحة تحكم عقاري</h1>
-      
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
           <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2 text-right">
@@ -240,7 +257,7 @@ export default function DashboardPage() {
             <BarChart3 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent className="text-right">
-            <div className="text-2xl font-bold">{userStats.propertyViews.toLocaleString()}</div> 
+            <div className="text-2xl font-bold">{userStats.propertyViews.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               (سيتم تفعيل هذه الميزة قريباً)
             </p>
@@ -289,57 +306,75 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
-              {appealNotifications.length > 0 && (
+              {visibleAppealNotifications.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1">تحديثات الطعون:</h4>
                   <ul className="space-y-3">
-                    {appealNotifications.map((notification) => (
-                      <li key={`appeal-${notification.id}`} className="p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
-                        <p className="font-semibold">بخصوص طعن على عقار: <span className="font-normal text-foreground">{notification.propertyTitle}</span></p>
-                        <p className="text-sm text-muted-foreground">
+                    {visibleAppealNotifications.map((notification) => (
+                      <li key={`appeal-${notification.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDismissAppeal(notification.id)}
+                          aria-label="إخفاء هذا الإشعار"
+                        >
+                          <X size={16} />
+                        </Button>
+                        <p className="font-semibold pr-6 rtl:pl-6">بخصوص طعن على عقار: <span className="font-normal text-foreground">{notification.propertyTitle}</span></p>
+                        <p className="text-sm text-muted-foreground pr-6 rtl:pl-6">
                           القرار: <span className={`font-medium ${
-                            notification.decision === 'publish' ? 'text-green-600' : 
+                            notification.decision === 'publish' ? 'text-green-600' :
                             notification.decision === 'delete' ? 'text-destructive' : 'text-orange-500'
                           }`}>{notification.translatedDecision}</span>
                           {notification.adminNotes && (
                             <span className="block mt-1 text-xs"> ملاحظات المسؤول: {notification.adminNotes}</span>
                           )}
                         </p>
-                        <p className="text-xs text-muted-foreground/80 mt-1">بتاريخ: {notification.decisionDate}</p>
+                        <p className="text-xs text-muted-foreground/80 mt-1 pr-6 rtl:pl-6">بتاريخ: {notification.decisionDate}</p>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              {userIssueUpdates.length > 0 && (
+              {visibleUserIssueUpdates.length > 0 && (
                  <div className="mb-4">
                   <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1">تحديثات مشكلاتك المرسلة:</h4>
                   <ul className="space-y-3">
-                    {userIssueUpdates.map((update) => (
-                      <li key={`issue-${update.id}`} className="p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
-                        <p className="font-semibold">
-                          {update.propertyTitle 
+                    {visibleUserIssueUpdates.map((update) => (
+                      <li key={`issue-${update.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDismissIssue(update.id)}
+                          aria-label="إخفاء هذا الإشعار"
+                        >
+                          <X size={16} />
+                        </Button>
+                        <p className="font-semibold pr-6 rtl:pl-6">
+                          {update.propertyTitle
                             ? `بخصوص مشكلتك حول العقار: ${update.propertyTitle}`
                             : `بخصوص مشكلتك: "${update.originalMessagePreview}"`}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground pr-6 rtl:pl-6">
                           الحالة: <span className={`font-medium ${
-                              update.status === 'resolved' ? 'text-green-600' : 
+                              update.status === 'resolved' ? 'text-green-600' :
                               update.status === 'in_progress' ? 'text-blue-600' : 'text-gray-600'
                           }`}>{update.translatedStatus}</span>
                           {update.adminNotes && (
                             <span className="block mt-1 text-xs"> ملاحظات المسؤول: {update.adminNotes}</span>
                           )}
                         </p>
-                        <p className="text-xs text-muted-foreground/80 mt-1">آخر تحديث بتاريخ: {update.lastUpdateDate}</p>
+                        <p className="text-xs text-muted-foreground/80 mt-1 pr-6 rtl:pl-6">آخر تحديث بتاريخ: {update.lastUpdateDate}</p>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-              
-              {appealNotifications.length === 0 && userIssueUpdates.length === 0 && (
+
+              {visibleAppealNotifications.length === 0 && visibleUserIssueUpdates.length === 0 && (
                  <div className="flex flex-col items-center justify-center text-center py-6">
                     <AlertTriangle size={32} className="text-muted-foreground mb-2" />
                     <p className="text-muted-foreground">لا توجد إشعارات أو أنشطة حديثة لعرضها.</p>
@@ -347,7 +382,7 @@ export default function DashboardPage() {
               )}
             </>
           )}
-          {userStats.unreadMessages > 0 && ( 
+          {userStats.unreadMessages > 0 && (
             <div className="mt-4 p-3 rounded-md border border-accent bg-accent/10 text-right">
                 <p className="text-accent-foreground">لديك <span className="font-bold">{userStats.unreadMessages}</span> رسائل جديدة غير مقروءة. <Link href="/dashboard/messages" className="underline hover:text-primary">عرض الرسائل</Link></p>
             </div>
