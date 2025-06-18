@@ -74,7 +74,7 @@ export default function SettingsPage() {
                 dir="rtl"
                 value={themeSetting}
                 onValueChange={(value: string) => setThemeSetting(value as ThemeSetting)}
-                className="space-y-1"
+                className="flex flex-row flex-wrap gap-4" // Modified here
               >
                 <div className="flex items-center gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors">
                   <Label htmlFor="theme-light" className="flex items-center gap-2 cursor-pointer text-sm">
@@ -105,11 +105,11 @@ export default function SettingsPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="flex flex-row flex-wrap gap-4">
               {[1,2,3].map(i => (
-                 <div key={i} className="h-12 rounded-md border animate-pulse bg-muted/50"></div>
+                 <div key={i} className="h-12 w-32 rounded-md border animate-pulse bg-muted/50"></div>
               ))}
-              <div className="h-10 w-3/4 rounded animate-pulse bg-muted/50 mt-2"></div>
+               <div className="h-10 w-3/4 rounded animate-pulse bg-muted/50 mt-2 basis-full"></div>
             </div>
           )}
         </CardContent>
@@ -150,3 +150,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
