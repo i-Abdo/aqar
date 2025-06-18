@@ -95,7 +95,7 @@ export default function HomePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           {popularCities.map((city) => (
             <Link key={city.name} href={`/properties?wilaya=${city.name}`} passHref>
-              <Card className="group overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer">
+              <Card className="group overflow-hidden shadow-md hover:shadow-xl transition-smooth transform hover:-translate-y-1 cursor-pointer">
                 <div className="relative w-full h-40">
                   <Image
                     src={city.image}

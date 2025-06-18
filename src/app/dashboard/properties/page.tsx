@@ -97,7 +97,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
 
   // Preview Button - always available for the owner in their dashboard
   actionButtons.push(
-    <Button key="preview" variant="outline" size="sm" asChild className="transition-smooth w-full">
+    <Button key="preview" variant="outline" size="sm" asChild className="transition-smooth w-full hover:shadow-sm">
       <Link href={`/properties/${property.id}`} target="_blank" rel="noopener noreferrer">
         <Eye size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> معاينة
       </Link>
@@ -106,14 +106,14 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
 
   if (property.status !== 'deleted' && property.status !== 'archived') {
     actionButtons.push(
-      <Button key="edit" variant="outline" size="sm" asChild className="transition-smooth w-full">
+      <Button key="edit" variant="outline" size="sm" asChild className="transition-smooth w-full hover:shadow-sm">
         <Link href={`/dashboard/properties/${property.id}/edit`}> <Edit3 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> تعديل</Link>
       </Button>
     );
     actionButtons.push(
       <AlertDialog key="delete">
         <AlertDialogTrigger asChild>
-          <Button variant="destructive_outline" size="sm" className="transition-smooth w-full"><Trash2 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> حذف</Button>
+          <Button variant="destructive_outline" size="sm" className="transition-smooth w-full hover:shadow-sm"><Trash2 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> حذف</Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -143,7 +143,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
     actionButtons.push(
       <AlertDialog key="archive">
         <AlertDialogTrigger asChild>
-            <Button variant="outline_secondary" size="sm" className="w-full transition-smooth">أرشفة العقار</Button>
+            <Button variant="outline_secondary" size="sm" className="w-full transition-smooth hover:shadow-sm">أرشفة العقار</Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -171,7 +171,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
     );
   } else if (property.status === 'archived') {
     actionButtons.push(
-     <Button key="appeal" onClick={handleAppeal} variant="outline_primary" size="sm" disabled={isAppealing} className="w-full transition-smooth">
+     <Button key="appeal" onClick={handleAppeal} variant="outline_primary" size="sm" disabled={isAppealing} className="w-full transition-smooth hover:shadow-sm">
         {isAppealing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ShieldQuestion size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>}
         {isAppealing ? "جاري إرسال الطعن..." : "طعن"}
      </Button>
