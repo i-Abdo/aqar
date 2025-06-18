@@ -18,7 +18,7 @@ import { Loader2 } from "lucide-react";
 // Firebase Auth imports
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as firebaseAuth, db } from '@/lib/firebase/client';
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // Added serverTimestamp
 
 const baseSchema = z.object({
   email: z.string().email({ message: "البريد الإلكتروني غير صالح." }),
@@ -76,7 +76,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           email: signupValues.email,
           planId: "free", // Default plan
           isAdmin: false, // Default admin status
-          createdAt: new Date(),
+          isTrusted: true, // Default trust status
+          createdAt: serverTimestamp(), // Use serverTimestamp
         });
         toast({ title: "تم إنشاء الحساب بنجاح!", description: "جاري توجيهك إلى لوحة التحكم..." });
         router.push("/dashboard");

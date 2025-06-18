@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -37,7 +38,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeFirestore = onSnapshot(userDocRef, (userDocSnap) => {
           if (userDocSnap.exists()) {
             const customData = userDocSnap.data();
-            setUser({ ...firebaseUser, ...customData } as CustomUser);
+            setUser({ 
+                ...firebaseUser, 
+                ...customData, 
+                isTrusted: customData.isTrusted === undefined ? true : customData.isTrusted // Default to true if undefined
+            } as CustomUser);
             setIsAdmin(customData.isAdmin === true);
           } else {
             // User exists in Auth but not Firestore. 

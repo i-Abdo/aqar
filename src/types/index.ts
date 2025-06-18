@@ -4,6 +4,7 @@ import type { User as FirebaseUser } from 'firebase/auth';
 export interface CustomUser extends FirebaseUser {
   planId?: PlanId;
   isAdmin?: boolean;
+  isTrusted?: boolean; // Added for admin to mark user trust status
 }
 
 export type PlanId = 'free' | 'vip' | 'vip_plus_plus';

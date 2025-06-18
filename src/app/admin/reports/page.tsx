@@ -6,11 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Edit, Loader2, CheckCircle, AlertOctagon, ArchiveX, MessageSquare } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Loader2, CheckCircle, AlertOctagon, ArchiveX, MessageSquare, Trash2, Archive } from "lucide-react"; // Added Trash2, Archive
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore"; // Added getDoc
 import { db } from "@/lib/firebase/client";
-import type { Report } from "@/types";
+import type { Report, Property } from "@/types"; // Added Property type
 import Link from "next/link";
 import {
   AlertDialog,
@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input'; // Added Input
 import { Card } from '@/components/ui/card';
 
 const reportStatusTranslations: Record<Report['status'], string> = {
@@ -44,8 +45,16 @@ export default function AdminReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
+
+  const [isDeletePropertyDialogOpen, setIsDeletePropertyDialogOpen] = useState(false);
+  const [propertyDeletionReason, setPropertyDeletionReason] = useState("");
+
+  const [isArchivePropertyDialogOpen, setIsArchivePropertyDialogOpen] = useState(false);
+  const [propertyArchiveNotes, setPropertyArchiveNotes] = useState("");
+
   const { toast } = useToast();
 
   const fetchReports = async () => {
@@ -73,12 +82,24 @@ export default function AdminReportsPage() {
 
   useEffect(() => {
     fetchReports();
-  }, [toast]);
+  }, []); // Removed toast from dependency array to prevent re-fetching on toast
 
   const openNotesDialog = (report: Report) => {
     setSelectedReport(report);
     setAdminNotes(report.adminNotes || "");
     setIsNotesDialogOpen(true);
+  };
+
+  const openDeletePropertyDialog = (report: Report) => {
+    setSelectedReport(report);
+    setPropertyDeletionReason("");
+    setIsDeletePropertyDialogOpen(true);
+  };
+
+  const openArchivePropertyDialog = (report: Report) => {
+    setSelectedReport(report);
+    setPropertyArchiveNotes(report.adminNotes || ""); // Pre-fill with report notes if any
+    setIsArchivePropertyDialogOpen(true);
   };
 
   const handleUpdateReportStatus = async (reportId: string, status: Report['status'], notes?: string) => {
@@ -88,7 +109,7 @@ export default function AdminReportsPage() {
     }
     try {
       const reportRef = doc(db, "reports", reportId);
-      const updateData: Partial<Omit<Report, 'id' | 'reportedAt'>> & { updatedAt: Timestamp } = { // Ensure only updatable fields + updatedAt
+      const updateData: Partial<Omit<Report, 'id' | 'reportedAt'>> & { updatedAt: Timestamp } = { 
         status,
         updatedAt: Timestamp.now(),
       };
@@ -116,8 +137,97 @@ export default function AdminReportsPage() {
     await handleUpdateReportStatus(selectedReport.id, 'resolved', adminNotes);
   };
 
+  const confirmDeletePropertyFromReport = async () => {
+    if (!selectedReport || !propertyDeletionReason.trim()) {
+      toast({ title: "خطأ", description: "سبب الحذف مطلوب.", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true); // Indicate loading for this specific action
+    try {
+      const propertyRef = doc(db, "properties", selectedReport.propertyId);
+      const propertySnap = await getDoc(propertyRef);
 
-  if (isLoading) {
+      if (!propertySnap.exists()) {
+        toast({ title: "خطأ", description: "لم يتم العثور على العقار المبلغ عنه.", variant: "destructive" });
+        return;
+      }
+      const propertyData = propertySnap.data() as Property;
+      const ownerUserId = propertyData.userId;
+
+      // Update property
+      await updateDoc(propertyRef, { 
+        status: 'deleted', 
+        deletionReason: propertyDeletionReason,
+        updatedAt: Timestamp.now() 
+      });
+
+      // Update user as untrusted
+      if (ownerUserId) {
+        const userRef = doc(db, "users", ownerUserId);
+        await updateDoc(userRef, { isTrusted: false, updatedAt: Timestamp.now() });
+      }
+
+      // Update report
+      const reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". تم تصنيف المالك (${ownerUserId || 'غير معروف'}) كغير موثوق.`;
+      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
+      
+      toast({ title: "تم حذف العقار", description: `تم حذف العقار "${selectedReport.propertyTitle}" وتصنيف مالكه كغير موثوق.` });
+      setPropertyDeletionReason("");
+      setIsDeletePropertyDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting property from report:", error);
+      toast({ title: "خطأ", description: "فشل حذف العقار أو تحديث المستخدم.", variant: "destructive" });
+    } finally {
+      setIsLoading(false); // Reset loading indicator
+    }
+  };
+
+  const confirmArchivePropertyFromReport = async () => {
+    if (!selectedReport || !propertyArchiveNotes.trim()) {
+      toast({ title: "خطأ", description: "ملاحظات الأرشفة مطلوبة.", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const propertyRef = doc(db, "properties", selectedReport.propertyId);
+      const propertySnap = await getDoc(propertyRef);
+
+      if (!propertySnap.exists()) {
+        toast({ title: "خطأ", description: "لم يتم العثور على العقار المبلغ عنه.", variant: "destructive" });
+        return;
+      }
+      const propertyData = propertySnap.data() as Property;
+      const ownerUserId = propertyData.userId;
+
+      // Update property
+      await updateDoc(propertyRef, { 
+        status: 'archived',
+        updatedAt: Timestamp.now()
+      });
+      
+      // Update user as untrusted
+      if (ownerUserId) {
+        const userRef = doc(db, "users", ownerUserId);
+        await updateDoc(userRef, { isTrusted: false, updatedAt: Timestamp.now() });
+      }
+      
+      // Update report
+      const reportNotes = `تم أرشفة العقار. ملاحظات الأرشفة: "${propertyArchiveNotes}". تم تصنيف المالك (${ownerUserId || 'غير معروف'}) كغير موثوق.`;
+      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
+
+      toast({ title: "تم أرشفة العقار", description: `تم أرشفة العقار "${selectedReport.propertyTitle}" وتصنيف مالكه كغير موثوق.` });
+      setPropertyArchiveNotes("");
+      setIsArchivePropertyDialogOpen(false);
+    } catch (error) {
+      console.error("Error archiving property from report:", error);
+      toast({ title: "خطأ", description: "فشل أرشفة العقار أو تحديث المستخدم.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  if (isLoading && reports.length === 0) { // Keep loader only on initial load
     return <div className="flex justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
@@ -165,7 +275,7 @@ export default function AdminReportsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
+                      <DropdownMenuLabel>إجراءات البلاغ</DropdownMenuLabel>
                        <DropdownMenuItem asChild>
                          <Link href={`/properties/${report.propertyId}`} target="_blank">
                            <Eye className="mr-2 h-4 w-4" /> عرض العقار
@@ -178,7 +288,7 @@ export default function AdminReportsPage() {
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
                           <Edit className="mr-2 h-4 w-4" />
-                          <span>تغيير الحالة</span>
+                          <span>تغيير حالة البلاغ</span>
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                             <DropdownMenuSubContent>
@@ -197,6 +307,14 @@ export default function AdminReportsPage() {
                             </DropdownMenuSubContent>
                         </DropdownMenuPortal>
                       </DropdownMenuSub>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>إجراءات على العقار والمالك</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => openDeletePropertyDialog(report)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <Trash2 className="mr-2 h-4 w-4" /> حذف العقار وتصنيف المالك
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openArchivePropertyDialog(report)}>
+                        <Archive className="mr-2 h-4 w-4" /> أرشفة العقار وتصنيف المالك
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -209,7 +327,7 @@ export default function AdminReportsPage() {
         )}
       </Card>
 
-      {}
+      {/* Notes Dialog */}
       <AlertDialog open={isNotesDialogOpen} onOpenChange={(open) => {
           setIsNotesDialogOpen(open);
           if (!open) {
@@ -237,23 +355,79 @@ export default function AdminReportsPage() {
             <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsNotesDialogOpen(false); setAdminNotes("");}}>إغلاق</AlertDialogCancel>
             <Button 
                 onClick={handleSaveNotesAndResolve} 
-                disabled={!adminNotes.trim() || !selectedReport}
+                disabled={isLoading || !adminNotes.trim() || !selectedReport}
                 variant="default"
             >
+                 {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
                  حل البلاغ مع حفظ الملاحظات
             </Button>
             {selectedReport && (
                  <Button 
                     variant="outline" 
                     onClick={() => handleUpdateReportStatus(selectedReport.id, selectedReport.status, adminNotes)}
-                    disabled={!adminNotes.trim()}
+                    disabled={isLoading || !adminNotes.trim()}
                 >
+                    {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
                     حفظ الملاحظات فقط
                 </Button>
             )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Property Dialog */}
+      <AlertDialog open={isDeletePropertyDialogOpen} onOpenChange={setIsDeletePropertyDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد حذف العقار وتصنيف المالك</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد أنك تريد حذف العقار "{selectedReport?.propertyTitle}"؟ سيتم نقل العقار إلى المحذوفات، وتصنيف مالكه كـ "غير موثوق".
+              الرجاء إدخال سبب الحذف (سيتم إرساله للمالك نظريًا).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input 
+            placeholder="سبب الحذف (مثال: مخالفة الشروط، معلومات مضللة)" 
+            value={propertyDeletionReason}
+            onChange={(e) => setPropertyDeletionReason(e.target.value)}
+            className="my-4"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsDeletePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeletePropertyFromReport} disabled={isLoading || !propertyDeletionReason.trim()}>
+              {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              تأكيد الحذف والتصنيف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Archive Property Dialog */}
+      <AlertDialog open={isArchivePropertyDialogOpen} onOpenChange={setIsArchivePropertyDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد أرشفة العقار وتصنيف المالك</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد أنك تريد أرشفة العقار "{selectedReport?.propertyTitle}"؟ سيتم أرشفة العقار، وتصنيف مالكه كـ "غير موثوق".
+              الرجاء إدخال ملاحظات الأرشفة (سيتم إرسالها للمالك نظريًا).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="ملاحظات الأرشفة..."
+            value={propertyArchiveNotes}
+            onChange={(e) => setPropertyArchiveNotes(e.target.value)}
+            rows={3}
+            className="my-4"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsArchivePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmArchivePropertyFromReport} disabled={isLoading || !propertyArchiveNotes.trim()}>
+              {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              تأكيد الأرشفة والتصنيف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
