@@ -50,7 +50,7 @@ export default function AdminPendingPropertiesPage() {
   const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false);
 
   const [rejectionReason, setRejectionReason] = useState("");
-  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal'); // Default for trust level dialog
+  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal');
 
   const { toast } = useToast();
 
@@ -124,8 +124,8 @@ export default function AdminPendingPropertiesPage() {
     try {
       const propRef = doc(db, "properties", selectedProperty.id);
       await updateDoc(propRef, { status: 'active', updatedAt: Timestamp.now() });
-
-      toast({ title: "تمت الموافقة", description: `تمت الموافقة على العقار "${selectedProperty.title}" وتغيير حالته إلى نشط.` });
+      // User trust level is NOT changed here. Admin can do it separately.
+      toast({ title: "تمت الموافقة", description: `تمت الموافقة على العقار "${selectedProperty.title}" وتغيير حالته إلى نشط. (تصنيف المالك لم يتغير)` });
       fetchPendingProperties();
     } catch (error) {
       console.error("Error approving property:", error);
@@ -154,8 +154,8 @@ export default function AdminPendingPropertiesPage() {
         propUpdate.status = 'archived';
       }
       await updateDoc(propRef, propUpdate);
-      
-      toast({ title: "تم رفض العقار", description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedProperty.title}".` });
+      // User trust level is NOT changed here. Admin can do it separately.
+      toast({ title: "تم رفض العقار", description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedProperty.title}". (تصنيف المالك لم يتغير)` });
       fetchPendingProperties();
     } catch (error) {
       console.error(`Error rejecting property (${actionType}):`, error);
@@ -173,7 +173,7 @@ export default function AdminPendingPropertiesPage() {
   };
   
   const handleChangeUserTrustLevel = async () => {
-    if (!selectedProperty || !selectedProperty.userId) { // Ensure userId exists
+    if (!selectedProperty || !selectedProperty.userId) { 
         toast({ title: "خطأ", description: "معرف المستخدم مفقود للعقار المحدد.", variant: "destructive" });
         return;
     }
@@ -257,7 +257,7 @@ export default function AdminPendingPropertiesPage() {
                       </DropdownMenuItem>
                        <DropdownMenuSeparator />
                        <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
-                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك
+                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك فقط
                        </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -278,6 +278,7 @@ export default function AdminPendingPropertiesPage() {
             <AlertDialogTitle>تأكيد تنشيط العقار</AlertDialogTitle>
             <AlertDialogDescription>
               هل أنت متأكد أنك تريد تنشيط العقار "{selectedProperty?.title}"؟ سيتم تغيير حالة العقار إلى "نشط".
+              (تصنيف المالك لن يتغير تلقائيًا).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -300,6 +301,7 @@ export default function AdminPendingPropertiesPage() {
             <AlertDialogTitle>حذف العقار</AlertDialogTitle>
             <AlertDialogDescription>
               سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "محذوف". الرجاء إدخال سبب الحذف.
+              (تصنيف المالك لن يتغير تلقائيًا).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input 
@@ -328,6 +330,7 @@ export default function AdminPendingPropertiesPage() {
             <AlertDialogTitle>أرشفة العقار</AlertDialogTitle>
             <AlertDialogDescription>
               سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "مؤرشف".
+              (تصنيف المالك لن يتغير تلقائيًا).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -350,6 +353,8 @@ export default function AdminPendingPropertiesPage() {
             <AlertDialogTitle>تغيير تصنيف مالك العقار</AlertDialogTitle>
             <AlertDialogDescription>
               تغيير تصنيف مالك العقار "{selectedProperty?.title}" (المستخدم: {selectedProperty?.ownerEmail || selectedProperty?.userId}).
+              <br/>
+              التصنيف الحالي: {selectedProperty?.ownerCurrentTrustLevel ? trustLevelTranslations[selectedProperty.ownerCurrentTrustLevel] : 'غير محدد'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="my-4 space-y-2">

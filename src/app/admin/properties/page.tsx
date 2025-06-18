@@ -6,11 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Trash2, Archive, Eye, Loader2, RefreshCcwDot, UserCog, UserCheck, UserX, CheckCircle } from "lucide-react"; // Added CheckCircle
+import { MoreHorizontal, Trash2, Archive, Eye, Loader2, RefreshCcwDot, UserCog, UserCheck, UserX, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Property, UserTrustLevel } from "@/types";
+import type { Property, UserTrustLevel, CustomUser } from "@/types";
 import Image from "next/image";
 import {
   AlertDialog,
@@ -25,7 +25,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label"; // Added missing import
+import { Label } from "@/components/ui/label";
+
+interface AdminProperty extends Property {
+  ownerEmail?: string;
+  ownerCurrentTrustLevel?: UserTrustLevel;
+}
+
 
 const trustLevelTranslations: Record<UserTrustLevel, string> = {
   normal: 'عادي',
@@ -34,14 +40,14 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
 };
 
 export default function AdminPropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [properties, setProperties] = useState<AdminProperty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<AdminProperty | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
-  const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false); // New dialog
+  const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false); 
   const [deleteReason, setDeleteReason] = useState("");
-  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('untrusted'); // For trust level changes
+  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal'); 
   const { toast } = useToast();
 
   const fetchAllProperties = async () => {
@@ -49,13 +55,31 @@ export default function AdminPropertiesPage() {
     try {
       const q = query(collection(db, "properties"), orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
-      const propsData = querySnapshot.docs.map(doc => ({ 
-          id: doc.id, 
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt),
-          updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date(doc.data().updatedAt),
-      } as Property));
-      setProperties(propsData);
+      const propsDataPromises = querySnapshot.docs.map(async (docSnap) => {
+        const data = docSnap.data() as Property;
+        let ownerEmail: string | undefined = undefined;
+        let ownerCurrentTrustLevel: UserTrustLevel | undefined = 'normal';
+
+        if (data.userId) {
+          const userRef = doc(db, "users", data.userId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const userData = userSnap.data() as CustomUser;
+            ownerEmail = userData.email;
+            ownerCurrentTrustLevel = userData.trustLevel || 'normal';
+          }
+        }
+        return {
+          id: docSnap.id,
+          ...data,
+          createdAt: (data.createdAt as unknown as Timestamp)?.toDate ? (data.createdAt as unknown as Timestamp).toDate() : new Date(data.createdAt as any),
+          updatedAt: (data.updatedAt as unknown as Timestamp)?.toDate ? (data.updatedAt as unknown as Timestamp).toDate() : new Date(data.updatedAt as any),
+          ownerEmail,
+          ownerCurrentTrustLevel,
+        } as AdminProperty;
+      });
+      const resolvedPropsData = await Promise.all(propsDataPromises);
+      setProperties(resolvedPropsData);
     } catch (error) {
       console.error("Error fetching all properties:", error);
       toast({ title: "خطأ", description: "لم نتمكن من تحميل العقارات.", variant: "destructive" });
@@ -64,36 +88,25 @@ export default function AdminPropertiesPage() {
     }
   };
 
+
   useEffect(() => {
     fetchAllProperties();
   }, []);
 
-  const openDeleteDialog = (property: Property) => {
+  const openDeleteDialog = (property: AdminProperty) => {
     setSelectedProperty(property);
     setDeleteReason("");
     setIsDeleteDialogOpen(true);
   };
 
-  const openArchiveDialog = (property: Property) => {
+  const openArchiveDialog = (property: AdminProperty) => {
     setSelectedProperty(property);
     setIsArchiveDialogOpen(true);
   };
 
-  const openTrustLevelDialog = async (property: Property) => {
+  const openTrustLevelDialog = (property: AdminProperty) => {
     setSelectedProperty(property);
-    try {
-        const userDocRef = doc(db, "users", property.userId);
-        const snap = await getDoc(userDocRef);
-        if (snap.exists()) {
-            setTargetUserTrustLevel(snap.data().trustLevel || 'normal');
-        } else {
-            setTargetUserTrustLevel('normal'); // Fallback if user document not found
-             toast({ title: "تنبيه", description: "لم يتم العثور على بيانات تصنيف المالك.", variant: "default" });
-        }
-    } catch (e) {
-        setTargetUserTrustLevel('normal');
-        toast({ title: "خطأ", description: "فشل تحميل بيانات تصنيف المالك.", variant: "destructive" });
-    }
+    setTargetUserTrustLevel(property.ownerCurrentTrustLevel || 'normal');
     setIsTrustLevelDialogOpen(true);
   };
   
@@ -107,7 +120,7 @@ export default function AdminPropertiesPage() {
       const propRef = doc(db, "properties", selectedProperty.id);
       await updateDoc(propRef, { status: 'deleted', deletionReason: deleteReason, updatedAt: Timestamp.now() });
       toast({ title: "تم الحذف", description: `تم نقل العقار "${selectedProperty.title}" إلى المحذوفات.` });
-      fetchAllProperties();
+      fetchAllProperties(); // Refresh list
     } catch (error) {
       toast({ title: "خطأ", description: "فشل حذف العقار.", variant: "destructive" });
     } finally {
@@ -125,7 +138,7 @@ export default function AdminPropertiesPage() {
       const propRef = doc(db, "properties", selectedProperty.id);
       await updateDoc(propRef, { status: 'archived', updatedAt: Timestamp.now() });
       toast({ title: "تمت الأرشفة", description: `تم أرشفة العقار "${selectedProperty.title}".` });
-      fetchAllProperties();
+      fetchAllProperties(); // Refresh list
     } catch (error) {
       toast({ title: "خطأ", description: "فشل أرشفة العقار.", variant: "destructive" });
     } finally {
@@ -135,14 +148,14 @@ export default function AdminPropertiesPage() {
     }
   };
 
-  const handleReactivateProperty = async (property: Property) => {
+  const handleReactivateProperty = async (property: AdminProperty) => {
     setIsLoading(true); 
     try {
         const propRef = doc(db, "properties", property.id);
         await updateDoc(propRef, { status: 'active', deletionReason: "", updatedAt: Timestamp.now() }); 
         
-        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${property.title}". يمكن تعديل تصنيف المالك بشكل منفصل.` });
-        fetchAllProperties();
+        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${property.title}". (تصنيف المالك لم يتغير تلقائيًا)` });
+        fetchAllProperties(); // Refresh list
     } catch (error) {
         console.error("Error reactivating property:", error);
         toast({ title: "خطأ", description: "فشل إعادة تنشيط العقار.", variant: "destructive" });
@@ -161,7 +174,7 @@ export default function AdminPropertiesPage() {
         const userRef = doc(db, "users", selectedProperty.userId);
         await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${selectedProperty.title}" إلى "${trustLevelTranslations[targetUserTrustLevel]}".` });
-        fetchAllProperties(); // To reflect any potential UI changes based on trust level if added later
+        fetchAllProperties(); 
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -197,7 +210,8 @@ export default function AdminPropertiesPage() {
               <TableHead className="w-[80px]">صورة</TableHead>
               <TableHead>العنوان</TableHead>
               <TableHead>السعر</TableHead>
-              <TableHead>المالك (ID)</TableHead>
+              <TableHead>المالك (Email)</TableHead>
+              <TableHead>تصنيف المالك</TableHead>
               <TableHead>الحالة</TableHead>
               <TableHead>تاريخ الإنشاء</TableHead>
               <TableHead className="text-right">إجراءات</TableHead>
@@ -218,7 +232,12 @@ export default function AdminPropertiesPage() {
                 </TableCell>
                 <TableCell className="font-medium max-w-[200px] truncate" title={prop.title}>{prop.title}</TableCell>
                 <TableCell>{prop.price.toLocaleString()} د.ج</TableCell>
-                <TableCell className="max-w-[100px] truncate" title={prop.userId}>{prop.userId}</TableCell>
+                <TableCell className="max-w-[150px] truncate" title={prop.ownerEmail || prop.userId}>{prop.ownerEmail || prop.userId}</TableCell>
+                <TableCell>
+                  <Badge variant={prop.ownerCurrentTrustLevel === 'blacklisted' ? 'destructive' : prop.ownerCurrentTrustLevel === 'untrusted' ? 'secondary' : 'default'}>
+                      {prop.ownerCurrentTrustLevel ? trustLevelTranslations[prop.ownerCurrentTrustLevel] : 'غير محدد'}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(prop.status)}>
                     {prop.status === 'active' ? 'نشط' : 
@@ -285,7 +304,7 @@ export default function AdminPropertiesPage() {
             <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
             <AlertDialogDescription>
               هل أنت متأكد أنك تريد حذف العقار "{selectedProperty?.title}"؟ سيتم نقل العقار إلى قائمة المحذوفات.
-              الرجاء إدخال سبب الحذف.
+              الرجاء إدخال سبب الحذف. (تصنيف المالك لن يتغير تلقائيًا).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input 
@@ -313,7 +332,7 @@ export default function AdminPropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد الأرشفة</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد أنك تريد أرشفة العقار "{selectedProperty?.title}"؟ 
+              هل أنت متأكد أنك تريد أرشفة العقار "{selectedProperty?.title}"؟ (تصنيف المالك لن يتغير تلقائيًا).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -335,7 +354,9 @@ export default function AdminPropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>تغيير تصنيف مالك العقار</AlertDialogTitle>
             <AlertDialogDescription>
-              تغيير تصنيف مالك العقار "{selectedProperty?.title}" (المستخدم: {selectedProperty?.userId}).
+              تغيير تصنيف مالك العقار "{selectedProperty?.title}" (المستخدم: {selectedProperty?.ownerEmail || selectedProperty?.userId}).
+              <br/>
+              التصنيف الحالي: {selectedProperty?.ownerCurrentTrustLevel ? trustLevelTranslations[selectedProperty.ownerCurrentTrustLevel] : 'غير محدد'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="my-4 space-y-2">
@@ -363,3 +384,4 @@ export default function AdminPropertiesPage() {
     </div>
   );
 }
+

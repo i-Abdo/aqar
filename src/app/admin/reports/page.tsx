@@ -58,10 +58,14 @@ export default function AdminReportsPage() {
 
   const [isDeletePropertyDialogOpen, setIsDeletePropertyDialogOpen] = useState(false);
   const [propertyDeletionReason, setPropertyDeletionReason] = useState("");
-  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('untrusted');
-
+  
   const [isArchivePropertyDialogOpen, setIsArchivePropertyDialogOpen] = useState(false);
   const [propertyArchiveNotes, setPropertyArchiveNotes] = useState("");
+
+  const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false);
+  const [targetUserForTrustLevel, setTargetUserForTrustLevel] = useState<{userId: string, propertyTitle: string, currentTrustLevel: UserTrustLevel} | null>(null);
+  const [selectedTrustLevel, setSelectedTrustLevel] = useState<UserTrustLevel>('normal');
+
 
   const { toast } = useToast();
 
@@ -70,16 +74,34 @@ export default function AdminReportsPage() {
     try {
       const q = query(collection(db, "reports"), orderBy("reportedAt", "desc"));
       const querySnapshot = await getDocs(q);
-      const reportsData = querySnapshot.docs.map(docSnap => {
+      const reportsDataPromises = querySnapshot.docs.map(async (docSnap) => {
         const data = docSnap.data();
+        let ownerTrustLevel: UserTrustLevel = 'normal';
+        if (data.propertyId) {
+            try {
+                const propRef = doc(db, "properties", data.propertyId);
+                const propSnap = await getDoc(propRef);
+                if (propSnap.exists() && propSnap.data()?.userId) {
+                    const userRef = doc(db, "users", propSnap.data()?.userId);
+                    const userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        ownerTrustLevel = userSnap.data()?.trustLevel || 'normal';
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch owner trust level for report", data.id, e);
+            }
+        }
         return {
           id: docSnap.id,
           ...data,
+          ownerCurrentTrustLevel: ownerTrustLevel,
           reportedAt: (data.reportedAt as Timestamp)?.toDate ? (data.reportedAt as Timestamp).toDate() : new Date(data.reportedAt || Date.now()),
           updatedAt: (data.updatedAt as Timestamp)?.toDate ? (data.updatedAt as Timestamp).toDate() : new Date(data.updatedAt || Date.now()),
-        } as Report;
+        } as Report & { ownerCurrentTrustLevel?: UserTrustLevel };
       });
-      setReports(reportsData);
+      const reportsData = await Promise.all(reportsDataPromises);
+      setReports(reportsData as Report[]);
     } catch (error) {
       console.error("Error fetching reports:", error);
       toast({ title: "خطأ", description: "لم نتمكن من تحميل البلاغات.", variant: "destructive" });
@@ -101,16 +123,67 @@ export default function AdminReportsPage() {
   const openDeletePropertyDialog = (report: Report) => {
     setSelectedReport(report);
     setPropertyDeletionReason("");
-    setTargetUserTrustLevel('untrusted'); // Default for deletion
     setIsDeletePropertyDialogOpen(true);
   };
 
   const openArchivePropertyDialog = (report: Report) => {
     setSelectedReport(report);
     setPropertyArchiveNotes(report.adminNotes || ""); 
-    setTargetUserTrustLevel('untrusted'); 
     setIsArchivePropertyDialogOpen(true);
   };
+  
+  const openTrustLevelDialogForReportOwner = async (report: Report) => {
+    if (!report.propertyId) {
+        toast({ title: "خطأ", description: "معرف العقار مفقود في البلاغ.", variant: "destructive" });
+        return;
+    }
+    setIsLoading(true);
+    try {
+        const propRef = doc(db, "properties", report.propertyId);
+        const propSnap = await getDoc(propRef);
+        if (propSnap.exists() && propSnap.data()?.userId) {
+            const ownerUserId = propSnap.data()?.userId;
+            const userRef = doc(db, "users", ownerUserId);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                const currentTrust = userSnap.data()?.trustLevel || 'normal';
+                setTargetUserForTrustLevel({ userId: ownerUserId, propertyTitle: report.propertyTitle, currentTrustLevel: currentTrust });
+                setSelectedTrustLevel(currentTrust);
+                setIsTrustLevelDialogOpen(true);
+            } else {
+                toast({ title: "خطأ", description: "لم يتم العثور على مالك العقار.", variant: "destructive" });
+            }
+        } else {
+            toast({ title: "خطأ", description: "لم يتم العثور على العقار أو مالكه.", variant: "destructive" });
+        }
+    } catch (e) {
+        toast({ title: "خطأ", description: "فشل تحميل بيانات مالك العقار.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleChangeUserTrustLevel = async () => {
+    if (!targetUserForTrustLevel) {
+        toast({ title: "خطأ", description: "لم يتم تحديد المستخدم لتغيير التصنيف.", variant: "destructive" });
+        return;
+    }
+    setIsLoading(true);
+    try {
+        const userRef = doc(db, "users", targetUserForTrustLevel.userId);
+        await updateDoc(userRef, { trustLevel: selectedTrustLevel, updatedAt: Timestamp.now() });
+        toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${targetUserForTrustLevel.propertyTitle}" إلى "${trustLevelTranslations[selectedTrustLevel]}".` });
+        fetchReports(); 
+    } catch (error) {
+        console.error("Error changing user trust level:", error);
+        toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+        setIsTrustLevelDialogOpen(false);
+        setTargetUserForTrustLevel(null);
+    }
+  };
+
 
   const handleUpdateReportStatus = async (reportId: string, status: Report['status'], notes?: string) => {
     if (!reportId) {
@@ -168,8 +241,7 @@ export default function AdminReportsPage() {
         setIsLoading(false);
         return;
       }
-      const propertyData = propertySnap.data() as Property;
-      const ownerUserId = propertyData.userId;
+      // const propertyData = propertySnap.data() as Property; // Not needed for ownerId directly here
 
       const propertyUpdate: Partial<Property> = { updatedAt: Timestamp.now() };
       if (actionType === 'delete') {
@@ -180,20 +252,17 @@ export default function AdminReportsPage() {
       }
       await updateDoc(propertyRef, propertyUpdate);
 
-      if (ownerUserId) {
-        const userRef = doc(db, "users", ownerUserId);
-        await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
-      }
+      // User trust level is NOT changed here automatically. Admin must do it separately.
 
       let reportNotes = "";
       if (actionType === 'delete') {
-        reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". تم تغيير تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "${trustLevelTranslations[targetUserTrustLevel]}".`;
+        reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". يمكن تعديل تصنيف المالك بشكل منفصل.`;
       } else {
-        reportNotes = `تم أرشفة العقار. ملاحظات الأرشفة: "${propertyArchiveNotes}". تم تغيير تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "${trustLevelTranslations[targetUserTrustLevel]}".`;
+        reportNotes = `تم أرشفة العقار. ملاحظات الأرشفة: "${propertyArchiveNotes}". يمكن تعديل تصنيف المالك بشكل منفصل.`;
       }
       await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes); 
       
-      toast({ title: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار`, description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedReport.propertyTitle}" وتحديث تصنيف مالكه.` });
+      toast({ title: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار`, description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedReport.propertyTitle}".` });
       
       if (actionType === 'delete') {
         setPropertyDeletionReason("");
@@ -204,7 +273,7 @@ export default function AdminReportsPage() {
       }
     } catch (error) {
       console.error(`Error ${actionType} property from report:`, error);
-      toast({ title: "خطأ", description: `فشل ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار أو تحديث المستخدم.`, variant: "destructive" });
+      toast({ title: "خطأ", description: `فشل ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار.`, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -220,18 +289,15 @@ export default function AdminReportsPage() {
             setIsLoading(false);
             return;
         }
-        // const propertyData = propertySnap.data() as Property; // Not strictly needed if we don't read ownerId for this specific action
-        // const ownerUserId = propertyData.userId;
-
+        
         await updateDoc(propertyRef, { status: 'active', updatedAt: Timestamp.now(), deletionReason: "" }); 
 
-        // User trust level is NOT automatically changed here anymore.
-        // Admin should manage trust level as a separate action if needed.
+        // User trust level is NOT automatically changed here.
         
-        const reportNotes = `تم إعادة تنشيط العقار.`; // Updated note
+        const reportNotes = `تم إعادة تنشيط العقار. يمكن تعديل تصنيف المالك بشكل منفصل.`; 
         await handleUpdateReportStatus(report.id, 'resolved', reportNotes); 
 
-        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}".` }); // Updated toast
+        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}".` }); 
     } catch (error) {
         console.error("Error reactivating property:", error);
         toast({ title: "خطأ", description: "فشل إعادة تنشيط العقار.", variant: "destructive" });
@@ -324,14 +390,17 @@ export default function AdminReportsPage() {
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel>إجراءات على العقار والمالك</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => openDeletePropertyDialog(report)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="mr-2 h-4 w-4" /> حذف العقار وتحديث تصنيف المالك
+                        <Trash2 className="mr-2 h-4 w-4" /> حذف العقار
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openArchivePropertyDialog(report)}>
-                        <Archive className="mr-2 h-4 w-4" /> أرشفة العقار وتحديث تصنيف المالك
+                        <Archive className="mr-2 h-4 w-4" /> أرشفة العقار
                       </DropdownMenuItem>
                        <DropdownMenuItem onClick={() => handleReactivateProperty(report)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                        <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط العقار وتصنيف المالك
+                        <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط العقار
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openTrustLevelDialogForReportOwner(report)} disabled={!report.propertyId}>
+                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف مالك العقار
+                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -394,9 +463,10 @@ export default function AdminReportsPage() {
       <AlertDialog open={isDeletePropertyDialogOpen} onOpenChange={setIsDeletePropertyDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد حذف العقار وتحديث تصنيف المالك</AlertDialogTitle>
+            <AlertDialogTitle>تأكيد حذف العقار</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف العقار "{selectedReport?.propertyTitle}". الرجاء إدخال سبب الحذف وتحديد تصنيف المالك الجديد.
+              سيتم حذف العقار "{selectedReport?.propertyTitle}". الرجاء إدخال سبب الحذف.
+              (تصنيف المالك لن يتغير تلقائيًا، يمكن تعديله بشكل منفصل).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input 
@@ -405,24 +475,11 @@ export default function AdminReportsPage() {
             onChange={(e) => setPropertyDeletionReason(e.target.value)}
             className="my-2"
           />
-          <div className="my-2 space-y-1">
-            <Label htmlFor="trustLevelDelete">تصنيف المالك الجديد</Label>
-            <Select value={targetUserTrustLevel} onValueChange={(value) => setTargetUserTrustLevel(value as UserTrustLevel)}>
-                <SelectTrigger id="trustLevelDelete">
-                    <SelectValue placeholder="اختر تصنيف المالك..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="normal"><UserCheck className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.normal}</SelectItem>
-                    <SelectItem value="untrusted"><UserX className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.untrusted}</SelectItem>
-                    <SelectItem value="blacklisted"><UserCog className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.blacklisted}</SelectItem>
-                </SelectContent>
-            </Select>
-          </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsDeletePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
             <AlertDialogAction onClick={() => confirmPropertyAction('delete')} disabled={isLoading || !propertyDeletionReason.trim()}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-              تأكيد الحذف والتصنيف
+              تأكيد الحذف
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -431,9 +488,10 @@ export default function AdminReportsPage() {
       <AlertDialog open={isArchivePropertyDialogOpen} onOpenChange={setIsArchivePropertyDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد أرشفة العقار وتحديث تصنيف المالك</AlertDialogTitle>
+            <AlertDialogTitle>تأكيد أرشفة العقار</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم أرشفة العقار "{selectedReport?.propertyTitle}". الرجاء إدخال ملاحظات الأرشفة وتحديد تصنيف المالك الجديد.
+              سيتم أرشفة العقار "{selectedReport?.propertyTitle}". الرجاء إدخال ملاحظات الأرشفة.
+              (تصنيف المالك لن يتغير تلقائيًا، يمكن تعديله بشكل منفصل).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
@@ -443,10 +501,33 @@ export default function AdminReportsPage() {
             rows={3}
             className="my-2"
           />
-           <div className="my-2 space-y-1">
-            <Label htmlFor="trustLevelArchive">تصنيف المالك الجديد</Label>
-             <Select value={targetUserTrustLevel} onValueChange={(value) => setTargetUserTrustLevel(value as UserTrustLevel)}>
-                <SelectTrigger id="trustLevelArchive">
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsArchivePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmPropertyAction('archive')} disabled={isLoading || !propertyArchiveNotes.trim()}>
+              {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              تأكيد الأرشفة
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Change User Trust Level Dialog */}
+      <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={(open) => {
+          setIsTrustLevelDialogOpen(open);
+          if(!open) setTargetUserForTrustLevel(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تغيير تصنيف مالك العقار</AlertDialogTitle>
+            <AlertDialogDescription>
+              تغيير تصنيف مالك العقار "{targetUserForTrustLevel?.propertyTitle}" (المستخدم: {targetUserForTrustLevel?.userId}).<br/>
+              التصنيف الحالي: {targetUserForTrustLevel?.currentTrustLevel ? trustLevelTranslations[targetUserForTrustLevel.currentTrustLevel] : 'غير محدد'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="my-4 space-y-2">
+            <Label htmlFor="trustLevelChangeDialogReport">التصنيف الجديد</Label>
+            <Select value={selectedTrustLevel} onValueChange={(value) => setSelectedTrustLevel(value as UserTrustLevel)}>
+                <SelectTrigger id="trustLevelChangeDialogReport">
                     <SelectValue placeholder="اختر تصنيف المالك..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -457,10 +538,10 @@ export default function AdminReportsPage() {
             </Select>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsArchivePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmPropertyAction('archive')} disabled={isLoading || !propertyArchiveNotes.trim()}>
-              {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-              تأكيد الأرشفة والتصنيف
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleChangeUserTrustLevel} disabled={isLoading}>
+                {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2"/>}
+                تحديث التصنيف
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -469,6 +550,4 @@ export default function AdminReportsPage() {
     </div>
   );
 }
-    
-
     
