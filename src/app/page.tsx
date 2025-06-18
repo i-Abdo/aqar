@@ -1,8 +1,18 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, MapPin } from "lucide-react";
+
+const popularCities = [
+  { name: "الجزائر العاصمة", hint: "Algiers cityscape" , image: "https://placehold.co/400x300.png" },
+  { name: "وهران", hint: "Oran waterfront" , image: "https://placehold.co/400x300.png" },
+  { name: "قسنطينة", hint: "Constantine bridge" , image: "https://placehold.co/400x300.png" },
+  { name: "عنابة", hint: "Annaba beach" , image: "https://placehold.co/400x300.png" },
+  { name: "البليدة", hint: "Blida mountains" , image: "https://placehold.co/400x300.png" },
+  { name: "سطيف", hint: "Setif landmark" , image: "https://placehold.co/400x300.png" },
+];
 
 export default function HomePage() {
   return (
@@ -78,6 +88,33 @@ export default function HomePage() {
             className="rounded-lg shadow-xl object-cover"
             data-ai-hint="modern apartment building"
           />
+      </section>
+
+      <section className="w-full py-12 md:py-16">
+        <h2 className="text-3xl font-bold font-headline mb-10">أشهر المدن</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          {popularCities.map((city) => (
+            <Link key={city.name} href={`/properties?wilaya=${city.name}`} passHref>
+              <Card className="group overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer">
+                <div className="relative w-full h-40">
+                  <Image
+                    src={city.image}
+                    alt={city.name}
+                    fill
+                    style={{objectFit:"cover"}}
+                    className="transition-transform duration-300 group-hover:scale-105"
+                    data-ai-hint={city.hint}
+                  />
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold text-center group-hover:text-primary transition-colors">
+                    {city.name}
+                  </h3>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </section>
 
        <section className="w-full py-12 md:py-16 bg-secondary/30 rounded-lg">
