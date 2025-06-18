@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Trash2, Archive, Eye, Loader2, RefreshCcwDot, UserCog, UserCheck, UserX } from "lucide-react"; // Added icons
+import { MoreHorizontal, Trash2, Archive, Eye, Loader2, RefreshCcwDot, UserCog, UserCheck, UserX, CheckCircle } from "lucide-react"; // Added CheckCircle
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label"; // Added missing import
 
 const trustLevelTranslations: Record<UserTrustLevel, string> = {
   normal: 'عادي',
@@ -78,17 +79,21 @@ export default function AdminPropertiesPage() {
     setIsArchiveDialogOpen(true);
   };
 
-  const openTrustLevelDialog = (property: Property) => {
+  const openTrustLevelDialog = async (property: Property) => {
     setSelectedProperty(property);
-    // Fetch current trust level of owner if needed, or assume a default to change
-    const userDocRef = doc(db, "users", property.userId);
-    getDoc(userDocRef).then(snap => {
+    try {
+        const userDocRef = doc(db, "users", property.userId);
+        const snap = await getDoc(userDocRef);
         if (snap.exists()) {
             setTargetUserTrustLevel(snap.data().trustLevel || 'normal');
         } else {
-            setTargetUserTrustLevel('normal');
+            setTargetUserTrustLevel('normal'); // Fallback if user document not found
+             toast({ title: "تنبيه", description: "لم يتم العثور على بيانات تصنيف المالك.", variant: "default" });
         }
-    });
+    } catch (e) {
+        setTargetUserTrustLevel('normal');
+        toast({ title: "خطأ", description: "فشل تحميل بيانات تصنيف المالك.", variant: "destructive" });
+    }
     setIsTrustLevelDialogOpen(true);
   };
   
@@ -97,43 +102,46 @@ export default function AdminPropertiesPage() {
       toast({title: "خطأ", description: "سبب الحذف مطلوب.", variant: "destructive"});
       return;
     }
+    setIsLoading(true);
     try {
       const propRef = doc(db, "properties", selectedProperty.id);
-      await updateDoc(propRef, { status: 'deleted', deletionReason: deleteReason, updatedAt: new Date() });
+      await updateDoc(propRef, { status: 'deleted', deletionReason: deleteReason, updatedAt: Timestamp.now() });
       toast({ title: "تم الحذف", description: `تم نقل العقار "${selectedProperty.title}" إلى المحذوفات.` });
       fetchAllProperties();
     } catch (error) {
       toast({ title: "خطأ", description: "فشل حذف العقار.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+        setIsDeleteDialogOpen(false);
+        setSelectedProperty(null);
+        setDeleteReason("");
     }
-    setIsDeleteDialogOpen(false);
-    setSelectedProperty(null);
   };
 
   const handleArchiveProperty = async () => {
     if (!selectedProperty) return;
+    setIsLoading(true);
     try {
       const propRef = doc(db, "properties", selectedProperty.id);
-      await updateDoc(propRef, { status: 'archived', updatedAt: new Date() });
+      await updateDoc(propRef, { status: 'archived', updatedAt: Timestamp.now() });
       toast({ title: "تمت الأرشفة", description: `تم أرشفة العقار "${selectedProperty.title}".` });
       fetchAllProperties();
     } catch (error) {
       toast({ title: "خطأ", description: "فشل أرشفة العقار.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+        setIsArchiveDialogOpen(false);
+        setSelectedProperty(null);
     }
-    setIsArchiveDialogOpen(false);
-    setSelectedProperty(null);
   };
 
   const handleReactivateProperty = async (property: Property) => {
-    setIsLoading(true); // Can use a specific loader for this action
+    setIsLoading(true); 
     try {
         const propRef = doc(db, "properties", property.id);
-        await updateDoc(propRef, { status: 'active', updatedAt: Timestamp.now() });
+        await updateDoc(propRef, { status: 'active', deletionReason: "", updatedAt: Timestamp.now() }); 
         
-        // Optionally, reset user trust level to normal
-        const userRef = doc(db, "users", property.userId);
-        await updateDoc(userRef, { trustLevel: 'normal', updatedAt: Timestamp.now() });
-
-        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${property.title}" وتصنيف المالك كـ "عادي".` });
+        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${property.title}". يمكن تعديل تصنيف المالك بشكل منفصل.` });
         fetchAllProperties();
     } catch (error) {
         console.error("Error reactivating property:", error);
@@ -144,13 +152,16 @@ export default function AdminPropertiesPage() {
   };
 
   const handleChangeUserTrustLevel = async () => {
-    if (!selectedProperty) return;
+    if (!selectedProperty || !selectedProperty.userId) {
+        toast({ title: "خطأ", description: "معرف المستخدم مفقود للعقار المحدد.", variant: "destructive" });
+        return;
+    }
     setIsLoading(true);
     try {
         const userRef = doc(db, "users", selectedProperty.userId);
         await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${selectedProperty.title}" إلى "${trustLevelTranslations[targetUserTrustLevel]}".` });
-        // No need to fetchAllProperties unless we display trust level in the table
+        fetchAllProperties(); // To reflect any potential UI changes based on trust level if added later
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -162,7 +173,7 @@ export default function AdminPropertiesPage() {
   };
 
 
-  if (isLoading) {
+  if (isLoading && properties.length === 0) {
     return <div className="flex justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
   
@@ -244,14 +255,14 @@ export default function AdminPropertiesPage() {
                           <Trash2 className="mr-2 h-4 w-4" /> حذف (نقل للمحذوفات)
                         </DropdownMenuItem>
                       )}
-                       {(prop.status === 'active' || prop.status === 'pending') && ( // Can archive active or pending properties
+                       {(prop.status === 'active' || prop.status === 'pending') && ( 
                         <DropdownMenuItem onClick={() => openArchiveDialog(prop)}>
                           <Archive className="mr-2 h-4 w-4" /> أرشفة
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel>إجراءات المالك</DropdownMenuLabel>
-                       <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)}>
+                       <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
                          <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك
                        </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -261,11 +272,14 @@ export default function AdminPropertiesPage() {
             ))}
           </TableBody>
         </Table>
-         {properties.length === 0 && <p className="text-center text-muted-foreground p-6">لا توجد عقارات لعرضها.</p>}
+         {properties.length === 0 && !isLoading && <p className="text-center text-muted-foreground p-6">لا توجد عقارات لعرضها.</p>}
       </Card>
 
       {/* Delete Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open);
+          if(!open) { setSelectedProperty(null); setDeleteReason(""); }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
@@ -281,14 +295,20 @@ export default function AdminPropertiesPage() {
             className="my-2"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedProperty(null)}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSoftDeleteProperty} disabled={!deleteReason.trim()}>حذف</AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSoftDeleteProperty} disabled={isLoading || !deleteReason.trim()}>
+                {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2"/>}
+                حذف
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Archive Dialog */}
-      <AlertDialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
+      <AlertDialog open={isArchiveDialogOpen} onOpenChange={(open) => {
+          setIsArchiveDialogOpen(open);
+          if(!open) setSelectedProperty(null);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد الأرشفة</AlertDialogTitle>
@@ -297,14 +317,20 @@ export default function AdminPropertiesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedProperty(null)}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleArchiveProperty}>أرشفة</AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchiveProperty} disabled={isLoading}>
+                {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2"/>}
+                أرشفة
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
        {/* Change User Trust Level Dialog */}
-      <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={setIsTrustLevelDialogOpen}>
+      <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={(open) => {
+          setIsTrustLevelDialogOpen(open);
+          if(!open) setSelectedProperty(null);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>تغيير تصنيف مالك العقار</AlertDialogTitle>
@@ -326,8 +352,8 @@ export default function AdminPropertiesPage() {
             </Select>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setSelectedProperty(null); setIsTrustLevelDialogOpen(false); }}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleChangeUserTrustLevel} disabled={isLoading}>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleChangeUserTrustLevel} disabled={isLoading || !selectedProperty?.userId}>
                 {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2"/>}
                 تحديث التصنيف
             </AlertDialogAction>
