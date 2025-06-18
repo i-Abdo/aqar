@@ -3,12 +3,12 @@
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import type { Property, TransactionType, PropertyTypeEnum, CustomUser } from '@/types';
+import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrustLevel } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
 import { ContactAdminDialog } from '@/components/dashboard/ContactAdminDialog';
@@ -23,6 +23,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -45,115 +57,145 @@ const propertyTypeTranslations: Record<PropertyTypeEnum, string> = {
   other: "آخر",
 };
 
+const trustLevelTranslations: Record<UserTrustLevel, string> = {
+  normal: 'عادي',
+  untrusted: 'غير موثوق',
+  blacklisted: 'قائمة سوداء',
+};
 
 export default function PropertyDetailPage() {
   const params = useParams();
-  const router = useRouter(); 
+  const router = useRouter();
   const { toast } = useToast();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, refreshAdminNotifications } = useAuth();
   const [isReportPropertyDialogOpen, setIsReportPropertyDialogOpen] = useState(false);
   const [isContactAdminDialogOpen, setIsContactAdminDialogOpen] = useState(false);
+  
+  const [isPropertyActionLoading, setIsPropertyActionLoading] = useState(false);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [archiveReason, setArchiveReason] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletionReason, setDeletionReason] = useState("");
-  const [isDeletingProperty, setIsDeletingProperty] = useState(false);
+
+  const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const [ownerInfoForAdmin, setOwnerInfoForAdmin] = useState<{ uid: string; email: string | null } | null>(null);
 
-
-  useEffect(() => {
-    if (id) {
-      const fetchPropertyAndOwner = async () => {
-        setIsLoading(true);
-        setError(null);
-        setOwnerInfoForAdmin(null);
-        try {
-          const propRef = doc(db, "properties", id as string);
-          const docSnap = await getDoc(propRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data() as Omit<Property, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any };
-            
-            if (data.status === 'deleted' && !(user && (data.userId === user.uid || isAdmin))) {
-                 setError("هذا العقار تم حذفه وغير متاح للعرض.");
-            } else if (data.status !== 'active' && data.status !== 'deleted' && !(user && (data.userId === user.uid || isAdmin))) {
-              setError("هذا العقار غير متاح للعرض حاليًا.");
-            } else {
-              const fetchedProperty = {
-                id: docSnap.id,
-                ...data,
-                createdAt: (data.createdAt as Timestamp)?.toDate ? (data.createdAt as Timestamp).toDate() : new Date(data.createdAt),
-                updatedAt: (data.updatedAt as Timestamp)?.toDate ? (data.updatedAt as Timestamp).toDate() : new Date(data.updatedAt),
-              } as Property;
-              setProperty(fetchedProperty);
-              if (fetchedProperty.imageUrls && fetchedProperty.imageUrls.length > 0) {
-                setSelectedImageUrl(fetchedProperty.imageUrls[0]);
-              }
-
-              // Fetch owner info if admin
-              if (isAdmin && fetchedProperty.userId) {
-                const ownerRef = doc(db, "users", fetchedProperty.userId);
-                const ownerSnap = await getDoc(ownerRef);
-                if (ownerSnap.exists()) {
-                  const ownerData = ownerSnap.data() as CustomUser;
-                  setOwnerInfoForAdmin({ uid: fetchedProperty.userId, email: ownerData.email || "غير متوفر" });
-                } else {
-                  setOwnerInfoForAdmin({ uid: fetchedProperty.userId, email: "بيانات المالك غير موجودة" });
-                }
-              }
-            }
-          } else {
-            setError("لم يتم العثور على العقار.");
-          }
-        } catch (err) {
-          console.error("Error fetching property details:", err);
-          setError("حدث خطأ أثناء تحميل تفاصيل العقار.");
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchPropertyAndOwner();
-    } else {
-      setIsLoading(false);
+  const fetchPropertyAndOwner = useCallback(async () => {
+    if (!id) {
       setError("معرف العقار غير موجود.");
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    setOwnerDetailsForAdmin(null);
+    try {
+      const propRef = doc(db, "properties", id as string);
+      const docSnap = await getDoc(propRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as Omit<Property, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any };
+        
+        const isOwnerViewing = user && data.userId === user.uid;
+        const canViewNonActive = isOwnerViewing || isAdmin;
+
+        if (data.status === 'deleted' && !canViewNonActive) {
+             setError("هذا العقار تم حذفه وغير متاح للعرض.");
+        } else if (data.status !== 'active' && data.status !== 'deleted' && !canViewNonActive) {
+          setError("هذا العقار غير متاح للعرض حاليًا.");
+        } else {
+          const fetchedProperty = {
+            id: docSnap.id,
+            ...data,
+            createdAt: (data.createdAt as Timestamp)?.toDate ? (data.createdAt as Timestamp).toDate() : new Date(data.createdAt),
+            updatedAt: (data.updatedAt as Timestamp)?.toDate ? (data.updatedAt as Timestamp).toDate() : new Date(data.updatedAt),
+          } as Property;
+          setProperty(fetchedProperty);
+          if (fetchedProperty.imageUrls && fetchedProperty.imageUrls.length > 0) {
+            setSelectedImageUrl(fetchedProperty.imageUrls[0]);
+          }
+
+          if (isAdmin && fetchedProperty.userId) {
+            const ownerRef = doc(db, "users", fetchedProperty.userId);
+            const ownerSnap = await getDoc(ownerRef);
+            if (ownerSnap.exists()) {
+              const ownerData = ownerSnap.data() as CustomUser;
+              setOwnerDetailsForAdmin({ 
+                uid: fetchedProperty.userId, 
+                email: ownerData.email || "غير متوفر",
+                trustLevel: ownerData.trustLevel || 'normal',
+              });
+            } else {
+              setOwnerDetailsForAdmin({ uid: fetchedProperty.userId, email: "بيانات المالك غير موجودة", trustLevel: 'normal' });
+            }
+          }
+        }
+      } else {
+        setError("لم يتم العثور على العقار.");
+      }
+    } catch (err) {
+      console.error("Error fetching property details:", err);
+      setError("حدث خطأ أثناء تحميل تفاصيل العقار.");
+    } finally {
+      setIsLoading(false);
     }
   }, [id, user, isAdmin]);
 
-  const handleDeleteProperty = async () => {
-    if (!property || !user || !(user.uid === property.userId || isAdmin)) { 
-      toast({ title: "خطأ", description: "غير مصرح لك بحذف هذا العقار.", variant: "destructive" });
-      return;
-    }
-    if (!deletionReason.trim()) {
-      toast({ title: "سبب الحذف مطلوب", description: "يرجى إدخال سبب الحذف.", variant: "destructive" });
-      return;
-    }
-    setIsDeletingProperty(true);
+  useEffect(() => {
+    fetchPropertyAndOwner();
+  }, [fetchPropertyAndOwner]);
+
+  const handleAdminPropertyStatusChange = async (newStatus: Property['status'], reason?: string) => {
+    if (!property || !isAdmin) return;
+    setIsPropertyActionLoading(true);
     try {
       const propRef = doc(db, "properties", property.id);
-      await updateDoc(propRef, { 
-        status: 'deleted', 
-        deletionReason: deletionReason,
-        archivalReason: "", 
-        updatedAt: serverTimestamp() 
-      });
-      toast({ title: "تم الحذف", description: `تم حذف العقار "${property.title}" بنجاح.` });
-      if (isAdmin) {
-          router.push("/admin/properties"); 
-      } else {
-          router.push("/dashboard/properties"); 
+      const updateData: Partial<Property> = { 
+        status: newStatus, 
+        updatedAt: serverTimestamp() as Timestamp 
+      };
+      if (newStatus === 'deleted' && reason) updateData.deletionReason = reason;
+      if (newStatus === 'archived' && reason) updateData.archivalReason = reason;
+      if (newStatus === 'active') {
+        updateData.deletionReason = "";
+        updateData.archivalReason = "";
       }
-      setIsDeleteDialogOpen(false);
+
+      await updateDoc(propRef, updateData);
+      toast({ title: "تم تحديث حالة العقار", description: `تم تغيير حالة العقار إلى ${newStatus}.` });
+      await fetchPropertyAndOwner(); // Re-fetch to get latest data
+      await refreshAdminNotifications();
     } catch (e) {
-      console.error("Error deleting property:", e);
-      toast({ title: "خطأ", description: "فشل حذف العقار. يرجى المحاولة مرة أخرى.", variant: "destructive" });
+      console.error("Error updating property status by admin:", e);
+      toast({ title: "خطأ", description: "فشل تحديث حالة العقار.", variant: "destructive" });
     } finally {
-      setIsDeletingProperty(false);
+      setIsPropertyActionLoading(false);
+      setIsDeleteDialogOpen(false);
+      setDeletionReason("");
+      setIsArchiveDialogOpen(false);
+      setArchiveReason("");
     }
   };
 
+  const handleAdminOwnerTrustLevelChange = async (newTrustLevel: UserTrustLevel) => {
+    if (!ownerDetailsForAdmin || !isAdmin) return;
+    setIsPropertyActionLoading(true);
+    try {
+      const userRef = doc(db, "users", ownerDetailsForAdmin.uid);
+      await updateDoc(userRef, { trustLevel: newTrustLevel, updatedAt: serverTimestamp() });
+      toast({ title: "تم تحديث تصنيف المالك", description: `تم تغيير تصنيف المالك إلى ${trustLevelTranslations[newTrustLevel]}.`});
+      setOwnerDetailsForAdmin(prev => prev ? {...prev, trustLevel: newTrustLevel } : null);
+      // No need to refreshAdminNotifications here as it's not directly a "new item" count
+    } catch (e) {
+      console.error("Error updating owner trust level by admin:", e);
+      toast({ title: "خطأ", description: "فشل تحديث تصنيف المالك.", variant: "destructive" });
+    } finally {
+      setIsPropertyActionLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -167,7 +209,7 @@ export default function PropertyDetailPage() {
   if (error) {
      return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center p-4">
-        <MapPin size={64} className="text-destructive mb-4" /> 
+        <AlertCircle size={64} className="text-destructive mb-4" /> 
         <h2 className="text-2xl font-bold text-destructive mb-2">خطأ في تحميل العقار</h2>
         <p className="text-muted-foreground mb-6">{error}</p>
         <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> 
@@ -186,7 +228,7 @@ export default function PropertyDetailPage() {
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status } = property;
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -196,7 +238,6 @@ export default function PropertyDetailPage() {
   };
   
   const isOwner = user && propertyOwnerId === user.uid;
-
 
   return (
     <div className="container mx-auto py-8">
@@ -299,18 +340,19 @@ export default function PropertyDetailPage() {
             </div>
           </div>
           
-          {isAdmin && ownerInfoForAdmin && (
+          {isAdmin && ownerDetailsForAdmin && (
             <div className="mb-8 p-4 border rounded-md bg-secondary/50">
               <h3 className="text-lg font-semibold mb-2 font-headline flex items-center gap-2 text-primary">
                 <UserCircle size={20} />
                 معلومات المالك (للمسؤول فقط)
               </h3>
               <div className="space-y-1 text-sm">
-                <p><strong>UID:</strong> {ownerInfoForAdmin.uid}</p>
+                <p><strong>UID:</strong> {ownerDetailsForAdmin.uid}</p>
                 <p className="flex items-center gap-1">
                   <Mail size={16} />
-                  <strong>البريد الإلكتروني:</strong> {ownerInfoForAdmin.email || "غير متوفر"}
+                  <strong>البريد الإلكتروني:</strong> {ownerDetailsForAdmin.email || "غير متوفر"}
                 </p>
+                <p><strong>التصنيف الحالي:</strong> {trustLevelTranslations[ownerDetailsForAdmin.trustLevel]}</p>
               </div>
             </div>
           )}
@@ -368,7 +410,7 @@ export default function PropertyDetailPage() {
                                 </Link>
                             </Button>
                             {property.status !== 'deleted' && (
-                                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); if (!open) setDeletionReason(""); }}>
                                     <AlertDialogTrigger asChild>
                                         <Button size="lg" variant="destructive" className="flex-1 transition-smooth hover:shadow-md">
                                             <Trash2 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> حذف العقار
@@ -391,8 +433,8 @@ export default function PropertyDetailPage() {
                                         />
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteProperty} disabled={isDeletingProperty || !deletionReason.trim()}>
-                                            {isDeletingProperty && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+                                        <AlertDialogAction onClick={() => handleAdminPropertyStatusChange('deleted', deletionReason)} disabled={isPropertyActionLoading || !deletionReason.trim()}>
+                                            {isPropertyActionLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
                                             تأكيد الحذف
                                         </AlertDialogAction>
                                         </AlertDialogFooter>
@@ -401,45 +443,60 @@ export default function PropertyDetailPage() {
                             )}
                         </>
                     )}
-                     {(isAdmin && !isOwner) && ( 
-                        <>
-                            <Button asChild size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
-                                <Link href={`/admin/properties`}> 
-                                    <Edit3 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إدارة العقار (مسؤول)
-                                </Link>
-                            </Button>
-                            {property.status !== 'deleted' && (
-                                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                                <AlertDialogTrigger asChild>
-                                    <Button size="lg" variant="destructive" className="flex-1 transition-smooth hover:shadow-md">
-                                        <Trash2 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> حذف العقار (مسؤول)
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>تأكيد حذف العقار (مسؤول)</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        أنت على وشك حذف هذا العقار كمسؤول. الرجاء إدخال سبب الحذف.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <Textarea
-                                        placeholder="سبب الحذف (إجراء إداري)..."
-                                        value={deletionReason}
-                                        onChange={(e) => setDeletionReason(e.target.value)}
-                                        className="my-2"
-                                        rows={3}
-                                    />
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeleteProperty} disabled={isDeletingProperty || !deletionReason.trim()}>
-                                        {isDeletingProperty && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-                                        تأكيد الحذف
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                            )}
-                        </>
+                     {isAdmin && !isOwner && ownerDetailsForAdmin && ( 
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
+                                    <ShieldCheck size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إدارة (مسؤول) <MoreVertical size={16} className="mr-1 rtl:ml-1 rtl:mr-0"/>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center" className="w-56">
+                                <DropdownMenuLabel>إجراءات على العقار</DropdownMenuLabel>
+                                {property.status !== 'active' && (
+                                    <DropdownMenuItem onClick={() => handleAdminPropertyStatusChange('active')} disabled={isPropertyActionLoading}>
+                                        <Check size={16} className="text-green-500 ml-2 rtl:mr-2 rtl:ml-0" /> تفعيل العقار
+                                    </DropdownMenuItem>
+                                )}
+                                {property.status !== 'archived' && (
+                                    <DropdownMenuItem onClick={() => setIsArchiveDialogOpen(true)} disabled={isPropertyActionLoading}>
+                                        <Archive size={16} className="ml-2 rtl:mr-2 rtl:ml-0" /> أرشفة العقار
+                                    </DropdownMenuItem>
+                                )}
+                                {property.status !== 'deleted' && (
+                                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive" disabled={isPropertyActionLoading}>
+                                        <Trash2 size={16} className="ml-2 rtl:mr-2 rtl:ml-0" /> حذف العقار
+                                    </DropdownMenuItem>
+                                )}
+                                 {property.status === 'pending' && (
+                                    <DropdownMenuItem onClick={() => handleAdminPropertyStatusChange('active')} className="text-green-600 focus:text-green-700" disabled={isPropertyActionLoading}>
+                                        <RefreshCw size={16} className="ml-2 rtl:mr-2 rtl:ml-0" /> الموافقة على النشر
+                                    </DropdownMenuItem>
+                                )}
+
+
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>إجراءات على المالك</DropdownMenuLabel>
+                                <DropdownMenuSub>
+                                <DropdownMenuSubTrigger disabled={isPropertyActionLoading}>
+                                    <UserCircle size={16} className="ml-2 rtl:mr-2 rtl:ml-0" /> تغيير تصنيف المالك
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                    <DropdownMenuSubContent>
+                                    {Object.entries(trustLevelTranslations).map(([levelKey, levelName]) => (
+                                        <DropdownMenuItem 
+                                            key={levelKey} 
+                                            onClick={() => handleAdminOwnerTrustLevelChange(levelKey as UserTrustLevel)}
+                                            disabled={ownerDetailsForAdmin.trustLevel === levelKey || isPropertyActionLoading}
+                                        >
+                                            {ownerDetailsForAdmin.trustLevel === levelKey && <Check size={14} className="ml-1 rtl:mr-1 rtl:ml-0"/>}
+                                            {levelName}
+                                        </DropdownMenuItem>
+                                    ))}
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                                </DropdownMenuSub>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     )}
                    {(!user && !isOwner && !isAdmin) && (
                      <p className="text-muted-foreground text-center w-full">لإجراءات إضافية، يرجى تسجيل الدخول.</p>
@@ -466,8 +523,58 @@ export default function PropertyDetailPage() {
           propertyTitle={property.title}
         />
       )}
+
+      {/* Admin Archive Dialog */}
+      <AlertDialog open={isAdmin && isArchiveDialogOpen} onOpenChange={(open) => { setIsArchiveDialogOpen(open); if (!open) setArchiveReason(""); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>أرشفة العقار (إجراء إداري)</AlertDialogTitle>
+            <AlertDialogDescription>
+              أنت على وشك أرشفة العقار "{property.title}". الرجاء إدخال سبب الأرشفة.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="سبب الأرشفة..."
+            value={archiveReason}
+            onChange={(e) => setArchiveReason(e.target.value)}
+            className="my-2"
+            rows={3}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleAdminPropertyStatusChange('archived', archiveReason)} disabled={isPropertyActionLoading || !archiveReason.trim()}>
+              {isPropertyActionLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              تأكيد الأرشفة
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Admin Delete Dialog (reusing for admin if !isOwner) */}
+       <AlertDialog open={isAdmin && !isOwner && isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); if(!open) setDeletionReason(""); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف العقار (إجراء إداري)</AlertDialogTitle>
+            <AlertDialogDescription>
+              أنت على وشك حذف العقار "{property.title}" كمسؤول. الرجاء إدخال سبب الحذف.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="سبب الحذف (إجراء إداري)..."
+            value={deletionReason}
+            onChange={(e) => setDeletionReason(e.target.value)}
+            className="my-2"
+            rows={3}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleAdminPropertyStatusChange('deleted', deletionReason)} disabled={isPropertyActionLoading || !deletionReason.trim()}>
+              {isPropertyActionLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              تأكيد الحذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-    
