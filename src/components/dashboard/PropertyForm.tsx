@@ -41,7 +41,7 @@ const algerianPhoneNumberRegex = /^0[567]\d{8}$/;
 
 const propertyFormSchema = z.object({
   title: z.string().min(5, "العنوان يجب أن لا يقل عن 5 أحرف."),
-  price: z.coerce.number().positive("السعر يجب أن يكون رقمًا موجبًا."),
+  price: z.coerce.number({invalid_type_error: "السعر يجب أن يكون رقمًا."}).positive("السعر يجب أن يكون رقمًا موجبًا.").min(1, "السعر لا يمكن أن يكون صفرًا."),
   rooms: z.coerce.number().int().min(1, "عدد الغرف يجب أن يكون 1 على الأقل."),
   bathrooms: z.coerce.number().int().min(1, "عدد الحمامات يجب أن يكون 1 على الأقل."),
   length: z.coerce.number().positive("الطول يجب أن يكون رقمًا موجبًا.").min(0.1, "الطول يجب أن يكون أكبر من صفر."),
@@ -81,6 +81,38 @@ interface PropertyFormProps {
   isEditMode?: boolean;
 }
 
+type PriceUnitKey = 'DA' | 'THOUSAND_DA' | 'MILLION_DA' | 'BILLION_DA';
+
+const unitMultipliers: Record<PriceUnitKey, number> = {
+  DA: 1,
+  THOUSAND_DA: 1000,
+  MILLION_DA: 1_000_000,
+  BILLION_DA: 1_000_000_000,
+};
+
+const unitLabels: Record<PriceUnitKey, string> = {
+  DA: "د.ج",
+  THOUSAND_DA: "ألف د.ج",
+  MILLION_DA: "مليون د.ج",
+  BILLION_DA: "مليار د.ج",
+};
+
+const formatPriceForInputUIDisplay = (price: number | undefined): { displayValue: string; unitKey: PriceUnitKey } => {
+  if (price === undefined || price === null || isNaN(price) || price <= 0) return { displayValue: "", unitKey: "THOUSAND_DA" }; // Default to ألف or DA for new entries
+
+  const unitsPriority: PriceUnitKey[] = ["BILLION_DA", "MILLION_DA", "THOUSAND_DA"];
+
+  for (const unit of unitsPriority) {
+    if (price >= unitMultipliers[unit]) {
+      const val = price / unitMultipliers[unit];
+      // Show decimals only if not a whole number, up to 2 decimal places
+      return { displayValue: Number.isInteger(val) ? val.toString() : val.toFixed(2).replace(/\.00$/, '').replace(/(\.\d*?)0+$/, '$1'), unitKey: unit };
+    }
+  }
+  return { displayValue: price.toString(), unitKey: "DA" };
+};
+
+
 export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = false }: PropertyFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -96,67 +128,45 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const [aiAssistantAllowed, setAiAssistantAllowed] = React.useState(false);
   const [imageLimitPerProperty, setImageLimitPerProperty] = React.useState(1);
 
+  const initialPriceFormat = React.useMemo(() => formatPriceForInputUIDisplay(initialData?.price), [initialData?.price]);
+  const [manualPriceInput, setManualPriceInput] = React.useState<string>(initialPriceFormat.displayValue);
+  const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey);
+
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
-    defaultValues: {
-      title: "",
-      price: undefined, // Use undefined for coerce.number() to allow empty initial state
-      rooms: undefined,
-      bathrooms: undefined,
-      length: undefined,
-      width: undefined,
-      area: undefined,
-      wilaya: "",
-      city: "",
-      neighborhood: "",
-      address: "",
-      phoneNumber: "",
-      description: "",
-      filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
-    },
+    defaultValues: initialData 
+      ? { ...initialData, price: initialData.price || undefined } 
+      : {
+          title: "", price: undefined, rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
+          wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
+          filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
+        },
   });
   
   React.useEffect(() => {
     if (initialData) {
+      const { displayValue, unitKey } = formatPriceForInputUIDisplay(initialData.price);
+      setManualPriceInput(displayValue);
+      setSelectedUnit(unitKey);
       form.reset({
-        title: initialData.title || "",
-        price: initialData.price || undefined,
-        rooms: initialData.rooms || undefined,
-        bathrooms: initialData.bathrooms || undefined,
-        length: initialData.length || undefined,
-        width: initialData.width || undefined,
-        area: initialData.area || undefined,
-        wilaya: initialData.wilaya || "",
-        city: initialData.city || "",
-        neighborhood: initialData.neighborhood || "",
-        address: initialData.address || "",
-        phoneNumber: initialData.phoneNumber || "",
-        description: initialData.description || "",
-        filters: initialData.filters || { water: false, electricity: false, internet: false, gas: false, contract: false },
+        ...initialData, // Spread initial data first
+        price: initialData.price || undefined, // Ensure RHF 'price' gets the full absolute value
       });
-      if (initialData.imageUrls && initialData.imageUrls.length > 0) {
+       if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
         setAdditionalImagePreviews(initialData.imageUrls.slice(1));
       } else {
         setMainImagePreview(null);
         setAdditionalImagePreviews([]);
       }
-    } else if (!isEditMode) { 
+    } else if (!isEditMode) {
+        const defaultFormat = formatPriceForInputUIDisplay(undefined);
+        setManualPriceInput(defaultFormat.displayValue);
+        setSelectedUnit(defaultFormat.unitKey);
         form.reset({
-            title: "",
-            price: undefined,
-            rooms: undefined,
-            bathrooms: undefined,
-            length: undefined,
-            width: undefined,
-            area: undefined,
-            wilaya: "",
-            city: "",
-            neighborhood: "",
-            address: "",
-            phoneNumber: "",
-            description: "",
+            title: "", price: undefined, rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
+            wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
             filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
         });
         setMainImagePreview(null);
@@ -188,10 +198,24 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     if (!isNaN(lengthNum) && lengthNum > 0 && !isNaN(widthNum) && widthNum > 0) {
       const calculatedArea = lengthNum * widthNum;
       form.setValue("area", parseFloat(calculatedArea.toFixed(2)), { shouldValidate: true });
-    } else {
-      form.setValue("area", undefined as any, { shouldValidate: true }); // Set to undefined or handle as needed
+    } else if (form.getValues("area") !== undefined) { // only clear if it was previously set
+      form.setValue("area", undefined as any, { shouldValidate: true }); 
     }
   }, [lengthValue, widthValue, form]);
+
+  React.useEffect(() => {
+    const numericInput = parseFloat(manualPriceInput);
+    if (!isNaN(numericInput) && numericInput > 0) {
+      form.setValue('price', numericInput * (unitMultipliers[selectedUnit] || 1), { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
+    } else if (manualPriceInput === "" && form.getValues("price") !== undefined) {
+        // Allow clearing if user deletes input, set RHF price to undefined for validation
+        form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
+    } else if (isNaN(numericInput) && manualPriceInput !== "" && form.getValues("price") !== undefined) {
+        // Invalid number typed, set RHF price to undefined for validation
+        form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
+    }
+  // Trigger this effect when user types or changes unit, or when form is initially dirtied.
+  }, [manualPriceInput, selectedUnit, form, isEditMode]);
 
 
   const handleMainImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,6 +320,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         });
         return;
      }
+    // The 'price' in 'data' should already be the full calculated price due to form.setValue in useEffect.
     onSubmit(data, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews);
   };
   
@@ -304,7 +329,37 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     form.setValue("description", newDescription, { shouldDirty: true });
   };
 
-  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !mainImageFile && additionalImageFiles.length === 0);
+  const isFormDirtyForEdit = () => {
+    if (!isEditMode) return false; // Not relevant for new forms
+
+    // Check RHF's dirty fields for standard inputs
+    const rhfDirty = Object.keys(form.formState.dirtyFields).length > 0;
+
+    // Check if images have changed
+    let imagesChanged = false;
+    if (initialData?.imageUrls) {
+        const initialMain = initialData.imageUrls[0];
+        const initialRest = initialData.imageUrls.slice(1);
+        if (mainImageFile || mainImagePreview !== initialMain) imagesChanged = true;
+        if (additionalImageFiles.length > 0) imagesChanged = true;
+        // More complex check for removed/reordered existing images
+        if (additionalImagePreviews.length !== initialRest.length) imagesChanged = true;
+        else {
+            for(let i=0; i<additionalImagePreviews.length; i++) {
+                if(additionalImagePreviews[i] !== initialRest[i] && !additionalImagePreviews[i].startsWith("blob:")) { // only care if a non-new URL changed
+                    imagesChanged = true;
+                    break;
+                }
+            }
+        }
+    } else if (mainImageFile || additionalImageFiles.length > 0) { // If no initial images but new ones added
+        imagesChanged = true;
+    }
+    return rhfDirty || imagesChanged;
+  };
+
+
+  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !isFormDirtyForEdit());
 
 
   return (
@@ -327,18 +382,47 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
               <Input id="title" {...form.register("title")} placeholder="مثال: شقة فاخرة مطلة على البحر" />
               {form.formState.errors.title && <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>}
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="price" className="flex items-center gap-1"><DollarSign size={16}/>السعر (د.ج) *</Label>
-                <Input lang="en" id="price" type="text" {...form.register("price")} placeholder="2000000" className="input-latin-numerals" />
-                {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="phoneNumber" className="flex items-center gap-1"><Phone size={16}/>رقم الهاتف *</Label>
-                <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
-                {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
-              </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                 <div>
+                    <Label htmlFor="manualPriceInput" className="flex items-center gap-1"><DollarSign size={16}/>السعر *</Label>
+                    <div className="flex gap-2">
+                        <Input 
+                            lang="en" 
+                            id="manualPriceInput" 
+                            type="text" 
+                            value={manualPriceInput}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                // Allow only numbers and one decimal point
+                                if (/^\d*\.?\d*$/.test(val)) {
+                                    setManualPriceInput(val);
+                                }
+                            }}
+                            placeholder="--" 
+                            className="input-latin-numerals" 
+                        />
+                        <Select value={selectedUnit} onValueChange={(value) => setSelectedUnit(value as PriceUnitKey)}>
+                            <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="الوحدة" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(unitLabels).map(([key, label]) => (
+                                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor="phoneNumber" className="flex items-center gap-1"><Phone size={16}/>رقم الهاتف *</Label>
+                    <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
+                    {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
+                </div>
             </div>
+
+
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="rooms" className="flex items-center gap-1"><BedDouble size={16}/>عدد الغرف *</Label>
@@ -540,7 +624,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 type="button" 
                 variant="destructive_outline" 
                 className="w-full sm:w-auto transition-smooth"
-                onClick={() => router.push("/dashboard/properties")}
+                onClick={() => router.back()} // Changed to router.back() for better UX
               >
                 <XCircle size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>
                 إلغاء
@@ -549,6 +633,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           </div>
           {!mainImagePreview && !isEditMode && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
           {isEditMode && !mainImagePreview && <p className="text-sm text-accent mt-1">يجب أن يكون هناك صورة رئيسية. إذا قمت بإزالتها، الرجاء تحميل واحدة جديدة.</p>}
+           {/* Display calculated price for debugging or info, can be removed */}
+            {/* <p className="text-xs text-muted-foreground">السعر المحسوب (للتصحيح): {form.watch('price') || 'غير محدد'}</p> */}
         </form>
       </CardContent>
     </Card>
