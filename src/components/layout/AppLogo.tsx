@@ -10,7 +10,7 @@ export function AppLogo() {
         alt="شعار عقاري"
         width={1024} // Original width for aspect ratio calculation
         height={1024} // Original height for aspect ratio calculation
-        className="h-10 w-auto" // CSS to control displayed size
+        className="h-12 w-auto" // Changed from h-10 to h-12
         priority // Good to add for LCP elements like logos
       />
     </Link>
