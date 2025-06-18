@@ -18,8 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['PT Sans', 'sans-serif'],
-        headline: ['Tajawal', 'sans-serif'],
+        body: ['Almarai', 'sans-serif'],
+        headline: ['Cairo', 'sans-serif'],
         code: ['monospace', 'monospace'],
       },
       colors: {
