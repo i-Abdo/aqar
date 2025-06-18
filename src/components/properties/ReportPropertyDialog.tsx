@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { ReportReason } from "@/types";
 import { submitReport } from "@/actions/reportActions";
+import { useAuth } from "@/hooks/use-auth"; // Added useAuth
 
 const reportFormSchema = z.object({
   reason: z.nativeEnum(ReportReason, { errorMap: () => ({ message: "سبب الإبلاغ مطلوب." }) }),
@@ -31,6 +32,7 @@ interface ReportPropertyDialogProps {
 
 export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propertyTitle }: ReportPropertyDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth(); // Get user from AuthContext
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<ReportFormValues>({
@@ -43,12 +45,20 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
 
   const onSubmit = async (data: ReportFormValues) => {
     setIsSubmitting(true);
+    if (!user) { // Additional check, though UI should prevent dialog opening if no user
+      toast({ title: "خطأ", description: "يجب تسجيل الدخول لتقديم بلاغ.", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const result = await submitReport({
         propertyId,
         propertyTitle,
         reason: data.reason,
         comments: data.comments,
+        reporterUserId: user.uid, // Pass user.uid
+        reporterEmail: user.email || null, // Pass user.email (can be null)
       });
 
       if (result.success) {
@@ -66,7 +76,6 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
     }
   };
   
-  // Reset form when dialog is closed externally
   React.useEffect(() => {
     if (!isOpen) {
       form.reset({ reason: undefined, comments: "" });
@@ -129,4 +138,3 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
     </Dialog>
   );
 }
-

@@ -4,20 +4,22 @@
 import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Report, ReportReason } from '@/types';
-import { auth as firebaseAuth } from '@/lib/firebase/client'; // For current user
+// import { auth as firebaseAuth } from '@/lib/firebase/client'; // No longer needed here for currentUser
 
 interface SubmitReportInput {
   propertyId: string;
   propertyTitle: string;
   reason: ReportReason;
   comments: string;
+  reporterUserId: string; // Added
+  reporterEmail: string | null; // Added, email can be null
 }
 
 export async function submitReport(input: SubmitReportInput): Promise<{ success: boolean; message: string }> {
-  const currentUser = firebaseAuth.currentUser;
+  // const currentUser = firebaseAuth.currentUser; // Removed client-side auth check here
 
-  if (!currentUser) {
-    return { success: false, message: "يجب تسجيل الدخول لتقديم بلاغ." };
+  if (!input.reporterUserId) { // Check for reporterUserId from input
+    return { success: false, message: "معلومات المُبلّغ غير متوفرة. يجب تسجيل الدخول لتقديم بلاغ." };
   }
 
   if (!input.propertyId || !input.propertyTitle || !input.reason || !input.comments.trim()) {
@@ -36,8 +38,8 @@ export async function submitReport(input: SubmitReportInput): Promise<{ success:
     const reportData: Omit<Report, 'id' | 'reportedAt' | 'updatedAt'> = {
       propertyId: input.propertyId,
       propertyTitle: input.propertyTitle,
-      reporterUserId: currentUser.uid,
-      reporterEmail: currentUser.email || "غير متوفر",
+      reporterUserId: input.reporterUserId, // Use from input
+      reporterEmail: input.reporterEmail || "غير متوفر", // Use from input
       reason: input.reason,
       comments: input.comments,
       status: 'new',
