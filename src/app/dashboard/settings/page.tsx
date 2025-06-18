@@ -71,30 +71,31 @@ export default function SettingsPage() {
           {isClient ? (
             <div className="space-y-4">
               <RadioGroup
+                dir="rtl"
                 value={themeSetting}
                 onValueChange={(value: string) => setThemeSetting(value as ThemeSetting)}
                 className="space-y-1"
               >
-                <div className="flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-md border hover:bg-accent/50 transition-colors">
-                  <RadioGroupItem value="light" id="theme-light" />
+                <div className="flex items-center gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors">
                   <Label htmlFor="theme-light" className="flex items-center gap-2 cursor-pointer text-sm">
                     <Sun size={16} />
                     الوضع الفاتح
                   </Label>
+                  <RadioGroupItem value="light" id="theme-light" />
                 </div>
-                <div className="flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-md border hover:bg-accent/50 transition-colors">
-                  <RadioGroupItem value="dark" id="theme-dark" />
+                <div className="flex items-center gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors">
                   <Label htmlFor="theme-dark" className="flex items-center gap-2 cursor-pointer text-sm">
                     <Moon size={16} />
                     الوضع الداكن
                   </Label>
+                  <RadioGroupItem value="dark" id="theme-dark" />
                 </div>
-                <div className="flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-md border hover:bg-accent/50 transition-colors">
-                  <RadioGroupItem value="system" id="theme-system" />
+                <div className="flex items-center gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors">
                   <Label htmlFor="theme-system" className="flex items-center gap-2 cursor-pointer text-sm">
                     <Computer size={16} />
                     حسب إعدادات الجهاز
                   </Label>
+                  <RadioGroupItem value="system" id="theme-system" />
                 </div>
               </RadioGroup>
               <p className="text-xs text-muted-foreground mt-2">
