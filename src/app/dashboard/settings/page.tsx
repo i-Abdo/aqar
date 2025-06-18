@@ -74,29 +74,40 @@ export default function SettingsPage() {
                 dir="rtl"
                 value={themeSetting}
                 onValueChange={(value: string) => setThemeSetting(value as ThemeSetting)}
-                className="flex flex-row flex-wrap gap-4" // Modified here
+                className="flex flex-row flex-wrap gap-4"
               >
-                <div className="flex items-center gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors">
-                  <Label htmlFor="theme-light" className="flex items-center gap-2 cursor-pointer text-sm">
+                <Label
+                  htmlFor="theme-light"
+                  className="flex flex-1 items-center justify-between gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors cursor-pointer min-w-[150px]"
+                >
+                  <span className="flex items-center gap-2 text-sm">
                     <Sun size={16} />
                     الوضع الفاتح
-                  </Label>
+                  </span>
                   <RadioGroupItem value="light" id="theme-light" />
-                </div>
-                <div className="flex items-center gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors">
-                  <Label htmlFor="theme-dark" className="flex items-center gap-2 cursor-pointer text-sm">
+                </Label>
+
+                <Label
+                  htmlFor="theme-dark"
+                  className="flex flex-1 items-center justify-between gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors cursor-pointer min-w-[150px]"
+                >
+                  <span className="flex items-center gap-2 text-sm">
                     <Moon size={16} />
                     الوضع الداكن
-                  </Label>
+                  </span>
                   <RadioGroupItem value="dark" id="theme-dark" />
-                </div>
-                <div className="flex items-center gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors">
-                  <Label htmlFor="theme-system" className="flex items-center gap-2 cursor-pointer text-sm">
+                </Label>
+
+                <Label
+                  htmlFor="theme-system"
+                  className="flex flex-1 items-center justify-between gap-3 p-3 rounded-md border hover:bg-accent/50 transition-colors cursor-pointer min-w-[180px]"
+                >
+                  <span className="flex items-center gap-2 text-sm">
                     <Computer size={16} />
                     حسب إعدادات الجهاز
-                  </Label>
+                  </span>
                   <RadioGroupItem value="system" id="theme-system" />
-                </div>
+                </Label>
               </RadioGroup>
               <p className="text-xs text-muted-foreground mt-2">
                 المظهر المطبق حالياً: {effectiveTheme === 'dark' ? "داكن" : "فاتح"}.
@@ -150,4 +161,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
