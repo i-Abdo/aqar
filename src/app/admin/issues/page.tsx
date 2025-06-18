@@ -24,6 +24,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label"; // Added missing import
 
 const issueStatusTranslations: Record<UserIssue['status'], string> = {
   new: 'جديد',
@@ -265,3 +266,5 @@ export default function AdminUserIssuesPage() {
     </div>
   );
 }
+
+    
