@@ -12,6 +12,7 @@ import { plans } from "@/config/plans";
 import type { Plan, PropertyAppeal, AdminAppealDecisionType, UserIssue } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge"; // Added Badge import
 
 interface UserStats {
   activeListings: number;
@@ -237,6 +238,8 @@ export default function DashboardPage() {
   const visibleAppealNotifications = appealNotifications.filter(n => !n.isDismissed);
   const visibleUserIssueUpdates = userIssueUpdates.filter(u => !u.isDismissed);
   const hasVisibleNotifications = visibleAppealNotifications.length > 0 || visibleUserIssueUpdates.length > 0;
+  const totalVisibleNotifications = visibleAppealNotifications.length + visibleUserIssueUpdates.length;
+
 
   return (
     <div className="space-y-8">
@@ -303,11 +306,14 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center">
             <CardTitle className="text-right flex items-center gap-2">
               <Bell className="text-primary"/>
-              آخر الأنشطة والإشعارات
+              <span>آخر الأنشطة والإشعارات</span>
+              {totalVisibleNotifications > 0 && (
+                <Badge variant="default" className="h-6 px-2.5">{totalVisibleNotifications}</Badge>
+              )}
             </CardTitle>
             {hasVisibleNotifications && (
               <Button
-                variant="outline_destructive"
+                variant="outline_primary"
                 size="sm"
                 onClick={handleDismissAllNotifications}
                 className="transition-smooth hover:shadow-sm"
