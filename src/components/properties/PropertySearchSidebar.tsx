@@ -27,14 +27,18 @@ const wilayas = [
   { code: "45", name: "النعامة" }, { code: "46", name: "عين تموشنت" }, { code: "47", name: "غرداية" }, { code: "48", name: "غليزان" }
 ];
 
-const transactionTypeOptions: { value: TransactionType | ""; label: string }[] = [
-  { value: "", label: "الكل (بيع/كراء)" },
+const ALL_TRANSACTION_TYPES_VALUE = "_all_transaction_types_";
+const ALL_PROPERTY_TYPES_VALUE = "_all_property_types_";
+const ALL_WILAYAS_VALUE = "_all_wilayas_";
+
+const transactionTypeOptions: { value: TransactionType | typeof ALL_TRANSACTION_TYPES_VALUE; label: string }[] = [
+  { value: ALL_TRANSACTION_TYPES_VALUE, label: "الكل (بيع/كراء)" },
   { value: 'sale', label: 'بيع' },
   { value: 'rent', label: 'كراء' },
 ];
 
-const propertyTypeOptions: { value: PropertyTypeEnum | ""; label: string }[] = [
-  { value: "", label: "الكل (أنواع العقارات)" },
+const propertyTypeOptions: { value: PropertyTypeEnum | typeof ALL_PROPERTY_TYPES_VALUE; label: string }[] = [
+  { value: ALL_PROPERTY_TYPES_VALUE, label: "الكل (أنواع العقارات)" },
   { value: 'apartment', label: 'شقة' },
   { value: 'house', label: 'بيت' },
   { value: 'villa', label: 'فيلا' },
@@ -86,8 +90,6 @@ const initialFormState: SearchFilters = {
     searchTerm: "",
 };
 
-const ALL_WILAYAS_VALUE = "_all_wilayas_";
-
 
 export function PropertySearchSidebar({ onSearch, initialFilters = {} }: PropertySearchSidebarProps) {
   const [filters, setFilters] = useState<SearchFilters>({
@@ -107,10 +109,12 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    if (name === "wilaya" && value === ALL_WILAYAS_VALUE) {
-      setFilters(prev => ({ ...prev, [name]: "" })); 
-    } else if (name === "transactionType" || name === "propertyType") {
-       setFilters(prev => ({ ...prev, [name]: value as (TransactionType | PropertyTypeEnum | "") }));
+    if (name === "wilaya") {
+      setFilters(prev => ({ ...prev, [name]: value === ALL_WILAYAS_VALUE ? "" : value }));
+    } else if (name === "transactionType") {
+      setFilters(prev => ({ ...prev, [name]: value === ALL_TRANSACTION_TYPES_VALUE ? "" : value as TransactionType | "" }));
+    } else if (name === "propertyType") {
+      setFilters(prev => ({ ...prev, [name]: value === ALL_PROPERTY_TYPES_VALUE ? "" : value as PropertyTypeEnum | "" }));
     }
     else {
       setFilters(prev => ({ ...prev, [name]: value }));
@@ -195,7 +199,11 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
 
           <div>
             <Label htmlFor="transactionType">نوع المعاملة</Label>
-            <Select name="transactionType" value={filters.transactionType || ""} onValueChange={(value) => handleSelectChange("transactionType", value)}>
+            <Select 
+              name="transactionType" 
+              value={filters.transactionType || ALL_TRANSACTION_TYPES_VALUE} 
+              onValueChange={(value) => handleSelectChange("transactionType", value)}
+            >
               <SelectTrigger id="transactionType"><SelectValue placeholder="اختر نوع المعاملة" /></SelectTrigger>
               <SelectContent>
                 {transactionTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
@@ -205,7 +213,11 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
 
           <div>
             <Label htmlFor="propertyType">نوع العقار</Label>
-            <Select name="propertyType" value={filters.propertyType || ""} onValueChange={(value) => handleSelectChange("propertyType", value)}>
+            <Select 
+              name="propertyType" 
+              value={filters.propertyType || ALL_PROPERTY_TYPES_VALUE} 
+              onValueChange={(value) => handleSelectChange("propertyType", value)}
+            >
               <SelectTrigger id="propertyType"><SelectValue placeholder="اختر نوع العقار" /></SelectTrigger>
               <SelectContent>
                 {propertyTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
@@ -307,3 +319,4 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     </Card>
   );
 }
+
