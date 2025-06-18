@@ -21,7 +21,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger, // Added missing import
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -172,7 +172,7 @@ export default function PropertyDetailPage() {
       <Card className="shadow-2xl overflow-hidden max-w-5xl mx-auto">
         <CardHeader className="p-0">
             {selectedImageUrl ? (
-                <div className="relative aspect-[16/9] md:aspect-[2/1] w-full rounded-t-lg overflow-hidden bg-muted">
+                <div className="relative aspect-[2/1] md:aspect-[5/2] w-full rounded-t-lg overflow-hidden bg-muted">
                     <Image 
                         src={selectedImageUrl} 
                         alt={`${title} - الصورة الرئيسية`} 
@@ -182,8 +182,8 @@ export default function PropertyDetailPage() {
                         priority 
                     />
                 </div>
-            ) : imageUrls && imageUrls.length > 0 && imageUrls[0] ? ( // Fallback if selectedImageUrl is null but imageUrls exist
-                 <div className="relative aspect-[16/9] md:aspect-[2/1] w-full rounded-t-lg overflow-hidden bg-muted">
+            ) : imageUrls && imageUrls.length > 0 && imageUrls[0] ? ( 
+                 <div className="relative aspect-[2/1] md:aspect-[5/2] w-full rounded-t-lg overflow-hidden bg-muted">
                     <Image 
                         src={imageUrls[0]} 
                         alt={`${title} - الصورة الرئيسية`} 
@@ -194,7 +194,7 @@ export default function PropertyDetailPage() {
                     />
                 </div>
             ) : (
-                <div className="relative aspect-[16/9] md:aspect-[2/1] w-full bg-muted flex items-center justify-center rounded-t-lg">
+                <div className="relative aspect-[2/1] md:aspect-[5/2] w-full bg-muted flex items-center justify-center rounded-t-lg">
                     <ImageIcon size={64} className="text-muted-foreground" />
                 </div>
             )}
