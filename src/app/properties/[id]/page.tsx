@@ -1,6 +1,6 @@
 
 "use client";
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation'; // Added useRouter
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, DollarSign, CheckCircle, Phone, MessageSquare, Flag } from 'lucide-react';
@@ -16,6 +16,7 @@ import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDial
 
 export default function PropertyDetailPage() {
   const params = useParams();
+  const router = useRouter(); // Initialized useRouter
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,8 +34,7 @@ export default function PropertyDetailPage() {
           const docSnap = await getDoc(propRef);
           if (docSnap.exists()) {
             const data = docSnap.data() as Omit<Property, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any };
-            // Ensure property is active for viewing unless user is admin OR it's their own property (for preview perhaps, though this page is public facing)
-            // For public facing, strict check: must be 'active' unless admin.
+            
             if (data.status !== 'active' && !(user && isAdmin)) {
               setError("هذا العقار غير متاح للعرض حاليًا.");
             } else {
