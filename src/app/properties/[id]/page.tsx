@@ -177,7 +177,7 @@ export default function PropertyDetailPage() {
                         src={selectedImageUrl} 
                         alt={`${title} - الصورة الرئيسية`} 
                         fill 
-                        style={{objectFit: "cover"}}
+                        style={{objectFit: "contain"}}
                         data-ai-hint="property interior room"
                         priority 
                     />
@@ -188,7 +188,7 @@ export default function PropertyDetailPage() {
                         src={imageUrls[0]} 
                         alt={`${title} - الصورة الرئيسية`} 
                         fill 
-                        style={{objectFit: "cover"}}
+                        style={{objectFit: "contain"}}
                         data-ai-hint="property interior room"
                         priority 
                     />
