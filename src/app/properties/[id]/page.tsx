@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'; // Added useRouter
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Phone, MessageSquare, Flag } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
@@ -93,7 +93,7 @@ export default function PropertyDetailPage() {
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, filters, imageUrls, createdAt, phoneNumber } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, filters, imageUrls, createdAt } = property;
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -198,32 +198,8 @@ export default function PropertyDetailPage() {
         </CardContent>
         <CardFooter className="p-6 md:p-8 border-t bg-secondary/30">
             <div className="w-full">
-                <h3 className="text-xl font-semibold mb-4 font-headline text-center">تواصل مع المالك أو قم بالإبلاغ</h3>
+                <h3 className="text-xl font-semibold mb-4 font-headline text-center">الإبلاغ</h3>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    {phoneNumber ? (
-                        <Button 
-                            size="lg" 
-                            className="flex-1 transition-smooth hover:shadow-md"
-                            asChild
-                        >
-                            <a href={`tel:${phoneNumber}`}>
-                                <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0" />
-                                اتصل بالمالك
-                            </a>
-                        </Button>
-                    ) : (
-                        <Button 
-                            size="lg" 
-                            className="flex-1 transition-smooth hover:shadow-md"
-                            disabled
-                        >
-                            <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0" />
-                            اتصال (غير متاح)
-                        </Button>
-                    )}
-                     <Button size="lg" variant="outline_secondary" className="flex-1 transition-smooth hover:shadow-md" disabled>
-                        <MessageSquare size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> مراسلة (سيتم تنفيذها لاحقاً)
-                    </Button>
                    {user && !isAdmin && property.userId !== user.uid && (
                      <Button 
                         size="lg" 
@@ -233,6 +209,9 @@ export default function PropertyDetailPage() {
                      >
                         <Flag size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إبلاغ عن العقار
                     </Button>
+                   )}
+                   {(!user || isAdmin || property.userId === user?.uid) && (
+                     <p className="text-muted-foreground text-center w-full">لا يمكنك الإبلاغ عن هذا العقار.</p>
                    )}
                 </div>
             </div>
