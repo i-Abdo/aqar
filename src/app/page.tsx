@@ -19,7 +19,7 @@ export default function HomePage() {
     <div className="flex flex-col items-center text-center space-y-12">
       <section className="pt-12 md:pt-20">
         <h1 className="text-4xl md:text-6xl font-bold font-headline mb-6 tracking-tight">
-          أهلاً بك في <span className="text-primary">DarDz</span>
+          أهلاً بك في <span className="text-primary">عقاري</span>
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
           منصتك المثالية لإيجار وبيع العقارات في الجزائر. ابحث عن منزلك المثالي أو اعرض عقارك بكل سهولة.
@@ -35,7 +35,7 @@ export default function HomePage() {
       </section>
 
       <section className="w-full py-12 md:py-16">
-        <h2 className="text-3xl font-bold font-headline mb-10">لماذا تختار DarDz؟</h2>
+        <h2 className="text-3xl font-bold font-headline mb-10">لماذا تختار عقاري؟</h2>
         <div className="grid md:grid-cols-3 gap-8 text-right">
           <Card className="shadow-lg hover:shadow-xl transition-smooth">
             <CardHeader>
@@ -120,7 +120,7 @@ export default function HomePage() {
        <section className="w-full py-12 md:py-16 bg-secondary/30 rounded-lg">
         <h2 className="text-3xl font-bold font-headline mb-6">جاهز للبدء؟</h2>
         <p className="text-lg text-muted-foreground mb-8">
-          انضم إلى آلاف المستخدمين الذين يثقون في DarDz لاحتياجاتهم العقارية.
+          انضم إلى آلاف المستخدمين الذين يثقون في عقاري لاحتياجاتهم العقارية.
         </p>
         <Button size="lg" asChild className="transition-smooth hover:shadow-lg transform hover:scale-105">
           <Link href="/signup">إنشاء حساب مجاني</Link>

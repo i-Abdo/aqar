@@ -8,8 +8,8 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { ThemeProvider } from '@/hooks/use-theme'; // New import
 
 export const metadata: Metadata = {
-  title: 'DarDz - Your Property Portal',
-  description: 'Find and list properties in Algeria with DarDz.',
+  title: 'عقاري - بوابتك العقارية الشاملة',
+  description: 'عقاري - منصتك المثالية لإيجاد وبيع العقارات في الجزائر.',
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>{/* suppressHydrationWarning for theme switching */}
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

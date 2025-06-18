@@ -12,8 +12,8 @@ import { useRouter } from 'next/navigation';
 import { Metadata } from 'next';
 
 // export const metadata: Metadata = { // Cannot be used in client component
-//   title: "الأسعار - DarDz",
-//   description: "اختر الخطة التي تناسب احتياجاتك في DarDz.",
+//   title: "الأسعار - عقاري",
+//   description: "اختر الخطة التي تناسب احتياجاتك في عقاري.",
 // };
 
 

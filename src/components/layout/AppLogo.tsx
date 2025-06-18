@@ -1,11 +1,16 @@
 import Link from 'next/link';
-import { Building2 } from 'lucide-react'; // Example Icon
+import Image from 'next/image';
 
 export function AppLogo() {
   return (
-    <Link href="/" className="flex items-center space-x-2 rtl:space-x-reverse">
-      <Building2 className="h-8 w-8 text-primary" />
-      <span className="text-2xl font-bold font-headline text-primary">DarDz</span>
+    <Link href="/" className="flex items-center">
+      <Image 
+        src="/logo-aqari.png" 
+        alt="شعار عقاري" 
+        width={1024} // Original width for aspect ratio calculation
+        height={1024} // Original height for aspect ratio calculation
+        className="h-10 w-auto" // CSS to control displayed size
+      />
     </Link>
   );
 }

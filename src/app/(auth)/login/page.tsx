@@ -14,8 +14,8 @@ import type { Metadata } from "next";
 // It's generally better to move static metadata to layout.tsx or use generateMetadata for dynamic.
 // However, for this specific fix, we'll focus on the redirect logic.
 // export const metadata: Metadata = { // This would ideally be in a layout or generateMetadata
-//   title: "تسجيل الدخول - DarDz",
-//   description: "سجل الدخول إلى حسابك في DarDz.",
+//   title: "تسجيل الدخول - عقاري",
+//   description: "سجل الدخول إلى حسابك في عقاري.",
 // };
 
 export default function LoginPage() {

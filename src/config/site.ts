@@ -18,10 +18,10 @@ export type SiteConfig = {
 };
 
 export const siteConfig: SiteConfig = {
-  name: "DarDz",
-  description: "Find and list properties in Algeria. Your one-stop portal for real estate.",
-  url: "https://dardz.example.com", // Replace with actual URL
-  ogImage: "https://dardz.example.com/og.jpg", // Replace with actual OG image
+  name: "عقاري",
+  description: "منصتك المثالية لإيجاد وبيع العقارات في الجزائر.",
+  url: "https://aqari.example.com", // Replace with actual URL
+  ogImage: "https://aqari.example.com/og.jpg", // Replace with actual OG image
   mainNav: [
     {
       title: "الرئيسية", // Home

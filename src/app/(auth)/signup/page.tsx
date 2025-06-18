@@ -9,8 +9,8 @@ import { Loader2 } from "lucide-react";
 import type { Metadata } from "next";
 
 // export const metadata: Metadata = { // Similar to LoginPage, metadata better in layout or generateMetadata
-//   title: "إنشاء حساب - DarDz",
-//   description: "أنشئ حسابًا جديدًا في DarDz.",
+//   title: "إنشاء حساب - عقاري",
+//   description: "أنشئ حسابًا جديدًا في عقاري.",
 // };
 
 export default function SignupPage() {
