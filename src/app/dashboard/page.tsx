@@ -101,6 +101,10 @@ export default function DashboardPage() {
     const fetchAppealNotifications = async () => {
       setIsLoadingNotifications(true);
       try {
+        if (!user?.uid) {
+          setIsLoadingNotifications(false);
+          return;
+        }
         const appealsQuery = query(
           collection(db, "property_appeals"),
           where("ownerUserId", "==", user.uid),
@@ -117,7 +121,7 @@ export default function DashboardPage() {
             decision: data.adminDecision,
             translatedDecision: data.adminDecision ? decisionTranslations[data.adminDecision] : "قرار غير محدد",
             adminNotes: data.adminNotes,
-            decisionDate: data.adminDecisionAt ? new Date(data.adminDecisionAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric' }) : "غير محدد",
+            decisionDate: data.adminDecisionAt ? (data.adminDecisionAt instanceof Timestamp ? data.adminDecisionAt.toDate() : new Date(data.adminDecisionAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric' }) : "غير محدد",
           };
         });
         setAppealNotifications(notifications);
@@ -146,7 +150,7 @@ export default function DashboardPage() {
     }
   };
 
-  if (authLoading || (isLoadingStats && isLoadingNotifications)) {
+  if (authLoading || (isLoadingStats && isLoadingNotifications && !user)) { // Adjusted condition
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -167,16 +171,12 @@ export default function DashboardPage() {
             <Home className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent className="text-right">
-            {user?.planId === 'vip_plus_plus' && userStats.activeListings === 0 && !isLoadingStats ? (
-                 <p className="text-destructive text-right">هناك خطأ هنا فقط في vip++ حيث لا يضهر عدد العقارات المرفوعة تضهر 0</p>
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{userStats.activeListings} / {userStats.maxListings}</div>
-                <p className="text-xs text-muted-foreground">
-                  بناءً على خطة {userStats.planName} الخاصة بك
-                </p>
-              </>
-            )}
+            <>
+              <div className="text-2xl font-bold">{userStats.activeListings} / {userStats.maxListings}</div>
+              <p className="text-xs text-muted-foreground">
+                بناءً على خطة {userStats.planName} الخاصة بك
+              </p>
+            </>
           </CardContent>
         </Card>
 
@@ -267,6 +267,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-
-    
