@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/types";
@@ -44,6 +44,9 @@ const propertyFormSchema = z.object({
   price: z.coerce.number().positive("السعر يجب أن يكون رقمًا موجبًا."),
   rooms: z.coerce.number().int().min(1, "عدد الغرف يجب أن يكون 1 على الأقل."),
   bathrooms: z.coerce.number().int().min(1, "عدد الحمامات يجب أن يكون 1 على الأقل."),
+  length: z.coerce.number().positive("الطول يجب أن يكون رقمًا موجبًا.").min(0.1, "الطول يجب أن يكون أكبر من صفر."),
+  width: z.coerce.number().positive("العرض يجب أن يكون رقمًا موجبًا.").min(0.1, "العرض يجب أن يكون أكبر من صفر."),
+  area: z.coerce.number().positive("المساحة يجب أن تكون رقمًا موجبًا."),
   wilaya: z.string().min(1, "الولاية مطلوبة."),
   city: z.string().min(2, "المدينة مطلوبة."),
   neighborhood: z.string().optional(),
@@ -98,9 +101,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       title: "",
-      price: 0,
-      rooms: 1,
-      bathrooms: 1,
+      price: undefined, // Use undefined for coerce.number() to allow empty initial state
+      rooms: undefined,
+      bathrooms: undefined,
+      length: undefined,
+      width: undefined,
+      area: undefined,
       wilaya: "",
       city: "",
       neighborhood: "",
@@ -115,9 +121,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     if (initialData) {
       form.reset({
         title: initialData.title || "",
-        price: initialData.price || 0,
-        rooms: initialData.rooms || 1,
-        bathrooms: initialData.bathrooms || 1,
+        price: initialData.price || undefined,
+        rooms: initialData.rooms || undefined,
+        bathrooms: initialData.bathrooms || undefined,
+        length: initialData.length || undefined,
+        width: initialData.width || undefined,
+        area: initialData.area || undefined,
         wilaya: initialData.wilaya || "",
         city: initialData.city || "",
         neighborhood: initialData.neighborhood || "",
@@ -136,9 +145,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     } else if (!isEditMode) { 
         form.reset({
             title: "",
-            price: 0,
-            rooms: 1,
-            bathrooms: 1,
+            price: undefined,
+            rooms: undefined,
+            bathrooms: undefined,
+            length: undefined,
+            width: undefined,
+            area: undefined,
             wilaya: "",
             city: "",
             neighborhood: "",
@@ -165,6 +177,21 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       }
     }
   }, [user, form, initialData]);
+
+  const lengthValue = form.watch("length");
+  const widthValue = form.watch("width");
+
+  React.useEffect(() => {
+    const lengthNum = parseFloat(String(lengthValue));
+    const widthNum = parseFloat(String(widthValue));
+
+    if (!isNaN(lengthNum) && lengthNum > 0 && !isNaN(widthNum) && widthNum > 0) {
+      const calculatedArea = lengthNum * widthNum;
+      form.setValue("area", parseFloat(calculatedArea.toFixed(2)), { shouldValidate: true });
+    } else {
+      form.setValue("area", undefined as any, { shouldValidate: true }); // Set to undefined or handle as needed
+    }
+  }, [lengthValue, widthValue, form]);
 
 
   const handleMainImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -322,6 +349,23 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 <Label htmlFor="bathrooms" className="flex items-center gap-1"><Bath size={16}/>عدد الحمامات *</Label>
                 <Input lang="en" id="bathrooms" type="text" {...form.register("bathrooms")} placeholder="2" className="input-latin-numerals" />
                 {form.formState.errors.bathrooms && <p className="text-sm text-destructive">{form.formState.errors.bathrooms.message}</p>}
+              </div>
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="length" className="flex items-center gap-1"><Ruler size={16}/>الطول (متر) *</Label>
+                <Input lang="en" id="length" type="text" {...form.register("length")} placeholder="10" className="input-latin-numerals" />
+                {form.formState.errors.length && <p className="text-sm text-destructive">{form.formState.errors.length.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="width" className="flex items-center gap-1"><Ruler size={16}/>العرض (متر) *</Label>
+                <Input lang="en" id="width" type="text" {...form.register("width")} placeholder="8" className="input-latin-numerals" />
+                {form.formState.errors.width && <p className="text-sm text-destructive">{form.formState.errors.width.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="area" className="flex items-center gap-1"><Ruler size={16}/>المساحة (م²)</Label>
+                <Input lang="en" id="area" type="text" {...form.register("area")} className="input-latin-numerals bg-muted/50" readOnly placeholder="سيتم حسابها تلقائيًا" />
+                {form.formState.errors.area && <p className="text-sm text-destructive">{form.formState.errors.area.message}</p>}
               </div>
             </div>
           </div>
@@ -511,5 +555,3 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   );
 }
 
-
-    

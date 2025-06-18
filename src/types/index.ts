@@ -31,6 +31,9 @@ export interface Property {
   price: number;
   rooms: number;
   bathrooms: number;
+  length?: number; // الطول
+  width?: number;  // العرض
+  area?: number;   // المساحة
   wilaya: string; // Algerian state/province
   city: string;
   neighborhood?: string;

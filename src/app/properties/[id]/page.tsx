@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2 } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -146,7 +146,7 @@ export default function PropertyDetailPage() {
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, filters, imageUrls, createdAt, userId: propertyOwnerId } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId } = property;
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -231,6 +231,9 @@ export default function PropertyDetailPage() {
               <div className="space-y-2 text-muted-foreground">
                 <p className="flex items-center gap-2"><BedDouble size={18} /> <strong>عدد الغرف:</strong> {rooms}</p>
                 <p className="flex items-center gap-2"><Bath size={18} /> <strong>عدد الحمامات:</strong> {bathrooms}</p>
+                {length && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>الطول:</strong> {length} متر</p>}
+                {width && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>العرض:</strong> {width} متر</p>}
+                {area && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>المساحة:</strong> {area} م²</p>}
               </div>
             </div>
           </div>
