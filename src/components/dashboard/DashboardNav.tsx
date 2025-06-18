@@ -61,9 +61,9 @@ export function DashboardNav() {
               tooltip={item.title}
             >
               <Link href={item.href} className="flex items-center justify-between w-full">
-                <div className="flex items-center">
+                <div className="flex items-center flex-1 min-w-0">
                   <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
-                  <span className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                  <span className="truncate group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
                     {item.title}
                   </span>
                 </div>
