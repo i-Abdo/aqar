@@ -9,7 +9,6 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Property } from '@/types';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useAuth } from '@/hooks/use-auth';
 import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
 import { ContactAdminDialog } from '@/components/dashboard/ContactAdminDialog';
@@ -22,11 +21,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 
 export default function PropertyDetailPage() {
@@ -43,6 +42,7 @@ export default function PropertyDetailPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletionReason, setDeletionReason] = useState("");
   const [isDeletingProperty, setIsDeletingProperty] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -61,12 +61,16 @@ export default function PropertyDetailPage() {
             } else if (data.status !== 'active' && data.status !== 'deleted' && !(user && (data.userId === user.uid || isAdmin))) {
               setError("هذا العقار غير متاح للعرض حاليًا.");
             } else {
-              setProperty({
+              const fetchedProperty = {
                 id: docSnap.id,
                 ...data,
                 createdAt: (data.createdAt as Timestamp)?.toDate ? (data.createdAt as Timestamp).toDate() : new Date(data.createdAt),
                 updatedAt: (data.updatedAt as Timestamp)?.toDate ? (data.updatedAt as Timestamp).toDate() : new Date(data.updatedAt),
-              } as Property);
+              } as Property;
+              setProperty(fetchedProperty);
+              if (fetchedProperty.imageUrls && fetchedProperty.imageUrls.length > 0) {
+                setSelectedImageUrl(fetchedProperty.imageUrls[0]);
+              }
             }
           } else {
             setError("لم يتم العثور على العقار.");
@@ -86,7 +90,7 @@ export default function PropertyDetailPage() {
   }, [id, user, isAdmin]);
 
   const handleDeleteProperty = async () => {
-    if (!property || !user || user.uid !== property.userId) {
+    if (!property || !user || !(user.uid === property.userId || isAdmin)) { // Allow admin to delete too
       toast({ title: "خطأ", description: "غير مصرح لك بحذف هذا العقار.", variant: "destructive" });
       return;
     }
@@ -100,11 +104,15 @@ export default function PropertyDetailPage() {
       await updateDoc(propRef, { 
         status: 'deleted', 
         deletionReason: deletionReason,
-        archivalReason: "", // Clear archival reason if any
+        archivalReason: "", 
         updatedAt: serverTimestamp() 
       });
       toast({ title: "تم الحذف", description: `تم حذف العقار "${property.title}" بنجاح.` });
-      router.push("/dashboard/properties");
+      if (isAdmin) {
+          router.push("/admin/properties"); // Admin goes to admin properties list
+      } else {
+          router.push("/dashboard/properties"); // Owner goes to their properties list
+      }
       setIsDeleteDialogOpen(false);
     } catch (e) {
       console.error("Error deleting property:", e);
@@ -127,10 +135,10 @@ export default function PropertyDetailPage() {
   if (error) {
      return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center p-4">
-        <MapPin size={64} className="text-destructive mb-4" /> {}
+        <MapPin size={64} className="text-destructive mb-4" /> 
         <h2 className="text-2xl font-bold text-destructive mb-2">خطأ في تحميل العقار</h2>
         <p className="text-muted-foreground mb-6">{error}</p>
-        <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> {}
+        <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> 
       </div>
     );
   }
@@ -141,7 +149,7 @@ export default function PropertyDetailPage() {
             <MapPin size={64} className="text-muted-foreground mb-4" />
             <h2 className="text-2xl font-bold mb-2">العقار غير متوفر</h2>
             <p className="text-muted-foreground mb-6">لم نتمكن من العثور على تفاصيل هذا العقار. قد يكون تم حذفه أو أن الرابط غير صحيح.</p>
-            <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> {}
+            <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> 
         </div>
     );
   }
@@ -162,35 +170,54 @@ export default function PropertyDetailPage() {
     <div className="container mx-auto py-8">
       <Card className="shadow-2xl overflow-hidden max-w-5xl mx-auto">
         <CardHeader className="p-0">
-            {imageUrls && imageUrls.length > 0 ? (
-                 <Carousel className="w-full" opts={{ loop: imageUrls.length > 1, direction: "rtl" }}>
-                    <CarouselContent>
-                        {imageUrls.map((url, index) => (
-                        <CarouselItem key={index}>
-                            <div className="relative aspect-[16/9] md:aspect-[2/1] w-full">
-                            <Image 
-                                src={url || "https://placehold.co/1200x600.png"} 
-                                alt={`${title} - صورة ${index + 1}`} 
-                                fill 
-                                style={{objectFit: "cover"}}
-                                className="rounded-t-lg"
-                                data-ai-hint="property interior room"
-                                priority={index === 0} 
-                            />
-                            </div>
-                        </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    {imageUrls.length > 1 && (
-                        <>
-                            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 rtl:left-auto rtl:right-4" />
-                            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 rtl:right-auto rtl:left-4" />
-                        </>
-                    )}
-                </Carousel>
+            {selectedImageUrl ? (
+                <div className="relative aspect-[16/9] md:aspect-[2/1] w-full rounded-t-lg overflow-hidden bg-muted">
+                    <Image 
+                        src={selectedImageUrl} 
+                        alt={`${title} - الصورة الرئيسية`} 
+                        fill 
+                        style={{objectFit: "cover"}}
+                        data-ai-hint="property interior room"
+                        priority 
+                    />
+                </div>
+            ) : imageUrls && imageUrls.length > 0 && imageUrls[0] ? ( // Fallback if selectedImageUrl is null but imageUrls exist
+                 <div className="relative aspect-[16/9] md:aspect-[2/1] w-full rounded-t-lg overflow-hidden bg-muted">
+                    <Image 
+                        src={imageUrls[0]} 
+                        alt={`${title} - الصورة الرئيسية`} 
+                        fill 
+                        style={{objectFit: "cover"}}
+                        data-ai-hint="property interior room"
+                        priority 
+                    />
+                </div>
             ) : (
                 <div className="relative aspect-[16/9] md:aspect-[2/1] w-full bg-muted flex items-center justify-center rounded-t-lg">
                     <ImageIcon size={64} className="text-muted-foreground" />
+                </div>
+            )}
+            
+            {imageUrls && imageUrls.length > 1 && (
+                <div className="flex space-x-2 rtl:space-x-reverse p-2 bg-background/50 overflow-x-auto">
+                    {imageUrls.map((url, index) => (
+                        <button 
+                            key={index} 
+                            onClick={() => setSelectedImageUrl(url)}
+                            className={cn(
+                                "w-20 h-16 md:w-24 md:h-20 relative rounded-md overflow-hidden cursor-pointer border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary",
+                                selectedImageUrl === url ? "border-primary scale-105" : "border-transparent hover:border-primary/70"
+                            )}
+                        >
+                            <Image 
+                                src={url} 
+                                alt={`صورة مصغرة ${index + 1}`} 
+                                fill 
+                                style={{objectFit: "cover"}}
+                                data-ai-hint="property detail"
+                            />
+                        </button>
+                    ))}
                 </div>
             )}
         </CardHeader>
@@ -321,6 +348,46 @@ export default function PropertyDetailPage() {
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
+                            )}
+                        </>
+                    )}
+                     {(isAdmin && !isOwner) && ( // Admin specific actions if they are not the owner
+                        <>
+                            <Button asChild size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
+                                <Link href={`/admin/properties`}> {/* Or a specific admin edit page if exists */}
+                                    <Edit3 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إدارة العقار (مسؤول)
+                                </Link>
+                            </Button>
+                            {property.status !== 'deleted' && (
+                                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                <AlertDialogTrigger asChild>
+                                    <Button size="lg" variant="destructive" className="flex-1 transition-smooth hover:shadow-md">
+                                        <Trash2 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> حذف العقار (مسؤول)
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>تأكيد حذف العقار (مسؤول)</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        أنت على وشك حذف هذا العقار كمسؤول. الرجاء إدخال سبب الحذف.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <Textarea
+                                        placeholder="سبب الحذف (إجراء إداري)..."
+                                        value={deletionReason}
+                                        onChange={(e) => setDeletionReason(e.target.value)}
+                                        className="my-2"
+                                        rows={3}
+                                    />
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteProperty} disabled={isDeletingProperty || !deletionReason.trim()}>
+                                        {isDeletingProperty && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+                                        تأكيد الحذف
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                             )}
                         </>
                     )}
