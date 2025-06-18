@@ -17,6 +17,10 @@ import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updateP
 import { auth as firebaseAuth } from "@/lib/firebase/client";
 import { plans } from "@/config/plans";
 
+const PROFILE_UPDATE_COOLDOWN_MS = 60000; // 1 minute
+const MAX_PASSWORD_ATTEMPTS = 3;
+const PASSWORD_ATTEMPT_LOCKOUT_MS = 5 * 60000; // 5 minutes
+
 const profileFormSchema = z.object({
   displayName: z
     .string()
@@ -28,7 +32,6 @@ const profileFormSchema = z.object({
   confirmNewPassword: z.string().optional(),
 })
 .superRefine((data, ctx) => {
-    // If any password field is filled, validate all password fields
     if (data.currentPassword || data.newPassword || data.confirmNewPassword) {
         if (!data.currentPassword) {
             ctx.addIssue({
@@ -67,6 +70,10 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentPlanName, setCurrentPlanName] = React.useState("...");
+  const [lastPasswordUpdateAttempt, setLastPasswordUpdateAttempt] = React.useState<number>(0);
+  const [passwordAttemptCount, setPasswordAttemptCount] = React.useState<number>(0);
+  const [passwordFieldsLockedUntil, setPasswordFieldsLockedUntil] = React.useState<number>(0);
+
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -82,14 +89,31 @@ export default function ProfilePage() {
     if (user) {
       form.reset({ 
         displayName: user.displayName || "",
-        currentPassword: "", // Always clear password fields on load
+        currentPassword: "",
         newPassword: "",
         confirmNewPassword: "",
        });
       const planDetails = plans.find(p => p.id === (user.planId || 'free'));
       setCurrentPlanName(planDetails?.name || "غير محدد");
+
+      const storedLastAttempt = localStorage.getItem(`lastPasswordUpdateAttempt_${user.uid}`);
+      if (storedLastAttempt) setLastPasswordUpdateAttempt(parseInt(storedLastAttempt, 10));
+      
+      const storedAttemptCount = localStorage.getItem(`passwordAttemptCount_${user.uid}`);
+      if (storedAttemptCount) setPasswordAttemptCount(parseInt(storedAttemptCount, 10));
+
+      const storedLockout = localStorage.getItem(`passwordFieldsLockedUntil_${user.uid}`);
+      if (storedLockout) setPasswordFieldsLockedUntil(parseInt(storedLockout, 10));
+
     }
   }, [user, form]);
+
+  const canAttemptPasswordUpdate = () => {
+    if (passwordFieldsLockedUntil > Date.now()) {
+      return false;
+    }
+    return Date.now() - lastPasswordUpdateAttempt > PROFILE_UPDATE_COOLDOWN_MS;
+  };
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!user || !firebaseAuth.currentUser) {
@@ -102,7 +126,6 @@ export default function ProfilePage() {
     let passwordUpdated = false;
 
     try {
-      // Update Display Name if changed
       if (form.formState.dirtyFields.displayName && data.displayName !== user.displayName) {
         await updateProfile(firebaseAuth.currentUser, {
           displayName: data.displayName || user.displayName || "", 
@@ -110,12 +133,45 @@ export default function ProfilePage() {
         displayNameUpdated = true;
       }
 
-      // Update Password if fields are filled and valid (superRefine handles actual validation)
       if (data.newPassword && data.currentPassword && data.confirmNewPassword) {
-        const credential = EmailAuthProvider.credential(user.email!, data.currentPassword);
-        await reauthenticateWithCredential(firebaseAuth.currentUser, credential);
-        await updatePassword(firebaseAuth.currentUser, data.newPassword);
-        passwordUpdated = true;
+        if (!canAttemptPasswordUpdate()) {
+            if (passwordFieldsLockedUntil > Date.now()) {
+                 toast({ title: "محاولة متكررة", description: `تم تعطيل تغيير كلمة المرور مؤقتًا. يرجى المحاولة بعد ${Math.ceil((passwordFieldsLockedUntil - Date.now()) / 60000)} دقائق.`, variant: "destructive" });
+            } else {
+                 toast({ title: "محاولة متكررة", description: `يرجى الانتظار قليلاً قبل محاولة تغيير كلمة المرور مرة أخرى.`, variant: "destructive" });
+            }
+            setIsSubmitting(false);
+            return;
+        }
+
+        setLastPasswordUpdateAttempt(Date.now());
+        localStorage.setItem(`lastPasswordUpdateAttempt_${user.uid}`, Date.now().toString());
+
+        try {
+            const credential = EmailAuthProvider.credential(user.email!, data.currentPassword);
+            await reauthenticateWithCredential(firebaseAuth.currentUser, credential);
+            await updatePassword(firebaseAuth.currentUser, data.newPassword);
+            passwordUpdated = true;
+            setPasswordAttemptCount(0); // Reset on success
+            localStorage.setItem(`passwordAttemptCount_${user.uid}`, "0");
+            setPasswordFieldsLockedUntil(0); // Clear lockout on success
+            localStorage.removeItem(`passwordFieldsLockedUntil_${user.uid}`);
+        } catch (authError: any) {
+            if (authError.code === 'auth/wrong-password' || authError.code === 'auth/too-many-requests') {
+                const newAttemptCount = passwordAttemptCount + 1;
+                setPasswordAttemptCount(newAttemptCount);
+                localStorage.setItem(`passwordAttemptCount_${user.uid}`, newAttemptCount.toString());
+                if (newAttemptCount >= MAX_PASSWORD_ATTEMPTS) {
+                    const lockoutTime = Date.now() + PASSWORD_ATTEMPT_LOCKOUT_MS;
+                    setPasswordFieldsLockedUntil(lockoutTime);
+                    localStorage.setItem(`passwordFieldsLockedUntil_${user.uid}`, lockoutTime.toString());
+                    toast({ title: "خطأ", description: `فشلت محاولات تغيير كلمة المرور عدة مرات. تم تعطيل الميزة لمدة ${PASSWORD_ATTEMPT_LOCKOUT_MS / 60000} دقائق.`, variant: "destructive" });
+                } else {
+                    toast({ title: "خطأ", description: "كلمة المرور الحالية غير صحيحة.", variant: "destructive" });
+                }
+            }
+            throw authError; // Re-throw to be caught by outer catch
+        }
       }
 
       if (displayNameUpdated && passwordUpdated) {
@@ -128,8 +184,7 @@ export default function ProfilePage() {
          toast({ title: "لا توجد تغييرات لحفظها."});
       }
       
-      // Reset form to clear dirty state and password fields
-       form.reset({
+      form.reset({
         displayName: data.displayName || user.displayName || "",
         currentPassword: "",
         newPassword: "",
@@ -139,18 +194,19 @@ export default function ProfilePage() {
     } catch (error: any) {
       console.error("Error updating profile:", error);
       let description = "حدث خطأ ما. يرجى المحاولة مرة أخرى.";
-      if (error.code === 'auth/wrong-password') {
-        description = "كلمة المرور الحالية غير صحيحة.";
-      } else if (error.code === 'auth/weak-password') {
-        description = "كلمة المرور الجديدة ضعيفة جدًا (يجب أن تكون 6 أحرف على الأقل).";
-      } else if (error.code === 'auth/requires-recent-login') {
-        description = "تتطلب هذه العملية تسجيل دخول حديث. الرجاء تسجيل الخروج ثم الدخول مرة أخرى والمحاولة.";
+      // Specific error codes already handled above for password attempts
+      if (error.code !== 'auth/wrong-password' && error.code !== 'auth/too-many-requests') {
+        if (error.code === 'auth/weak-password') {
+            description = "كلمة المرور الجديدة ضعيفة جدًا (يجب أن تكون 6 أحرف على الأقل).";
+        } else if (error.code === 'auth/requires-recent-login') {
+            description = "تتطلب هذه العملية تسجيل دخول حديث. الرجاء تسجيل الخروج ثم الدخول مرة أخرى والمحاولة.";
+        }
+         toast({
+            title: "خطأ في تحديث الملف الشخصي",
+            description: description,
+            variant: "destructive",
+        });
       }
-      toast({
-        title: "خطأ في تحديث الملف الشخصي",
-        description: description,
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -170,6 +226,14 @@ export default function ProfilePage() {
   }
   
   const userInitials = user.displayName ? user.displayName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : "U");
+  const isPasswordChangeDisabled = !canAttemptPasswordUpdate() || passwordFieldsLockedUntil > Date.now();
+  let passwordLockoutMessage = "";
+  if (passwordFieldsLockedUntil > Date.now()) {
+    passwordLockoutMessage = `تغيير كلمة المرور معطل مؤقتًا. يرجى المحاولة بعد ${Math.ceil((passwordFieldsLockedUntil - Date.now()) / 60000)} دقائق.`;
+  } else if (!canAttemptPasswordUpdate()) {
+    passwordLockoutMessage = "لقد حاولت تغيير كلمة المرور مؤخرًا. يرجى الانتظار دقيقة واحدة.";
+  }
+
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
@@ -196,6 +260,7 @@ export default function ProfilePage() {
                 id="displayName"
                 {...form.register("displayName")}
                 placeholder="أدخل اسم العرض الخاص بك"
+                disabled={isSubmitting}
               />
               {form.formState.errors.displayName && (
                 <p className="text-sm text-destructive">{form.formState.errors.displayName.message}</p>
@@ -215,6 +280,7 @@ export default function ProfilePage() {
             <hr className="my-6 border-border" />
             
             <h3 className="text-lg font-semibold flex items-center gap-2"><LockKeyhole size={20}/>تغيير كلمة المرور</h3>
+            {passwordLockoutMessage && <p className="text-sm text-destructive">{passwordLockoutMessage}</p>}
             <CardDescription>اترك الحقول التالية فارغة إذا كنت لا ترغب في تغيير كلمة المرور.</CardDescription>
 
             <div className="space-y-2">
@@ -224,6 +290,7 @@ export default function ProfilePage() {
                 type="password"
                 {...form.register("currentPassword")}
                 placeholder="••••••••"
+                disabled={isSubmitting || isPasswordChangeDisabled}
               />
               {form.formState.errors.currentPassword && (
                 <p className="text-sm text-destructive">{form.formState.errors.currentPassword.message}</p>
@@ -237,6 +304,7 @@ export default function ProfilePage() {
                 type="password"
                 {...form.register("newPassword")}
                 placeholder="••••••••"
+                disabled={isSubmitting || isPasswordChangeDisabled}
               />
               {form.formState.errors.newPassword && (
                 <p className="text-sm text-destructive">{form.formState.errors.newPassword.message}</p>
@@ -250,6 +318,7 @@ export default function ProfilePage() {
                 type="password"
                 {...form.register("confirmNewPassword")}
                 placeholder="••••••••"
+                disabled={isSubmitting || isPasswordChangeDisabled}
               />
               {form.formState.errors.confirmNewPassword && (
                 <p className="text-sm text-destructive">{form.formState.errors.confirmNewPassword.message}</p>
@@ -261,7 +330,7 @@ export default function ProfilePage() {
             <Button 
               type="submit" 
               className="w-full transition-smooth hover:shadow-md" 
-              disabled={isSubmitting || !form.formState.isDirty}
+              disabled={isSubmitting || !form.formState.isDirty || (form.formState.dirtyFields.currentPassword && isPasswordChangeDisabled)}
             >
               {isSubmitting ? (
                 <Loader2 className="ml-2 h-4 w-4 animate-spin" />
@@ -276,6 +345,4 @@ export default function ProfilePage() {
     </div>
   );
 }
-    
-
     

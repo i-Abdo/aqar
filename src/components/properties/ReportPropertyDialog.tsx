@@ -14,7 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { ReportReason } from "@/types";
 import { submitReport } from "@/actions/reportActions";
-import { useAuth } from "@/hooks/use-auth"; // Added useAuth
+import { useAuth } from "@/hooks/use-auth";
+
+const REPORT_COOLDOWN_MS = 2 * 60000; // 2 minutes
 
 const reportFormSchema = z.object({
   reason: z.nativeEnum(ReportReason, { errorMap: () => ({ message: "سبب الإبلاغ مطلوب." }) }),
@@ -32,8 +34,18 @@ interface ReportPropertyDialogProps {
 
 export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propertyTitle }: ReportPropertyDialogProps) {
   const { toast } = useToast();
-  const { user } = useAuth(); // Get user from AuthContext
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [lastReportTime, setLastReportTime] = React.useState(0);
+
+  React.useEffect(() => {
+    if (user && propertyId) {
+      const storedTime = localStorage.getItem(`lastReportTime_${user.uid}_${propertyId}`);
+      if (storedTime) {
+        setLastReportTime(parseInt(storedTime, 10));
+      }
+    }
+  }, [user, propertyId, isOpen]);
 
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(reportFormSchema),
@@ -43,10 +55,21 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
     },
   });
 
+  const canSubmitReport = () => {
+    return Date.now() - lastReportTime > REPORT_COOLDOWN_MS;
+  };
+
   const onSubmit = async (data: ReportFormValues) => {
     setIsSubmitting(true);
-    if (!user) { // Additional check, though UI should prevent dialog opening if no user
+    if (!user) {
       toast({ title: "خطأ", description: "يجب تسجيل الدخول لتقديم بلاغ.", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!canSubmitReport()) {
+      const timeLeft = Math.ceil((REPORT_COOLDOWN_MS - (Date.now() - lastReportTime)) / 1000);
+      toast({ title: "محاولة متكررة", description: `لقد قمت بالإبلاغ عن هذا العقار مؤخرًا. يرجى الانتظار ${timeLeft} ثانية.`, variant: "destructive" });
       setIsSubmitting(false);
       return;
     }
@@ -57,12 +80,17 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
         propertyTitle,
         reason: data.reason,
         comments: data.comments,
-        reporterUserId: user.uid, // Pass user.uid
-        reporterEmail: user.email || null, // Pass user.email (can be null)
+        reporterUserId: user.uid,
+        reporterEmail: user.email || null,
       });
 
       if (result.success) {
         toast({ title: "تم الإرسال", description: result.message });
+        const currentTime = Date.now();
+        setLastReportTime(currentTime);
+        if (user && propertyId) {
+            localStorage.setItem(`lastReportTime_${user.uid}_${propertyId}`, currentTime.toString());
+        }
         form.reset();
         onOpenChange(false);
       } else {
@@ -128,7 +156,7 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
             <DialogClose asChild>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !canSubmitReport()}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSubmitting ? "جاري الإرسال..." : "إرسال البلاغ"}
             </Button>

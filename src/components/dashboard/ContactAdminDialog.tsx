@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { submitUserIssue } from "@/actions/userIssueActions";
 
+const CONTACT_ADMIN_COOLDOWN_MS = 5 * 60000; // 5 minutes
+
 const contactAdminSchema = z.object({
   message: z.string().min(20, { message: "الرسالة يجب أن تكون 20 حرفًا على الأقل." }).max(2000, { message: "الرسالة يجب ألا تتجاوز 2000 حرف." }),
 });
@@ -38,6 +40,16 @@ export function ContactAdminDialog({
 }: ContactAdminDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [lastSubmissionTime, setLastSubmissionTime] = React.useState(0);
+
+  React.useEffect(() => {
+    if (userId) {
+      const storedTime = localStorage.getItem(`lastContactAdminTime_${userId}`);
+      if (storedTime) {
+        setLastSubmissionTime(parseInt(storedTime, 10));
+      }
+    }
+  }, [userId, isOpen]);
 
   const form = useForm<ContactAdminFormValues>({
     resolver: zodResolver(contactAdminSchema),
@@ -46,8 +58,20 @@ export function ContactAdminDialog({
     },
   });
 
+  const canSubmit = () => {
+    return Date.now() - lastSubmissionTime > CONTACT_ADMIN_COOLDOWN_MS;
+  };
+
   const onSubmit = async (data: ContactAdminFormValues) => {
     setIsSubmitting(true);
+    
+    if (!canSubmit()) {
+      const timeLeft = Math.ceil((CONTACT_ADMIN_COOLDOWN_MS - (Date.now() - lastSubmissionTime)) / 60000);
+      toast({ title: "محاولة متكررة", description: `لقد قمت بإرسال رسالة للإدارة مؤخرًا. يرجى الانتظار ${timeLeft} دقائق.`, variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const result = await submitUserIssue({
         userId,
@@ -59,6 +83,9 @@ export function ContactAdminDialog({
 
       if (result.success) {
         toast({ title: "تم الإرسال بنجاح", description: result.message });
+        const currentTime = Date.now();
+        setLastSubmissionTime(currentTime);
+        localStorage.setItem(`lastContactAdminTime_${userId}`, currentTime.toString());
         form.reset();
         onOpenChange(false);
       } else {
@@ -112,7 +139,7 @@ export function ContactAdminDialog({
             <DialogClose asChild>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
             </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !canSubmit()}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSubmitting ? "جاري الإرسال..." : "إرسال الرسالة"}
             </Button>

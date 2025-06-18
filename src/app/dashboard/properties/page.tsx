@@ -11,7 +11,7 @@ import { db } from "@/lib/firebase/client";
 import type { Property, Plan, PropertyAppeal, TransactionType, PropertyTypeEnum } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye, Tag, Home as HomeIcon } from "lucide-react"; // Renamed Home to HomeIcon
+import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye, Tag, Home as HomeIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -29,6 +29,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { plans } from "@/config/plans";
 import { submitPropertyAppeal } from '@/actions/propertyAppealActions';
 import { formatDisplayPrice } from '@/lib/utils';
+
+const PROPERTY_APPEAL_COOLDOWN_MS = 24 * 60 * 60000; // 24 hours
 
 const transactionTypeTranslations: Record<TransactionType, string> = {
   sale: "للبيع",
@@ -53,8 +55,23 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
   const [isDeleting, setIsDeleting] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [isAppealing, setIsAppealing] = useState(false);
+  const [lastAppealTime, setLastAppealTime] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (user && property.status === 'archived') {
+      const storedTime = localStorage.getItem(`lastAppealTime_${user.uid}_${property.id}`);
+      if (storedTime) {
+        setLastAppealTime(parseInt(storedTime, 10));
+      }
+    }
+  }, [user, property.id, property.status]);
+
+  const canAppeal = () => {
+    if (property.status !== 'archived') return false;
+    return Date.now() - lastAppealTime > PROPERTY_APPEAL_COOLDOWN_MS;
+  };
 
   const handleDeleteWithReason = async () => {
     if (!deleteReason.trim()) {
@@ -81,6 +98,13 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
         toast({ title: "خطأ", description: "يجب تسجيل الدخول لتقديم طعن.", variant: "destructive" });
         return;
     }
+    if (!canAppeal()) {
+        const timeLeftMs = PROPERTY_APPEAL_COOLDOWN_MS - (Date.now() - lastAppealTime);
+        const hoursLeft = Math.ceil(timeLeftMs / (60 * 60000));
+        toast({ title: "محاولة متكررة", description: `لقد قدمت طعنًا على هذا العقار مؤخرًا. يرجى الانتظار حوالي ${hoursLeft} ساعة.`, variant: "destructive" });
+        return;
+    }
+
     setIsAppealing(true);
     const result = await submitPropertyAppeal({
         propertyId: property.id,
@@ -91,6 +115,9 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
     });
     if (result.success) {
         toast({ title: "تم إرسال الطعن", description: result.message });
+        const currentTime = Date.now();
+        setLastAppealTime(currentTime);
+        localStorage.setItem(`lastAppealTime_${user.uid}_${property.id}`, currentTime.toString());
     } else {
         toast({ title: "خطأ في إرسال الطعن", description: result.message, variant: "destructive" });
     }
@@ -178,7 +205,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
     );
   } else if (property.status === 'archived') {
     actionButtons.push(
-     <Button key="appeal" onClick={handleAppeal} variant="outline_primary" size="sm" disabled={isAppealing} className="w-full transition-smooth hover:shadow-sm">
+     <Button key="appeal" onClick={handleAppeal} variant="outline_primary" size="sm" disabled={isAppealing || !canAppeal()} className="w-full transition-smooth hover:shadow-sm">
         {isAppealing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ShieldQuestion size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>}
         {isAppealing ? "جاري إرسال الطعن..." : "طعن"}
      </Button>

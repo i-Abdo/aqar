@@ -22,6 +22,11 @@ import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"; 
 
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+
+
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
   { code: "05", name: "باتنة" }, { code: "06", name: "بجاية" }, { code: "07", name: "بسكرة" }, { code: "08", name: "بشار" },
@@ -56,26 +61,26 @@ const propertyTypes: { value: PropertyTypeEnum; label: string }[] = [
 ];
 
 const propertyFormSchema = z.object({
-  title: z.string().min(5, "العنوان يجب أن لا يقل عن 5 أحرف."),
+  title: z.string().min(5, "العنوان يجب أن لا يقل عن 5 أحرف.").max(150, "العنوان طويل جدًا (الحد الأقصى 150 حرفًا)."),
   transactionType: z.enum(['sale', 'rent'], { required_error: "نوع المعاملة مطلوب." }),
   propertyType: z.enum(['land', 'villa', 'house', 'apartment', 'office', 'warehouse', 'shop', 'other'], { required_error: "نوع العقار مطلوب." }),
-  otherPropertyType: z.string().optional(),
-  price: z.coerce.number({invalid_type_error: "السعر يجب أن يكون رقمًا."}).positive("السعر يجب أن يكون رقمًا موجبًا.").min(1, "السعر لا يمكن أن يكون صفرًا."),
-  rooms: z.coerce.number().int().min(1, "عدد الغرف يجب أن يكون 1 على الأقل."),
-  bathrooms: z.coerce.number().int().min(1, "عدد الحمامات يجب أن يكون 1 على الأقل."),
-  length: z.coerce.number().positive("الطول يجب أن يكون رقمًا موجبًا.").min(0.1, "الطول يجب أن يكون أكبر من صفر."),
-  width: z.coerce.number().positive("العرض يجب أن يكون رقمًا موجبًا.").min(0.1, "العرض يجب أن يكون أكبر من صفر."),
-  area: z.coerce.number().positive("المساحة يجب أن تكون رقمًا موجبًا."),
+  otherPropertyType: z.string().max(50, "نوع العقار الآخر طويل جدًا.").optional(),
+  price: z.coerce.number({invalid_type_error: "السعر يجب أن يكون رقمًا."}).positive("السعر يجب أن يكون رقمًا موجبًا.").min(1, "السعر لا يمكن أن يكون صفرًا.").max(1_000_000_000_000, "السعر كبير جدًا."), // 1 Trillion DA limit
+  rooms: z.coerce.number().int().min(0, "عدد الغرف لا يمكن أن يكون سالبًا.").max(100, "عدد الغرف كبير جدًا."), // Allow 0 for land
+  bathrooms: z.coerce.number().int().min(0, "عدد الحمامات لا يمكن أن يكون سالبًا.").max(50, "عدد الحمامات كبير جدًا."), // Allow 0 for land
+  length: z.coerce.number().positive("الطول يجب أن يكون رقمًا موجبًا.").min(0.1, "الطول يجب أن يكون أكبر من صفر.").max(10000, "الطول كبير جدًا."),
+  width: z.coerce.number().positive("العرض يجب أن يكون رقمًا موجبًا.").min(0.1, "العرض يجب أن يكون أكبر من صفر.").max(10000, "العرض كبير جدًا."),
+  area: z.coerce.number().positive("المساحة يجب أن تكون رقمًا موجبًا.").max(1000000, "المساحة كبيرة جدًا."), // Max 1 million m^2
   wilaya: z.string().min(1, "الولاية مطلوبة."),
-  city: z.string().min(2, "المدينة مطلوبة."),
-  neighborhood: z.string().optional(),
-  address: z.string().optional(),
+  city: z.string().min(2, "المدينة مطلوبة.").max(100, "اسم المدينة طويل جدًا."),
+  neighborhood: z.string().max(100, "اسم الحي طويل جدًا.").optional(),
+  address: z.string().max(250, "العنوان التفصيلي طويل جدًا.").optional(),
   phoneNumber: z.string()
     .min(1, "رقم الهاتف مطلوب.")
     .regex(algerianPhoneNumberRegex, {
         message: "رقم الهاتف غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.",
     }),
-  description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(500, "الوصف يجب أن لا يتجاوز 500 حرفًا."),
+  description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(1000, "الوصف يجب أن لا يتجاوز 1000 حرفًا."), // Increased max length
   filters: z.object({
     water: z.boolean().default(false),
     electricity: z.boolean().default(false),
@@ -92,8 +97,11 @@ const propertyFormSchema = z.object({
     });
   }
   if (data.propertyType !== 'other' && data.otherPropertyType) {
-    // Clear otherPropertyType if propertyType is not 'other'
     data.otherPropertyType = undefined;
+  }
+  if (data.propertyType === 'land' && (data.rooms > 0 || data.bathrooms > 0)) {
+    if(data.rooms > 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "الأرض لا تحتوي على غرف.", path: ["rooms"]});
+    if(data.bathrooms > 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "الأرض لا تحتوي على حمامات.", path: ["bathrooms"]});
   }
 });
 
@@ -244,7 +252,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     if (!isNaN(lengthNum) && lengthNum > 0 && !isNaN(widthNum) && widthNum > 0) {
       const calculatedArea = lengthNum * widthNum;
       form.setValue("area", parseFloat(calculatedArea.toFixed(2)), { shouldValidate: true });
-    } else if (form.getValues("area") !== undefined) { 
+    } else if (form.getValues("area") !== undefined && (isNaN(lengthNum) || isNaN(widthNum))) { 
       form.setValue("area", undefined as any, { shouldValidate: true }); 
     }
   }, [lengthValue, widthValue, form]);
@@ -264,8 +272,14 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const handleMainImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
-      if (file.size > 5 * 1024 * 1024) { 
-        toast({ title: "خطأ", description: "حجم الصورة الرئيسية يجب أن لا يتجاوز 5MB.", variant: "destructive" });
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        toast({ title: "خطأ", description: `نوع الملف غير مدعوم. الأنواع المسموح بها: ${ALLOWED_IMAGE_TYPES.join(", ")}`, variant: "destructive" });
+        event.target.value = ""; // Reset file input
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE_BYTES) { 
+        toast({ title: "خطأ", description: `حجم الصورة الرئيسية يجب أن لا يتجاوز ${MAX_FILE_SIZE_MB}MB.`, variant: "destructive" });
+        event.target.value = ""; // Reset file input
         return;
       }
       setMainImageFile(file);
@@ -281,6 +295,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const removeMainImage = () => {
     setMainImageFile(null);
     setMainImagePreview(null);
+     const mainImageInput = document.getElementById('mainImage') as HTMLInputElement | null;
+    if (mainImageInput) mainImageInput.value = "";
     form.trigger(); 
   };
 
@@ -296,35 +312,44 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           description: `لقد وصلت للحد الأقصى للصور الإضافية (${maxAdditionalImages}).`,
           variant: "default",
         });
+        event.target.value = ""; // Reset file input
         return;
       }
 
       const filesToUploadTemp: File[] = [];
       const previewsToUploadTemp: string[] = [];
+      let filesSkipped = 0;
 
       for (const file of filesArray) {
         if (previewsToUploadTemp.length < remainingSlots) { 
-            if (file.size > 5 * 1024 * 1024) { 
-                toast({ title: "خطأ", description: `حجم الملف ${file.name} يتجاوز 5MB.`, variant: "destructive" });
+            if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                toast({ title: "خطأ", description: `نوع الملف ${file.name} غير مدعوم.`, variant: "destructive" });
+                filesSkipped++;
+                continue;
+            }
+            if (file.size > MAX_FILE_SIZE_BYTES) { 
+                toast({ title: "خطأ", description: `حجم الملف ${file.name} يتجاوز ${MAX_FILE_SIZE_MB}MB.`, variant: "destructive" });
+                filesSkipped++;
                 continue;
             }
             filesToUploadTemp.push(file);
             previewsToUploadTemp.push(URL.createObjectURL(file));
         } else {
-            break; 
+            filesSkipped++; // Count files skipped due to reaching max limit
         }
       }
       
-      if (filesToUploadTemp.length < filesArray.length) {
+      if (filesSkipped > 0) {
          toast({
           title: "تنبيه",
-          description: `تم تحميل ${filesToUploadTemp.length} ملفات فقط بسبب تجاوز الحد الأقصى للصور أو حجم الملفات.`,
+          description: `تم تخطي ${filesSkipped} ملفات بسبب تجاوز الحد الأقصى للصور أو نوع/حجم الملفات غير صالح. تم تحميل ${filesToUploadTemp.length} ملفات صالحة.`,
           variant: "default",
         });
       }
 
       setAdditionalImageFiles(prev => [...prev, ...filesToUploadTemp]);
       setAdditionalImagePreviews(prev => [...prev, ...previewsToUploadTemp]);
+      event.target.value = ""; // Reset file input after processing
       form.trigger();
     }
   };
@@ -385,7 +410,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         if (additionalImagePreviews.length !== initialRest.length) imagesChanged = true;
         else {
             for(let i=0; i<additionalImagePreviews.length; i++) {
-                if(additionalImagePreviews[i] !== initialRest[i] && !additionalImagePreviews[i].startsWith("blob:")) { 
+                 // Only consider existing URLs for comparison, not newly added blob URLs if they match length
+                if(!additionalImagePreviews[i].startsWith("blob:") && additionalImagePreviews[i] !== initialRest[i]) { 
                     imagesChanged = true;
                     break;
                 }
@@ -476,7 +502,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                             value={manualPriceInput}
                             onChange={(e) => {
                                 const val = e.target.value;
-                                if (/^\d*\.?\d*$/.test(val)) {
+                                if (/^\d*\.?\d*$/.test(val)) { // Allow numbers and one decimal point
                                     setManualPriceInput(val);
                                 }
                             }}
@@ -507,29 +533,29 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="rooms" className="flex items-center gap-1"><BedDouble size={16}/>عدد الغرف *</Label>
-                <Input lang="en" id="rooms" type="text" {...form.register("rooms")} placeholder="--" className="input-latin-numerals" />
+                <Input lang="en" id="rooms" type="number" {...form.register("rooms")} placeholder="--" className="input-latin-numerals" />
                 {form.formState.errors.rooms && <p className="text-sm text-destructive">{form.formState.errors.rooms.message}</p>}
               </div>
               <div>
                 <Label htmlFor="bathrooms" className="flex items-center gap-1"><Bath size={16}/>عدد الحمامات *</Label>
-                <Input lang="en" id="bathrooms" type="text" {...form.register("bathrooms")} placeholder="--" className="input-latin-numerals" />
+                <Input lang="en" id="bathrooms" type="number" {...form.register("bathrooms")} placeholder="--" className="input-latin-numerals" />
                 {form.formState.errors.bathrooms && <p className="text-sm text-destructive">{form.formState.errors.bathrooms.message}</p>}
               </div>
             </div>
             <div className="grid md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="length" className="flex items-center gap-1"><Ruler size={16}/>الطول (متر) *</Label>
-                <Input lang="en" id="length" type="text" {...form.register("length")} placeholder="--" className="input-latin-numerals" />
+                <Input lang="en" id="length" type="number" step="0.01" {...form.register("length")} placeholder="--" className="input-latin-numerals" />
                 {form.formState.errors.length && <p className="text-sm text-destructive">{form.formState.errors.length.message}</p>}
               </div>
               <div>
                 <Label htmlFor="width" className="flex items-center gap-1"><Ruler size={16}/>العرض (متر) *</Label>
-                <Input lang="en" id="width" type="text" {...form.register("width")} placeholder="--" className="input-latin-numerals" />
+                <Input lang="en" id="width" type="number" step="0.01" {...form.register("width")} placeholder="--" className="input-latin-numerals" />
                 {form.formState.errors.width && <p className="text-sm text-destructive">{form.formState.errors.width.message}</p>}
               </div>
               <div>
                 <Label htmlFor="area" className="flex items-center gap-1"><Ruler size={16}/>المساحة (م²)</Label>
-                <Input lang="en" id="area" type="text" {...form.register("area")} className="input-latin-numerals bg-muted/50" readOnly placeholder="سيتم حسابها تلقائيًا" />
+                <Input lang="en" id="area" type="number" step="0.01" {...form.register("area")} className="input-latin-numerals bg-muted/50" readOnly placeholder="سيتم حسابها تلقائيًا" />
                 {form.formState.errors.area && <p className="text-sm text-destructive">{form.formState.errors.area.message}</p>}
               </div>
             </div>
@@ -602,7 +628,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           <div className="space-y-6">
             <div>
                 <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageIcon size={18}/>صورة العقار الرئيسية *</h3>
-                <Input id="mainImage" type="file" onChange={handleMainImageChange} accept="image/*" />
+                <Input id="mainImage" type="file" onChange={handleMainImageChange} accept={ALLOWED_IMAGE_TYPES.join(",")} />
+                <p className="text-xs text-muted-foreground mt-1">الأنواع المسموح بها: JPG, PNG, WEBP. الحجم الأقصى: {MAX_FILE_SIZE_MB}MB.</p>
                 {mainImagePreview && (
                     <div className="mt-4 relative group w-48">
                     <Image src={mainImagePreview} alt="معاينة الصورة الرئيسية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" data-ai-hint="property interior room" />
@@ -626,9 +653,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                     type="file" 
                     multiple 
                     onChange={handleAdditionalImagesChange} 
-                    accept="image/*" 
+                    accept={ALLOWED_IMAGE_TYPES.join(",")}
                     disabled={additionalImagePreviews.length >= maxAdditionalImages || maxAdditionalImages === 0} 
                 />
+                <p className="text-xs text-muted-foreground mt-1">الأنواع المسموح بها: JPG, PNG, WEBP. الحجم الأقصى لكل صورة: {MAX_FILE_SIZE_MB}MB.</p>
                 <p className="text-sm mt-1">
                     {maxAdditionalImages > 0 ?
                         <span className="text-muted-foreground">{`يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية. (${additionalImagePreviews.length}/${maxAdditionalImages} محملة)`}</span> :
