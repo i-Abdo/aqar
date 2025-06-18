@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
-import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning } from "lucide-react"; // Added MessageCircleWarning
+import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks } from "lucide-react"; // Added ListChecks
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -14,7 +14,8 @@ import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, 
 const adminNavItems = [ 
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard },
   { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag },
-  { title: "مشاكل المستخدمين", href: "/admin/issues", icon: MessageCircleWarning }, // New Item
+  { title: "مشاكل المستخدمين", href: "/admin/issues", icon: MessageCircleWarning },
+  { title: "عقارات قيد المراجعة", href: "/admin/pending", icon: ListChecks }, // New Item
 ];
 
 function AdminSidebarNav() {
