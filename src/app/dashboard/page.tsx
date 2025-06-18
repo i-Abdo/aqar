@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X } from "lucide-react";
+import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X, Trash2 } from "lucide-react"; // Added Trash2
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { collection, query, where, getCountFromServer, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
@@ -28,18 +28,18 @@ interface AppealNotification {
   translatedDecision?: string;
   adminNotes?: string;
   decisionDate?: string;
-  isDismissed?: boolean; // Added for client-side dismissal
+  isDismissed?: boolean; 
 }
 
 interface UserIssueUpdateForDashboard {
-  id: string; // Issue ID
-  propertyTitle?: string; // If related to a property
+  id: string; 
+  propertyTitle?: string; 
   originalMessagePreview: string;
   status: UserIssue['status'];
   translatedStatus: string;
   adminNotes?: string;
-  lastUpdateDate: string; // From issue's updatedAt field
-  isDismissed?: boolean; // Added for client-side dismissal
+  lastUpdateDate: string; 
+  isDismissed?: boolean; 
 }
 
 const decisionTranslations: Record<AdminAppealDecisionType, string> = {
@@ -219,6 +219,12 @@ export default function DashboardPage() {
     );
   };
 
+  const handleDismissAllNotifications = () => {
+    setAppealNotifications(prev => prev.map(notif => ({ ...notif, isDismissed: true })));
+    setUserIssueUpdates(prev => prev.map(update => ({ ...update, isDismissed: true })));
+    toast({ title: "تم مسح الإشعارات", description: "تم إخفاء جميع الإشعارات من العرض الحالي." });
+  };
+
   if (authLoading || (isLoadingStats && !user)) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
@@ -230,6 +236,7 @@ export default function DashboardPage() {
 
   const visibleAppealNotifications = appealNotifications.filter(n => !n.isDismissed);
   const visibleUserIssueUpdates = userIssueUpdates.filter(u => !u.isDismissed);
+  const hasVisibleNotifications = visibleAppealNotifications.length > 0 || visibleUserIssueUpdates.length > 0;
 
   return (
     <div className="space-y-8">
@@ -293,10 +300,23 @@ export default function DashboardPage() {
 
       <Card className="shadow-md hover:shadow-lg transition-smooth">
         <CardHeader>
-          <CardTitle className="text-right flex items-center gap-2">
-            <Bell className="text-primary"/>
-            آخر الأنشطة والإشعارات
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-right flex items-center gap-2">
+              <Bell className="text-primary"/>
+              آخر الأنشطة والإشعارات
+            </CardTitle>
+            {hasVisibleNotifications && (
+              <Button
+                variant="outline_destructive"
+                size="sm"
+                onClick={handleDismissAllNotifications}
+                className="transition-smooth hover:shadow-sm"
+              >
+                <Trash2 size={16} className="ml-1 rtl:mr-1 rtl:ml-0" />
+                مسح كل الإشعارات
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4 text-right">
           {isLoadingNotifications ? (
@@ -374,7 +394,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {visibleAppealNotifications.length === 0 && visibleUserIssueUpdates.length === 0 && (
+              {!hasVisibleNotifications && !isLoadingNotifications && (
                  <div className="flex flex-col items-center justify-center text-center py-6">
                     <AlertTriangle size={32} className="text-muted-foreground mb-2" />
                     <p className="text-muted-foreground">لا توجد إشعارات أو أنشطة حديثة لعرضها.</p>
@@ -392,3 +412,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
