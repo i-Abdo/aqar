@@ -172,13 +172,16 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
   
   const gridColsClass = actionButtons.length === 0 ? 'hidden' : 
                         actionButtons.length === 1 ? 'grid-cols-1' : 
-                        actionButtons.length === 2 ? 'grid-cols-2' : 'grid-cols-3';
+                        actionButtons.length === 2 ? 'grid-cols-2' : 'grid-cols-2'; // Changed from 3 to 2 since View is part of link now
 
 
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
-      <Link href={`/properties/${property.id}`} passHref legacyBehavior>
-        <a className="flex flex-col flex-grow cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:rounded-t-lg">
+      <Link 
+        href={`/properties/${property.id}`} 
+        passHref 
+        className="flex flex-col flex-grow cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:rounded-t-lg"
+      >
           <CardHeader className="p-0 group-hover:opacity-90 transition-opacity">
             <Image
               src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
@@ -201,7 +204,6 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
                 <p className="text-xs text-muted-foreground mt-1">سبب الحذف: {property.deletionReason}</p>
             )}
           </CardContent>
-        </a>
       </Link>
       {actionButtons.length > 0 && (
         <CardFooter className={`p-4 border-t grid ${gridColsClass} gap-2`}>
@@ -352,6 +354,5 @@ export default function MyPropertiesPage() {
     </div>
   );
 }
-
 
     
