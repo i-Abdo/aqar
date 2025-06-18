@@ -1,23 +1,38 @@
 
 "use client";
-import { useParams, useRouter } from 'next/navigation'; // Added useRouter
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Property } from '@/types';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useAuth } from '@/hooks/use-auth';
 import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
 import { ContactAdminDialog } from '@/components/dashboard/ContactAdminDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 
 export default function PropertyDetailPage() {
   const params = useParams();
   const router = useRouter(); 
+  const { toast } = useToast();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +40,9 @@ export default function PropertyDetailPage() {
   const { user, isAdmin } = useAuth();
   const [isReportPropertyDialogOpen, setIsReportPropertyDialogOpen] = useState(false);
   const [isContactAdminDialogOpen, setIsContactAdminDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletionReason, setDeletionReason] = useState("");
+  const [isDeletingProperty, setIsDeletingProperty] = useState(false);
 
 
   useEffect(() => {
@@ -38,8 +56,9 @@ export default function PropertyDetailPage() {
           if (docSnap.exists()) {
             const data = docSnap.data() as Omit<Property, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any };
             
-            // Allow owner or admin to see non-active properties, otherwise show error
-            if (data.status !== 'active' && !(user && (data.userId === user.uid || isAdmin))) {
+            if (data.status === 'deleted' && !(user && (data.userId === user.uid || isAdmin))) {
+                 setError("هذا العقار تم حذفه وغير متاح للعرض.");
+            } else if (data.status !== 'active' && data.status !== 'deleted' && !(user && (data.userId === user.uid || isAdmin))) {
               setError("هذا العقار غير متاح للعرض حاليًا.");
             } else {
               setProperty({
@@ -65,6 +84,36 @@ export default function PropertyDetailPage() {
       setError("معرف العقار غير موجود.");
     }
   }, [id, user, isAdmin]);
+
+  const handleDeleteProperty = async () => {
+    if (!property || !user || user.uid !== property.userId) {
+      toast({ title: "خطأ", description: "غير مصرح لك بحذف هذا العقار.", variant: "destructive" });
+      return;
+    }
+    if (!deletionReason.trim()) {
+      toast({ title: "سبب الحذف مطلوب", description: "يرجى إدخال سبب الحذف.", variant: "destructive" });
+      return;
+    }
+    setIsDeletingProperty(true);
+    try {
+      const propRef = doc(db, "properties", property.id);
+      await updateDoc(propRef, { 
+        status: 'deleted', 
+        deletionReason: deletionReason,
+        archivalReason: "", // Clear archival reason if any
+        updatedAt: serverTimestamp() 
+      });
+      toast({ title: "تم الحذف", description: `تم حذف العقار "${property.title}" بنجاح.` });
+      router.push("/dashboard/properties");
+      setIsDeleteDialogOpen(false);
+    } catch (e) {
+      console.error("Error deleting property:", e);
+      toast({ title: "خطأ", description: "فشل حذف العقار. يرجى المحاولة مرة أخرى.", variant: "destructive" });
+    } finally {
+      setIsDeletingProperty(false);
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -158,7 +207,13 @@ export default function PropertyDetailPage() {
 
           <CardDescription className="text-sm text-muted-foreground mb-6">
             نشر بتاريخ: {new Date(createdAt).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' })}
-            {property.status !== 'active' && <span className="font-bold text-destructive mx-2">(الحالة: {property.status === 'pending' ? 'قيد المراجعة' : property.status === 'archived' ? 'مؤرشف' : 'محذوف'})</span>}
+            {property.status !== 'active' && (
+                <span className={`font-bold mx-2 ${property.status === 'deleted' ? 'text-destructive' : property.status === 'archived' ? 'text-orange-500' : 'text-yellow-600'}`}>
+                    (الحالة: {property.status === 'pending' ? 'قيد المراجعة' : property.status === 'archived' ? 'مؤرشف' : 'محذوف'})
+                    {property.status === 'deleted' && property.deletionReason && ` - السبب: ${property.deletionReason}`}
+                    {property.status === 'archived' && property.archivalReason && ` - السبب: ${property.archivalReason}`}
+                </span>
+            )}
           </CardDescription>
 
           <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
@@ -218,17 +273,56 @@ export default function PropertyDetailPage() {
                     </Button>
                    )}
                     {isOwner && (
-                        <Button
-                            size="lg"
-                            variant="outline_secondary"
-                            className="flex-1 transition-smooth hover:shadow-md"
-                            onClick={() => setIsContactAdminDialogOpen(true)}
-                        >
-                            <MessageSquareWarning size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> الإبلاغ عن مشكلة بهذا العقار
-                        </Button>
+                        <>
+                            <Button
+                                size="lg"
+                                variant="outline_secondary"
+                                className="flex-1 transition-smooth hover:shadow-md"
+                                onClick={() => setIsContactAdminDialogOpen(true)}
+                            >
+                                <MessageSquareWarning size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> الإبلاغ عن مشكلة
+                            </Button>
+                            <Button asChild size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
+                                <Link href={`/dashboard/properties/${property.id}/edit`}>
+                                    <Edit3 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> تعديل العقار
+                                </Link>
+                            </Button>
+                            {property.status !== 'deleted' && (
+                                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button size="lg" variant="destructive" className="flex-1 transition-smooth hover:shadow-md">
+                                            <Trash2 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> حذف العقار
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>تأكيد حذف العقار</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            هل أنت متأكد أنك تريد حذف هذا العقار؟ سيتم نقله إلى المحذوفات.
+                                            الرجاء إدخال سبب الحذف.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <Textarea
+                                            placeholder="سبب الحذف..."
+                                            value={deletionReason}
+                                            onChange={(e) => setDeletionReason(e.target.value)}
+                                            className="my-2"
+                                            rows={3}
+                                        />
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteProperty} disabled={isDeletingProperty || !deletionReason.trim()}>
+                                            {isDeletingProperty && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+                                            تأكيد الحذف
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            )}
+                        </>
                     )}
-                   {(!user || isAdmin || isOwner) && !isOwner && ( // Show if not logged in, or admin, or (not owner AND not the report button case)
-                     <p className="text-muted-foreground text-center w-full">لإجراءات إضافية، يرجى تسجيل الدخول أو التأكد من صلاحياتك.</p>
+                   {(!user && !isOwner && !isAdmin) && (
+                     <p className="text-muted-foreground text-center w-full">لإجراءات إضافية، يرجى تسجيل الدخول.</p>
                    )}
                 </div>
             </div>
