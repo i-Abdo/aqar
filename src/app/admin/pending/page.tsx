@@ -50,7 +50,7 @@ export default function AdminPendingPropertiesPage() {
   const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false);
 
   const [rejectionReason, setRejectionReason] = useState("");
-  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('untrusted');
+  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal'); // Default for trust level dialog
 
   const { toast } = useToast();
 
@@ -104,13 +104,11 @@ export default function AdminPendingPropertiesPage() {
   const openRejectDeleteDialog = (property: PendingProperty) => {
     setSelectedProperty(property);
     setRejectionReason("");
-    setTargetUserTrustLevel(property.ownerCurrentTrustLevel || 'untrusted');
     setIsRejectDeleteDialogOpen(true);
   };
   
   const openRejectArchiveDialog = (property: PendingProperty) => {
     setSelectedProperty(property);
-    setTargetUserTrustLevel(property.ownerCurrentTrustLevel || 'untrusted');
     setIsRejectArchiveDialogOpen(true);
   };
 
@@ -127,10 +125,7 @@ export default function AdminPendingPropertiesPage() {
       const propRef = doc(db, "properties", selectedProperty.id);
       await updateDoc(propRef, { status: 'active', updatedAt: Timestamp.now() });
 
-      const userRef = doc(db, "users", selectedProperty.userId);
-      await updateDoc(userRef, { trustLevel: 'normal', updatedAt: Timestamp.now() });
-
-      toast({ title: "تمت الموافقة", description: `تمت الموافقة على العقار "${selectedProperty.title}" وتعيين المالك كـ "عادي".` });
+      toast({ title: "تمت الموافقة", description: `تمت الموافقة على العقار "${selectedProperty.title}" وتغيير حالته إلى نشط.` });
       fetchPendingProperties();
     } catch (error) {
       console.error("Error approving property:", error);
@@ -155,35 +150,39 @@ export default function AdminPendingPropertiesPage() {
       if (actionType === 'delete') {
         propUpdate.status = 'deleted';
         propUpdate.deletionReason = rejectionReason;
-      } else {
+      } else { // archive
         propUpdate.status = 'archived';
       }
       await updateDoc(propRef, propUpdate);
-
-      const userRef = doc(db, "users", selectedProperty.userId);
-      await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
       
-      toast({ title: "تم الرفض", description: `تم رفض العقار "${selectedProperty.title}" وتحديث تصنيف المالك.` });
+      toast({ title: "تم رفض العقار", description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedProperty.title}".` });
       fetchPendingProperties();
     } catch (error) {
       console.error(`Error rejecting property (${actionType}):`, error);
-      toast({ title: "خطأ", description: `فشل رفض العقار أو تحديث تصنيف المالك.`, variant: "destructive" });
+      toast({ title: "خطأ", description: `فشل ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار.`, variant: "destructive" });
     } finally {
       setIsLoading(false);
-      actionType === 'delete' ? setIsRejectDeleteDialogOpen(false) : setIsRejectArchiveDialogOpen(false);
+      if (actionType === 'delete') {
+        setIsRejectDeleteDialogOpen(false);
+        setRejectionReason("");
+      } else {
+        setIsRejectArchiveDialogOpen(false);
+      }
       setSelectedProperty(null);
-      setRejectionReason("");
     }
   };
   
   const handleChangeUserTrustLevel = async () => {
-    if (!selectedProperty) return;
+    if (!selectedProperty || !selectedProperty.userId) { // Ensure userId exists
+        toast({ title: "خطأ", description: "معرف المستخدم مفقود للعقار المحدد.", variant: "destructive" });
+        return;
+    }
     setIsLoading(true);
     try {
         const userRef = doc(db, "users", selectedProperty.userId);
         await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${selectedProperty.title}" إلى "${trustLevelTranslations[targetUserTrustLevel]}".` });
-        fetchPendingProperties(); // Refresh to show updated trust level in table
+        fetchPendingProperties(); 
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -248,17 +247,17 @@ export default function AdminPendingPropertiesPage() {
                       <DropdownMenuItem onClick={() => window.open(`/properties/${prop.id}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => openApproveDialog(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                        <CheckCircle className="mr-2 h-4 w-4" /> موافقة على النشر (وتعيين المالك "عادي")
+                        <CheckCircle className="mr-2 h-4 w-4" /> تنشيط العقار
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openRejectDeleteDialog(prop)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="mr-2 h-4 w-4" /> رفض وحذف العقار
+                        <Trash2 className="mr-2 h-4 w-4" /> حذف العقار
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openRejectArchiveDialog(prop)}>
-                        <Archive className="mr-2 h-4 w-4" /> رفض وأرشفة العقار
+                        <Archive className="mr-2 h-4 w-4" /> أرشفة العقار
                       </DropdownMenuItem>
                        <DropdownMenuSeparator />
-                       <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)}>
-                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك فقط
+                       <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
+                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك
                        </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -276,28 +275,31 @@ export default function AdminPendingPropertiesPage() {
       <AlertDialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد الموافقة على العقار</AlertDialogTitle>
+            <AlertDialogTitle>تأكيد تنشيط العقار</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد أنك تريد الموافقة على نشر العقار "{selectedProperty?.title}"؟ سيتم تغيير حالة العقار إلى "نشط" وتصنيف المالك إلى "عادي".
+              هل أنت متأكد أنك تريد تنشيط العقار "{selectedProperty?.title}"؟ سيتم تغيير حالة العقار إلى "نشط".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSelectedProperty(null)}>إلغاء</AlertDialogCancel>
             <AlertDialogAction onClick={handleApproveProperty} disabled={isLoading}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-              موافقة
+              تنشيط
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Reject (Delete) Dialog */}
-      <AlertDialog open={isRejectDeleteDialogOpen} onOpenChange={setIsRejectDeleteDialogOpen}>
+      <AlertDialog open={isRejectDeleteDialogOpen} onOpenChange={(open) => {
+          setIsRejectDeleteDialogOpen(open);
+          if(!open) { setSelectedProperty(null); setRejectionReason("");}
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>رفض وحذف العقار</AlertDialogTitle>
+            <AlertDialogTitle>حذف العقار</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "محذوف". الرجاء إدخال سبب الحذف وتحديد تصنيف المالك الجديد.
+              سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "محذوف". الرجاء إدخال سبب الحذف.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input 
@@ -306,63 +308,43 @@ export default function AdminPendingPropertiesPage() {
             onChange={(e) => setRejectionReason(e.target.value)}
             className="my-2"
           />
-          <div className="my-2 space-y-1">
-            <Label htmlFor="trustLevelRejectDelete">تصنيف المالك الجديد</Label>
-            <Select value={targetUserTrustLevel} onValueChange={(value) => setTargetUserTrustLevel(value as UserTrustLevel)}>
-                <SelectTrigger id="trustLevelRejectDelete">
-                    <SelectValue placeholder="اختر تصنيف المالك..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="normal"><UserCheck className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.normal}</SelectItem>
-                    <SelectItem value="untrusted"><UserX className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.untrusted}</SelectItem>
-                    <SelectItem value="blacklisted"><UserCog className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.blacklisted}</SelectItem>
-                </SelectContent>
-            </Select>
-          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {setSelectedProperty(null); setIsRejectDeleteDialogOpen(false)}}>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
             <AlertDialogAction onClick={() => handleConfirmRejection('delete')} disabled={isLoading || !rejectionReason.trim()}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-              تأكيد الرفض والحذف
+              تأكيد الحذف
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Reject (Archive) Dialog */}
-      <AlertDialog open={isRejectArchiveDialogOpen} onOpenChange={setIsRejectArchiveDialogOpen}>
+      <AlertDialog open={isRejectArchiveDialogOpen} onOpenChange={(open) => {
+          setIsRejectArchiveDialogOpen(open);
+          if(!open) setSelectedProperty(null);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>رفض وأرشفة العقار</AlertDialogTitle>
+            <AlertDialogTitle>أرشفة العقار</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "مؤرشف". الرجاء تحديد تصنيف المالك الجديد.
+              سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "مؤرشف".
             </AlertDialogDescription>
           </AlertDialogHeader>
-           <div className="my-2 space-y-1">
-            <Label htmlFor="trustLevelRejectArchive">تصنيف المالك الجديد</Label>
-             <Select value={targetUserTrustLevel} onValueChange={(value) => setTargetUserTrustLevel(value as UserTrustLevel)}>
-                <SelectTrigger id="trustLevelRejectArchive">
-                    <SelectValue placeholder="اختر تصنيف المالك..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="normal"><UserCheck className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.normal}</SelectItem>
-                    <SelectItem value="untrusted"><UserX className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.untrusted}</SelectItem>
-                    <SelectItem value="blacklisted"><UserCog className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.blacklisted}</SelectItem>
-                </SelectContent>
-            </Select>
-          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {setSelectedProperty(null); setIsRejectArchiveDialogOpen(false)}}>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
             <AlertDialogAction onClick={() => handleConfirmRejection('archive')} disabled={isLoading}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-              تأكيد الرفض والأرشفة
+              تأكيد الأرشفة
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Change User Trust Level Dialog (for direct change from dropdown) */}
-      <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={setIsTrustLevelDialogOpen}>
+      {/* Change User Trust Level Dialog */}
+      <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={(open) => {
+          setIsTrustLevelDialogOpen(open);
+          if(!open) setSelectedProperty(null);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>تغيير تصنيف مالك العقار</AlertDialogTitle>
@@ -371,9 +353,9 @@ export default function AdminPendingPropertiesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="my-4 space-y-2">
-            <Label htmlFor="trustLevelChange">التصنيف الجديد</Label>
+            <Label htmlFor="trustLevelChangeDialog">التصنيف الجديد</Label>
             <Select value={targetUserTrustLevel} onValueChange={(value) => setTargetUserTrustLevel(value as UserTrustLevel)}>
-                <SelectTrigger id="trustLevelChange">
+                <SelectTrigger id="trustLevelChangeDialog">
                     <SelectValue placeholder="اختر تصنيف المالك..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -384,8 +366,8 @@ export default function AdminPendingPropertiesPage() {
             </Select>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setSelectedProperty(null); setIsTrustLevelDialogOpen(false); }}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleChangeUserTrustLevel} disabled={isLoading}>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleChangeUserTrustLevel} disabled={isLoading || !selectedProperty?.userId}>
                 {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2"/>}
                 تحديث التصنيف
             </AlertDialogAction>
@@ -396,3 +378,6 @@ export default function AdminPendingPropertiesPage() {
     </div>
   );
 }
+
+
+    
