@@ -30,7 +30,7 @@ export function GlobalSearchInput() {
       <Input
         type="search"
         placeholder="ابحث عن منزل أحلامك، شقة، أو أرض..."
-        className="h-10 pl-10 pr-4 rounded-full border-border focus:border-primary transition-smooth text-base peer"
+        className="h-10 pr-10 pl-4 rounded-full border-border focus:border-primary transition-smooth text-base peer"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         aria-label="بحث عن عقارات"

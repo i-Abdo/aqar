@@ -10,37 +10,37 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        {/* Left Group */}
+        {/* Section 1: Desktop (MainNav, Theme, UserNav) / Mobile (AppLogo) */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Mobile: Hamburger and ThemeToggle */}
-          <div className="md:hidden flex items-center">
-            <MobileNav />
+          {/* Desktop: MainNav, ThemeToggle, UserAccountNav */}
+          <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse">
+            <MainNav />
             <ThemeToggleButton />
+            <UserAccountNav />
           </div>
-          {/* Desktop: Logo */}
-          <div className="hidden md:block">
+          {/* Mobile: AppLogo */}
+          <div className="md:hidden">
             <AppLogo />
           </div>
         </div>
 
-        {/* Center Group (Desktop Only): Search Bar */}
+        {/* Section 2: Desktop Search Bar (centered, hidden on mobile) */}
         <div className="hidden md:flex flex-1 justify-center px-4 lg:px-8">
           <div className="w-full max-w-xl"> {/* Constrain search bar width */}
             <GlobalSearchInput />
           </div>
         </div>
 
-        {/* Right Group */}
+        {/* Section 3: Desktop (AppLogo) / Mobile (MobileNav, ThemeToggle) */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Mobile: Logo */}
-          <div className="md:hidden">
+          {/* Desktop: Logo */}
+          <div className="hidden md:block">
             <AppLogo />
           </div>
-          {/* Desktop: MainNav, ThemeToggle, UserAccountNav */}
-          <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse">
-            <MainNav />
+          {/* Mobile: Hamburger and ThemeToggle */}
+          <div className="md:hidden flex items-center">
+            <MobileNav />
             <ThemeToggleButton />
-            <UserAccountNav />
           </div>
         </div>
       </div>
