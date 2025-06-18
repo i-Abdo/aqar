@@ -86,21 +86,21 @@ export function PropertyCard({ property }: PropertyCardProps) {
                   <Ruler size={16} className="text-muted-foreground shrink-0" />
                   <span>المساحة: {property.area} م²</span>
                 </div>
-              ) : <div>&nbsp;</div> /* Placeholder to maintain grid structure */}
+              ) : <div className="min-h-[1.25rem]">&nbsp;</div> /* Placeholder to maintain grid structure and height */}
             </div>
 
             {/* Row 2: Rooms & Dimensions */}
             <div className="grid grid-cols-2 gap-x-2">
               <div className="flex items-center gap-1">
                 <BedDouble size={16} className="text-muted-foreground shrink-0" />
-                <span>{property.rooms} غرف</span>
+                <span>{property.rooms} {property.rooms === 1 ? 'غرفة' : 'غرف'}</span>
               </div>
               {(property.length && property.width) ? (
                 <div className="flex items-center gap-1">
                   <Ruler size={16} className="text-muted-foreground shrink-0" />
                   <span>الأبعاد: {property.length}م × {property.width}م</span>
                 </div>
-              ) : <div>&nbsp;</div> /* Placeholder */}
+              ) : <div className="min-h-[1.25rem]">&nbsp;</div> /* Placeholder */}
             </div>
 
             {/* Row 3: Bathrooms & Phone */}
@@ -114,7 +114,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
                   <Phone size={16} className="text-muted-foreground shrink-0" />
                   <span>{property.phoneNumber}</span>
                 </div>
-              ) : <div>&nbsp;</div> /* Placeholder */}
+              ) : <div className="min-h-[1.25rem]">&nbsp;</div> /* Placeholder */}
             </div>
           </div>
 
@@ -148,3 +148,4 @@ export function PropertyCard({ property }: PropertyCardProps) {
     </>
   );
 }
+
