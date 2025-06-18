@@ -3,27 +3,51 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2 } from "lucide-react";
+import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
-import { collection, query, where, getCountFromServer } from "firebase/firestore";
+import { collection, query, where, getCountFromServer, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { plans } from "@/config/plans";
-import type { Plan } from "@/types";
+import type { Plan, PropertyAppeal, AdminAppealDecisionType } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
+interface UserStats {
+  activeListings: number;
+  maxListings: string | number;
+  planName: string;
+  propertyViews: number;
+  unreadMessages: number; // Kept for potential future use
+}
+
+interface AppealNotification {
+  id: string;
+  propertyTitle: string;
+  decision?: AdminAppealDecisionType;
+  translatedDecision?: string;
+  adminNotes?: string;
+  decisionDate?: string;
+}
+
+const decisionTranslations: Record<AdminAppealDecisionType, string> = {
+  publish: "تم نشر عقارك",
+  keep_archived: "بقي عقارك مؤرشفًا",
+  delete: "تم حذف عقارك",
+};
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
-  const [userStats, setUserStats] = useState({
+  const [userStats, setUserStats] = useState<UserStats>({
     activeListings: 0,
-    maxListings: "0" as string | number, // Allow string for "غير محدود"
+    maxListings: "0",
     planName: "...",
-    propertyViews: 0, 
-    unreadMessages: 0, 
+    propertyViews: 0,
+    unreadMessages: 0,
   });
+  const [appealNotifications, setAppealNotifications] = useState<AppealNotification[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
   const [canAddProperty, setCanAddProperty] = useState(false);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<Plan | null>(null);
   const router = useRouter();
@@ -45,7 +69,6 @@ export default function DashboardPage() {
 
         let currentPropertyCount = 0;
         if (planDetails) {
-          // Fetch current property count regardless of plan limit type
           const propertiesRef = collection(db, "properties");
           const q = query(propertiesRef, where("userId", "==", user.uid), where("status", "in", ["active", "pending"]));
           const snapshot = await getCountFromServer(q);
@@ -65,11 +88,8 @@ export default function DashboardPage() {
           }));
         } else {
           setCanAddProperty(false);
-           setUserStats(prev => ({ ...prev, planName: "غير محدد"}));
+          setUserStats(prev => ({ ...prev, planName: "غير محدد"}));
         }
-        // Placeholder for other stats
-        // setUserStats(prev => ({ ...prev, propertyViews: 1234, unreadMessages: 3 }));
-
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات لوحة التحكم.", variant: "destructive" });
@@ -78,7 +98,39 @@ export default function DashboardPage() {
       }
     };
 
+    const fetchAppealNotifications = async () => {
+      setIsLoadingNotifications(true);
+      try {
+        const appealsQuery = query(
+          collection(db, "property_appeals"),
+          where("ownerUserId", "==", user.uid),
+          where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]),
+          orderBy("adminDecisionAt", "desc"),
+          limit(5) // Show latest 5 notifications
+        );
+        const querySnapshot = await getDocs(appealsQuery);
+        const notifications = querySnapshot.docs.map(docSnap => {
+          const data = docSnap.data() as PropertyAppeal;
+          return {
+            id: docSnap.id,
+            propertyTitle: data.propertyTitle,
+            decision: data.adminDecision,
+            translatedDecision: data.adminDecision ? decisionTranslations[data.adminDecision] : "قرار غير محدد",
+            adminNotes: data.adminNotes,
+            decisionDate: data.adminDecisionAt ? new Date(data.adminDecisionAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric' }) : "غير محدد",
+          };
+        });
+        setAppealNotifications(notifications);
+      } catch (error) {
+        console.error("Error fetching appeal notifications:", error);
+        // Do not toast for this error to avoid bothering user, but log it.
+      } finally {
+        setIsLoadingNotifications(false);
+      }
+    };
+
     fetchDashboardData();
+    fetchAppealNotifications();
   }, [user, authLoading, router, toast]);
 
   const handleAddPropertyClick = () => {
@@ -94,7 +146,7 @@ export default function DashboardPage() {
     }
   };
 
-  if (authLoading || isLoadingStats) {
+  if (authLoading || (isLoadingStats && isLoadingNotifications)) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -115,7 +167,7 @@ export default function DashboardPage() {
             <Home className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent className="text-right">
-            {user?.planId === 'vip_plus_plus' && userStats.activeListings === 0 ? (
+            {user?.planId === 'vip_plus_plus' && userStats.activeListings === 0 && !isLoadingStats ? (
                  <p className="text-destructive text-right">هناك خطأ هنا فقط في vip++ حيث لا يضهر عدد العقارات المرفوعة تضهر 0</p>
             ) : (
               <>
@@ -170,18 +222,51 @@ export default function DashboardPage() {
 
       <Card className="shadow-md hover:shadow-lg transition-smooth">
         <CardHeader>
-          <CardTitle className="text-right">آخر الأنشطة والرسائل</CardTitle>
+          <CardTitle className="text-right flex items-center gap-2">
+            <Bell className="text-primary"/>
+            آخر الأنشطة والإشعارات
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-right">
-          {userStats.unreadMessages > 0 ? (
-            <div className="p-3 rounded-md border border-accent bg-accent/10 text-right">
+          {isLoadingNotifications ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="ml-2 text-muted-foreground">جاري تحميل الإشعارات...</p>
+            </div>
+          ) : appealNotifications.length > 0 ? (
+            <ul className="space-y-3">
+              {appealNotifications.map((notification) => (
+                <li key={notification.id} className="p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
+                  <p className="font-semibold text-primary-foreground/90">بخصوص عقار: <span className="font-normal text-foreground">{notification.propertyTitle}</span></p>
+                  <p className="text-sm text-muted-foreground">
+                    القرار: <span className={`font-medium ${
+                      notification.decision === 'publish' ? 'text-green-600' : 
+                      notification.decision === 'delete' ? 'text-destructive' : 'text-orange-500'
+                    }`}>{notification.translatedDecision}</span>
+                    {notification.adminNotes && (
+                      <span className="block mt-1 text-xs"> ملاحظات المسؤول: {notification.adminNotes}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground/80 mt-1">بتاريخ: {notification.decisionDate}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+             <div className="flex flex-col items-center justify-center text-center py-6">
+                <AlertTriangle size={32} className="text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">لا توجد إشعارات أو أنشطة حديثة لعرضها.</p>
+             </div>
+          )}
+          {userStats.unreadMessages > 0 && ( // Still keeping this for future message system
+            <div className="mt-4 p-3 rounded-md border border-accent bg-accent/10 text-right">
                 <p className="text-accent-foreground">لديك <span className="font-bold">{userStats.unreadMessages}</span> رسائل جديدة غير مقروءة. <Link href="/dashboard/messages" className="underline hover:text-primary">عرض الرسائل</Link></p>
             </div>
-          ) : (
-             <p className="text-muted-foreground">(سيتم تفعيل هذه الميزة قريباً لعرض الأنشطة والرسائل)</p>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+
+    
