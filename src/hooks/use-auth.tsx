@@ -18,6 +18,7 @@ interface AuthContextType {
   setUserDashboardNotificationCount: React.Dispatch<React.SetStateAction<number>>;
   adminNotificationCount: number;
   setAdminNotificationCount: React.Dispatch<React.SetStateAction<number>>;
+  clearUserDashboardNotificationBadge: () => void; // New function
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -180,6 +181,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error signing out: ", error);
     }
   };
+
+  const clearUserDashboardNotificationBadge = () => {
+    setUserDashboardNotificationCount(0);
+  };
   
   return (
     <AuthContext.Provider value={{ 
@@ -189,9 +194,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         trustLevel, 
         signOut,
         userDashboardNotificationCount,
-        setUserDashboardNotificationCount, // Still provide setter if needed elsewhere, though primary update is here
+        setUserDashboardNotificationCount,
         adminNotificationCount,
-        setAdminNotificationCount // Still provide setter if needed elsewhere
+        setAdminNotificationCount,
+        clearUserDashboardNotificationBadge, // Provide the new function
     }}>
       {children}
     </AuthContext.Provider>

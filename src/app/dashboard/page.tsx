@@ -12,7 +12,7 @@ import { plans } from "@/config/plans";
 import type { Plan, PropertyAppeal, AdminAppealDecisionType, UserIssue } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge"; // Added Badge import
+import { Badge } from "@/components/ui/badge"; 
 
 interface UserStats {
   activeListings: number;
@@ -56,7 +56,7 @@ const issueStatusTranslations: Record<UserIssue['status'], string> = {
 };
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, clearUserDashboardNotificationBadge } = useAuth(); // Added clearUserDashboardNotificationBadge
   const [userStats, setUserStats] = useState<UserStats>({
     activeListings: 0,
     maxListings: "0",
@@ -223,6 +223,7 @@ export default function DashboardPage() {
   const handleDismissAllNotifications = () => {
     setAppealNotifications(prev => prev.map(notif => ({ ...notif, isDismissed: true })));
     setUserIssueUpdates(prev => prev.map(update => ({ ...update, isDismissed: true })));
+    clearUserDashboardNotificationBadge(); // Clear the badge count in AuthContext
     toast({ title: "تم مسح الإشعارات", description: "تم إخفاء جميع الإشعارات من العرض الحالي." });
   };
 
@@ -418,4 +419,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
