@@ -26,7 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label"; // Added missing import
+import { Label } from "@/components/ui/label";
 
 const reportStatusTranslations: Record<Report['status'], string> = {
   new: 'جديد',
@@ -107,8 +107,8 @@ export default function AdminReportsPage() {
 
   const openArchivePropertyDialog = (report: Report) => {
     setSelectedReport(report);
-    setPropertyArchiveNotes(report.adminNotes || ""); // Changed from deletionReason to archiveNotes
-    setTargetUserTrustLevel('untrusted'); // Default for archiving
+    setPropertyArchiveNotes(report.adminNotes || ""); 
+    setTargetUserTrustLevel('untrusted'); 
     setIsArchivePropertyDialogOpen(true);
   };
 
@@ -134,8 +134,8 @@ export default function AdminReportsPage() {
       toast({ title: "خطأ", description: "فشل تحديث حالة البلاغ.", variant: "destructive" });
     }
     if (isNotesDialogOpen) setIsNotesDialogOpen(false);
-    setSelectedReport(null); // Clear selected report after action
-    setAdminNotes(""); // Clear admin notes
+    setSelectedReport(null); 
+    setAdminNotes(""); 
   };
   
   const handleSaveNotesAndResolve = async () => {
@@ -171,31 +171,27 @@ export default function AdminReportsPage() {
       const propertyData = propertySnap.data() as Property;
       const ownerUserId = propertyData.userId;
 
-      // Update property
       const propertyUpdate: Partial<Property> = { updatedAt: Timestamp.now() };
       if (actionType === 'delete') {
         propertyUpdate.status = 'deleted';
         propertyUpdate.deletionReason = propertyDeletionReason;
       } else {
         propertyUpdate.status = 'archived';
-        // propertyUpdate.deletionReason = propertyArchiveNotes; // Assuming deletionReason can hold archive notes for simplicity or add new field
       }
       await updateDoc(propertyRef, propertyUpdate);
 
-      // Update user trust level
       if (ownerUserId) {
         const userRef = doc(db, "users", ownerUserId);
         await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
       }
 
-      // Update report
       let reportNotes = "";
       if (actionType === 'delete') {
         reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". تم تغيير تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "${trustLevelTranslations[targetUserTrustLevel]}".`;
       } else {
         reportNotes = `تم أرشفة العقار. ملاحظات الأرشفة: "${propertyArchiveNotes}". تم تغيير تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "${trustLevelTranslations[targetUserTrustLevel]}".`;
       }
-      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes); // This will also call fetchReports
+      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes); 
       
       toast({ title: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار`, description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedReport.propertyTitle}" وتحديث تصنيف مالكه.` });
       
@@ -206,7 +202,6 @@ export default function AdminReportsPage() {
         setPropertyArchiveNotes("");
         setIsArchivePropertyDialogOpen(false);
       }
-      // setSelectedReport(null); // Already handled in handleUpdateReportStatus
     } catch (error) {
       console.error(`Error ${actionType} property from report:`, error);
       toast({ title: "خطأ", description: `فشل ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار أو تحديث المستخدم.`, variant: "destructive" });
@@ -225,21 +220,18 @@ export default function AdminReportsPage() {
             setIsLoading(false);
             return;
         }
-        const propertyData = propertySnap.data() as Property;
-        const ownerUserId = propertyData.userId;
+        // const propertyData = propertySnap.data() as Property; // Not strictly needed if we don't read ownerId for this specific action
+        // const ownerUserId = propertyData.userId;
 
-        await updateDoc(propertyRef, { status: 'active', updatedAt: Timestamp.now(), deletionReason: "" }); // Clear deletion reason on reactivation
+        await updateDoc(propertyRef, { status: 'active', updatedAt: Timestamp.now(), deletionReason: "" }); 
 
-        if (ownerUserId) {
-            const userRef = doc(db, "users", ownerUserId);
-            await updateDoc(userRef, { trustLevel: 'normal', updatedAt: Timestamp.now() });
-        }
+        // User trust level is NOT automatically changed here anymore.
+        // Admin should manage trust level as a separate action if needed.
         
-        const reportNotes = `تم إعادة تنشيط العقار. تم إعادة تصنيف المالك (${ownerUserId || 'غير معروف'}) إلى "عادي".`;
-        await handleUpdateReportStatus(report.id, 'resolved', reportNotes); // This will also call fetchReports
+        const reportNotes = `تم إعادة تنشيط العقار.`; // Updated note
+        await handleUpdateReportStatus(report.id, 'resolved', reportNotes); 
 
-        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}" وتصنيف المالك كـ "عادي".` });
-        // setSelectedReport(null); // Already handled in handleUpdateReportStatus
+        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}".` }); // Updated toast
     } catch (error) {
         console.error("Error reactivating property:", error);
         toast({ title: "خطأ", description: "فشل إعادة تنشيط العقار.", variant: "destructive" });
@@ -338,7 +330,7 @@ export default function AdminReportsPage() {
                         <Archive className="mr-2 h-4 w-4" /> أرشفة العقار وتحديث تصنيف المالك
                       </DropdownMenuItem>
                        <DropdownMenuItem onClick={() => handleReactivateProperty(report)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                        <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط العقار (وتصنيف المالك كـ عادي)
+                        <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط العقار وتصنيف المالك
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -352,7 +344,6 @@ export default function AdminReportsPage() {
         )}
       </Card>
 
-      {/* Notes Dialog */}
       <AlertDialog open={isNotesDialogOpen} onOpenChange={(open) => {
           setIsNotesDialogOpen(open);
           if (!open) {
@@ -400,7 +391,6 @@ export default function AdminReportsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Property Dialog */}
       <AlertDialog open={isDeletePropertyDialogOpen} onOpenChange={setIsDeletePropertyDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -438,7 +428,6 @@ export default function AdminReportsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Archive Property Dialog */}
       <AlertDialog open={isArchivePropertyDialogOpen} onOpenChange={setIsArchivePropertyDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -480,6 +469,6 @@ export default function AdminReportsPage() {
     </div>
   );
 }
-
+    
 
     
