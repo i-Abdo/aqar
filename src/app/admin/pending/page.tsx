@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Textarea } from '@/components/ui/textarea';
 
 interface PendingProperty extends Property {
   ownerEmail?: string;
@@ -43,13 +44,14 @@ export default function AdminPendingPropertiesPage() {
   const [pendingProperties, setPendingProperties] = useState<PendingProperty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<PendingProperty | null>(null);
-  
+
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
   const [isRejectDeleteDialogOpen, setIsRejectDeleteDialogOpen] = useState(false);
   const [isRejectArchiveDialogOpen, setIsRejectArchiveDialogOpen] = useState(false);
   const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false);
 
   const [rejectionReason, setRejectionReason] = useState("");
+  const [archiveReason, setArchiveReason] = useState(""); // For archive dialog
   const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal');
 
   const { toast } = useToast();
@@ -106,9 +108,10 @@ export default function AdminPendingPropertiesPage() {
     setRejectionReason("");
     setIsRejectDeleteDialogOpen(true);
   };
-  
+
   const openRejectArchiveDialog = (property: PendingProperty) => {
     setSelectedProperty(property);
+    setArchiveReason(""); // Reset archive reason
     setIsRejectArchiveDialogOpen(true);
   };
 
@@ -124,7 +127,6 @@ export default function AdminPendingPropertiesPage() {
     try {
       const propRef = doc(db, "properties", selectedProperty.id);
       await updateDoc(propRef, { status: 'active', updatedAt: Timestamp.now() });
-      // User trust level is NOT changed here. Admin can do it separately.
       toast({ title: "تمت الموافقة", description: `تمت الموافقة على العقار "${selectedProperty.title}" وتغيير حالته إلى نشط. (تصنيف المالك لم يتغير)` });
       fetchPendingProperties();
     } catch (error) {
@@ -140,9 +142,14 @@ export default function AdminPendingPropertiesPage() {
   const handleConfirmRejection = async (actionType: 'delete' | 'archive') => {
     if (!selectedProperty) return;
     if (actionType === 'delete' && !rejectionReason.trim()) {
-      toast({ title: "خطأ", description: "سبب الرفض (الحذف) مطلوب.", variant: "destructive" });
+      toast({ title: "خطأ", description: "سبب الحذف (الرفض) مطلوب.", variant: "destructive" });
       return;
     }
+    if (actionType === 'archive' && !archiveReason.trim()) { // Check archive reason
+      toast({ title: "خطأ", description: "سبب الأرشفة (الرفض) مطلوب.", variant: "destructive" });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const propRef = doc(db, "properties", selectedProperty.id);
@@ -150,11 +157,13 @@ export default function AdminPendingPropertiesPage() {
       if (actionType === 'delete') {
         propUpdate.status = 'deleted';
         propUpdate.deletionReason = rejectionReason;
+        propUpdate.archivalReason = ""; // Clear archival if deleting
       } else { // archive
         propUpdate.status = 'archived';
+        propUpdate.archivalReason = archiveReason;
+        propUpdate.deletionReason = ""; // Clear deletion if archiving
       }
       await updateDoc(propRef, propUpdate);
-      // User trust level is NOT changed here. Admin can do it separately.
       toast({ title: "تم رفض العقار", description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedProperty.title}". (تصنيف المالك لم يتغير)` });
       fetchPendingProperties();
     } catch (error) {
@@ -167,13 +176,14 @@ export default function AdminPendingPropertiesPage() {
         setRejectionReason("");
       } else {
         setIsRejectArchiveDialogOpen(false);
+        setArchiveReason(""); // Reset archive reason
       }
       setSelectedProperty(null);
     }
   };
-  
+
   const handleChangeUserTrustLevel = async () => {
-    if (!selectedProperty || !selectedProperty.userId) { 
+    if (!selectedProperty || !selectedProperty.userId) {
         toast({ title: "خطأ", description: "معرف المستخدم مفقود للعقار المحدد.", variant: "destructive" });
         return;
     }
@@ -182,7 +192,7 @@ export default function AdminPendingPropertiesPage() {
         const userRef = doc(db, "users", selectedProperty.userId);
         await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${selectedProperty.title}" إلى "${trustLevelTranslations[targetUserTrustLevel]}".` });
-        fetchPendingProperties(); 
+        fetchPendingProperties();
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -217,11 +227,11 @@ export default function AdminPendingPropertiesPage() {
             {pendingProperties.map((prop) => (
               <TableRow key={prop.id}>
                 <TableCell>
-                  <Image 
-                    src={prop.imageUrls?.[0] || "https://placehold.co/50x50.png"} 
-                    alt={prop.title} 
-                    width={50} 
-                    height={50} 
+                  <Image
+                    src={prop.imageUrls?.[0] || "https://placehold.co/50x50.png"}
+                    alt={prop.title}
+                    width={50}
+                    height={50}
                     className="rounded object-cover"
                     data-ai-hint="house exterior"
                   />
@@ -278,7 +288,7 @@ export default function AdminPendingPropertiesPage() {
             <AlertDialogTitle>تأكيد تنشيط العقار</AlertDialogTitle>
             <AlertDialogDescription>
               هل أنت متأكد أنك تريد تنشيط العقار "{selectedProperty?.title}"؟ سيتم تغيير حالة العقار إلى "نشط".
-              (تصنيف المالك لن يتغير تلقائيًا).
+              (تصنيف المالك لن يتغير).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -301,14 +311,15 @@ export default function AdminPendingPropertiesPage() {
             <AlertDialogTitle>حذف العقار</AlertDialogTitle>
             <AlertDialogDescription>
               سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "محذوف". الرجاء إدخال سبب الحذف.
-              (تصنيف المالك لن يتغير تلقائيًا).
+              (تصنيف المالك لن يتغير).
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <Input 
-            placeholder="سبب الحذف (مثال: مخالفة الشروط، معلومات مضللة)" 
+          <Textarea
+            placeholder="سبب الحذف (مثال: مخالفة الشروط، معلومات مضللة)"
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
             className="my-2"
+            rows={3}
           />
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
@@ -329,13 +340,20 @@ export default function AdminPendingPropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>أرشفة العقار</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "مؤرشف".
-              (تصنيف المالك لن يتغير تلقائيًا).
+              سيتم تغيير حالة العقار "{selectedProperty?.title}" إلى "مؤرشف". الرجاء إدخال سبب الأرشفة.
+              (تصنيف المالك لن يتغير).
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <Textarea
+            placeholder="سبب الأرشفة (مثال: العقار لم يعد متاحًا مؤقتًا)"
+            value={archiveReason}
+            onChange={(e) => setArchiveReason(e.target.value)}
+            className="my-2"
+            rows={3}
+          />
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleConfirmRejection('archive')} disabled={isLoading}>
+            <AlertDialogAction onClick={() => handleConfirmRejection('archive')} disabled={isLoading || !archiveReason.trim()}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
               تأكيد الأرشفة
             </AlertDialogAction>
@@ -383,6 +401,3 @@ export default function AdminPendingPropertiesPage() {
     </div>
   );
 }
-
-
-    

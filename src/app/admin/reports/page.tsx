@@ -36,10 +36,10 @@ const reportStatusTranslations: Record<Report['status'], string> = {
 };
 
 const reportStatusVariants: Record<Report['status'], "default" | "secondary" | "destructive" | "outline"> = {
-  new: 'default', 
-  under_review: 'secondary', 
-  resolved: 'outline', 
-  dismissed: 'destructive', 
+  new: 'default',
+  under_review: 'secondary',
+  resolved: 'outline',
+  dismissed: 'destructive',
 };
 
 const trustLevelTranslations: Record<UserTrustLevel, string> = {
@@ -52,15 +52,15 @@ export default function AdminReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  
+
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
 
   const [isDeletePropertyDialogOpen, setIsDeletePropertyDialogOpen] = useState(false);
   const [propertyDeletionReason, setPropertyDeletionReason] = useState("");
-  
+
   const [isArchivePropertyDialogOpen, setIsArchivePropertyDialogOpen] = useState(false);
-  const [propertyArchiveNotes, setPropertyArchiveNotes] = useState("");
+  const [propertyArchiveReason, setPropertyArchiveReason] = useState(""); // Changed from propertyArchiveNotes
 
   const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false);
   const [targetUserForTrustLevel, setTargetUserForTrustLevel] = useState<{userId: string, propertyTitle: string, currentTrustLevel: UserTrustLevel} | null>(null);
@@ -128,10 +128,10 @@ export default function AdminReportsPage() {
 
   const openArchivePropertyDialog = (report: Report) => {
     setSelectedReport(report);
-    setPropertyArchiveNotes(report.adminNotes || ""); 
+    setPropertyArchiveReason(""); // Reset archive reason
     setIsArchivePropertyDialogOpen(true);
   };
-  
+
   const openTrustLevelDialogForReportOwner = async (report: Report) => {
     if (!report.propertyId) {
         toast({ title: "خطأ", description: "معرف العقار مفقود في البلاغ.", variant: "destructive" });
@@ -173,7 +173,7 @@ export default function AdminReportsPage() {
         const userRef = doc(db, "users", targetUserForTrustLevel.userId);
         await updateDoc(userRef, { trustLevel: selectedTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${targetUserForTrustLevel.propertyTitle}" إلى "${trustLevelTranslations[selectedTrustLevel]}".` });
-        fetchReports(); 
+        fetchReports();
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -192,25 +192,25 @@ export default function AdminReportsPage() {
     }
     try {
       const reportRef = doc(db, "reports", reportId);
-      const updateData: Partial<Omit<Report, 'id' | 'reportedAt'>> & { updatedAt: Timestamp } = { 
+      const updateData: Partial<Omit<Report, 'id' | 'reportedAt'>> & { updatedAt: Timestamp } = {
         status,
         updatedAt: Timestamp.now(),
       };
       if (notes !== undefined) {
         updateData.adminNotes = notes;
       }
-      await updateDoc(reportRef, updateData); 
+      await updateDoc(reportRef, updateData);
       toast({ title: "تم التحديث", description: `تم تحديث حالة البلاغ إلى "${reportStatusTranslations[status]}".` });
-      fetchReports(); 
+      fetchReports();
     } catch (error) {
       console.error("Error updating report status:", error);
       toast({ title: "خطأ", description: "فشل تحديث حالة البلاغ.", variant: "destructive" });
     }
     if (isNotesDialogOpen) setIsNotesDialogOpen(false);
-    setSelectedReport(null); 
-    setAdminNotes(""); 
+    setSelectedReport(null);
+    setAdminNotes("");
   };
-  
+
   const handleSaveNotesAndResolve = async () => {
     if (!selectedReport) return;
     if (!adminNotes.trim()) {
@@ -226,8 +226,8 @@ export default function AdminReportsPage() {
       toast({ title: "خطأ", description: "سبب الحذف مطلوب.", variant: "destructive" });
       return;
     }
-    if (actionType === 'archive' && !propertyArchiveNotes.trim()) {
-      toast({ title: "خطأ", description: "ملاحظات الأرشفة مطلوبة.", variant: "destructive" });
+    if (actionType === 'archive' && !propertyArchiveReason.trim()) { // Check for archive reason
+      toast({ title: "خطأ", description: "سبب الأرشفة مطلوب.", variant: "destructive" });
       return;
     }
 
@@ -241,34 +241,32 @@ export default function AdminReportsPage() {
         setIsLoading(false);
         return;
       }
-      // const propertyData = propertySnap.data() as Property; // Not needed for ownerId directly here
 
       const propertyUpdate: Partial<Property> = { updatedAt: Timestamp.now() };
+      let reportNotes = "";
+
       if (actionType === 'delete') {
         propertyUpdate.status = 'deleted';
         propertyUpdate.deletionReason = propertyDeletionReason;
-      } else {
+        propertyUpdate.archivalReason = ""; // Clear archival reason if deleting
+        reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". (تصنيف المالك لم يتغير)`;
+      } else { // archive
         propertyUpdate.status = 'archived';
+        propertyUpdate.archivalReason = propertyArchiveReason;
+        propertyUpdate.deletionReason = ""; // Clear deletion reason if archiving
+        reportNotes = `تم أرشفة العقار بسبب: "${propertyArchiveReason}". (تصنيف المالك لم يتغير)`;
       }
       await updateDoc(propertyRef, propertyUpdate);
 
-      // User trust level is NOT changed here automatically. Admin must do it separately.
+      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
 
-      let reportNotes = "";
-      if (actionType === 'delete') {
-        reportNotes = `تم حذف العقار بسبب: "${propertyDeletionReason}". يمكن تعديل تصنيف المالك بشكل منفصل.`;
-      } else {
-        reportNotes = `تم أرشفة العقار. ملاحظات الأرشفة: "${propertyArchiveNotes}". يمكن تعديل تصنيف المالك بشكل منفصل.`;
-      }
-      await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes); 
-      
       toast({ title: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار`, description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedReport.propertyTitle}".` });
-      
+
       if (actionType === 'delete') {
         setPropertyDeletionReason("");
         setIsDeletePropertyDialogOpen(false);
       } else {
-        setPropertyArchiveNotes("");
+        setPropertyArchiveReason("");
         setIsArchivePropertyDialogOpen(false);
       }
     } catch (error) {
@@ -289,15 +287,13 @@ export default function AdminReportsPage() {
             setIsLoading(false);
             return;
         }
-        
-        await updateDoc(propertyRef, { status: 'active', updatedAt: Timestamp.now(), deletionReason: "" }); 
 
-        // User trust level is NOT automatically changed here.
-        
-        const reportNotes = `تم إعادة تنشيط العقار. يمكن تعديل تصنيف المالك بشكل منفصل.`; 
-        await handleUpdateReportStatus(report.id, 'resolved', reportNotes); 
+        await updateDoc(propertyRef, { status: 'active', updatedAt: Timestamp.now(), deletionReason: "", archivalReason: "" });
 
-        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}".` }); 
+        const reportNotes = `تم إعادة تنشيط العقار. (تصنيف المالك لم يتغير)`;
+        await handleUpdateReportStatus(report.id, 'resolved', reportNotes);
+
+        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}".` });
     } catch (error) {
         console.error("Error reactivating property:", error);
         toast({ title: "خطأ", description: "فشل إعادة تنشيط العقار.", variant: "destructive" });
@@ -416,7 +412,7 @@ export default function AdminReportsPage() {
       <AlertDialog open={isNotesDialogOpen} onOpenChange={(open) => {
           setIsNotesDialogOpen(open);
           if (!open) {
-            setSelectedReport(null); 
+            setSelectedReport(null);
             setAdminNotes("");
           }
       }}>
@@ -438,8 +434,8 @@ export default function AdminReportsPage() {
           />
           <AlertDialogFooter className="gap-2 sm:gap-0">
             <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsNotesDialogOpen(false); setAdminNotes("");}}>إغلاق</AlertDialogCancel>
-            <Button 
-                onClick={handleSaveNotesAndResolve} 
+            <Button
+                onClick={handleSaveNotesAndResolve}
                 disabled={isLoading || !adminNotes.trim() || !selectedReport}
                 variant="default"
             >
@@ -447,8 +443,8 @@ export default function AdminReportsPage() {
                  حل البلاغ مع حفظ الملاحظات
             </Button>
             {selectedReport && (
-                 <Button 
-                    variant="outline" 
+                 <Button
+                    variant="outline"
                     onClick={() => handleUpdateReportStatus(selectedReport.id, selectedReport.status, adminNotes)}
                     disabled={isLoading || !adminNotes.trim()}
                 >
@@ -466,14 +462,15 @@ export default function AdminReportsPage() {
             <AlertDialogTitle>تأكيد حذف العقار</AlertDialogTitle>
             <AlertDialogDescription>
               سيتم حذف العقار "{selectedReport?.propertyTitle}". الرجاء إدخال سبب الحذف.
-              (تصنيف المالك لن يتغير تلقائيًا، يمكن تعديله بشكل منفصل).
+              (تصنيف المالك لن يتغير).
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <Input 
-            placeholder="سبب الحذف (مثال: مخالفة الشروط، معلومات مضللة)" 
+          <Textarea
+            placeholder="سبب الحذف (مثال: مخالفة الشروط، معلومات مضللة)"
             value={propertyDeletionReason}
             onChange={(e) => setPropertyDeletionReason(e.target.value)}
             className="my-2"
+            rows={3}
           />
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsDeletePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
@@ -485,32 +482,35 @@ export default function AdminReportsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isArchivePropertyDialogOpen} onOpenChange={setIsArchivePropertyDialogOpen}>
+      <AlertDialog open={isArchivePropertyDialogOpen} onOpenChange={(open) => {
+          setIsArchivePropertyDialogOpen(open);
+          if (!open) { setSelectedReport(null); setPropertyArchiveReason("");}
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد أرشفة العقار</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم أرشفة العقار "{selectedReport?.propertyTitle}". الرجاء إدخال ملاحظات الأرشفة.
-              (تصنيف المالك لن يتغير تلقائيًا، يمكن تعديله بشكل منفصل).
+              سيتم أرشفة العقار "{selectedReport?.propertyTitle}". الرجاء إدخال سبب الأرشفة.
+              (تصنيف المالك لن يتغير).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
-            placeholder="ملاحظات الأرشفة..."
-            value={propertyArchiveNotes}
-            onChange={(e) => setPropertyArchiveNotes(e.target.value)}
+            placeholder="سبب الأرشفة..."
+            value={propertyArchiveReason}
+            onChange={(e) => setPropertyArchiveReason(e.target.value)}
             rows={3}
             className="my-2"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsArchivePropertyDialogOpen(false)}}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmPropertyAction('archive')} disabled={isLoading || !propertyArchiveNotes.trim()}>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmPropertyAction('archive')} disabled={isLoading || !propertyArchiveReason.trim()}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
               تأكيد الأرشفة
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Change User Trust Level Dialog */}
       <AlertDialog open={isTrustLevelDialogOpen} onOpenChange={(open) => {
           setIsTrustLevelDialogOpen(open);
@@ -550,4 +550,3 @@ export default function AdminReportsPage() {
     </div>
   );
 }
-    

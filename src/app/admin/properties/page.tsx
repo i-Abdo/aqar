@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Textarea } from '@/components/ui/textarea';
 
 interface AdminProperty extends Property {
   ownerEmail?: string;
@@ -45,9 +46,10 @@ export default function AdminPropertiesPage() {
   const [selectedProperty, setSelectedProperty] = useState<AdminProperty | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
-  const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false); 
+  const [isTrustLevelDialogOpen, setIsTrustLevelDialogOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
-  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal'); 
+  const [archiveReason, setArchiveReason] = useState(""); // New state for archive reason
+  const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal');
   const { toast } = useToast();
 
   const fetchAllProperties = async () => {
@@ -101,6 +103,7 @@ export default function AdminPropertiesPage() {
 
   const openArchiveDialog = (property: AdminProperty) => {
     setSelectedProperty(property);
+    setArchiveReason(""); // Reset archive reason
     setIsArchiveDialogOpen(true);
   };
 
@@ -109,7 +112,7 @@ export default function AdminPropertiesPage() {
     setTargetUserTrustLevel(property.ownerCurrentTrustLevel || 'normal');
     setIsTrustLevelDialogOpen(true);
   };
-  
+
   const handleSoftDeleteProperty = async () => {
     if (!selectedProperty || !deleteReason.trim()) {
       toast({title: "خطأ", description: "سبب الحذف مطلوب.", variant: "destructive"});
@@ -118,7 +121,7 @@ export default function AdminPropertiesPage() {
     setIsLoading(true);
     try {
       const propRef = doc(db, "properties", selectedProperty.id);
-      await updateDoc(propRef, { status: 'deleted', deletionReason: deleteReason, updatedAt: Timestamp.now() });
+      await updateDoc(propRef, { status: 'deleted', deletionReason: deleteReason, archivalReason: "", updatedAt: Timestamp.now() });
       toast({ title: "تم الحذف", description: `تم نقل العقار "${selectedProperty.title}" إلى المحذوفات.` });
       fetchAllProperties(); // Refresh list
     } catch (error) {
@@ -132,11 +135,14 @@ export default function AdminPropertiesPage() {
   };
 
   const handleArchiveProperty = async () => {
-    if (!selectedProperty) return;
+    if (!selectedProperty || !archiveReason.trim()) { // Check for archive reason
+      toast({title: "خطأ", description: "سبب الأرشفة مطلوب.", variant: "destructive"});
+      return;
+    }
     setIsLoading(true);
     try {
       const propRef = doc(db, "properties", selectedProperty.id);
-      await updateDoc(propRef, { status: 'archived', updatedAt: Timestamp.now() });
+      await updateDoc(propRef, { status: 'archived', archivalReason: archiveReason, deletionReason: "", updatedAt: Timestamp.now() });
       toast({ title: "تمت الأرشفة", description: `تم أرشفة العقار "${selectedProperty.title}".` });
       fetchAllProperties(); // Refresh list
     } catch (error) {
@@ -145,16 +151,16 @@ export default function AdminPropertiesPage() {
         setIsLoading(false);
         setIsArchiveDialogOpen(false);
         setSelectedProperty(null);
+        setArchiveReason(""); // Reset archive reason
     }
   };
 
   const handleReactivateProperty = async (property: AdminProperty) => {
-    setIsLoading(true); 
+    setIsLoading(true);
     try {
         const propRef = doc(db, "properties", property.id);
-        await updateDoc(propRef, { status: 'active', deletionReason: "", updatedAt: Timestamp.now() }); 
-        
-        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${property.title}". (تصنيف المالك لم يتغير تلقائيًا)` });
+        await updateDoc(propRef, { status: 'active', deletionReason: "", archivalReason: "", updatedAt: Timestamp.now() });
+        toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${property.title}". (تصنيف المالك لم يتغير)` });
         fetchAllProperties(); // Refresh list
     } catch (error) {
         console.error("Error reactivating property:", error);
@@ -174,7 +180,7 @@ export default function AdminPropertiesPage() {
         const userRef = doc(db, "users", selectedProperty.userId);
         await updateDoc(userRef, { trustLevel: targetUserTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${selectedProperty.title}" إلى "${trustLevelTranslations[targetUserTrustLevel]}".` });
-        fetchAllProperties(); 
+        fetchAllProperties();
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -189,7 +195,7 @@ export default function AdminPropertiesPage() {
   if (isLoading && properties.length === 0) {
     return <div className="flex justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
-  
+
   const getStatusVariant = (status: Property['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case 'active': return 'default';
@@ -221,11 +227,11 @@ export default function AdminPropertiesPage() {
             {properties.map((prop) => (
               <TableRow key={prop.id}>
                 <TableCell>
-                  <Image 
-                    src={prop.imageUrls?.[0] || "https://placehold.co/50x50.png"} 
-                    alt={prop.title} 
-                    width={50} 
-                    height={50} 
+                  <Image
+                    src={prop.imageUrls?.[0] || "https://placehold.co/50x50.png"}
+                    alt={prop.title}
+                    width={50}
+                    height={50}
                     className="rounded object-cover"
                     data-ai-hint="house exterior"
                   />
@@ -240,9 +246,9 @@ export default function AdminPropertiesPage() {
                 </TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(prop.status)}>
-                    {prop.status === 'active' ? 'نشط' : 
-                     prop.status === 'pending' ? 'قيد المراجعة' : 
-                     prop.status === 'deleted' ? 'محذوف' : 
+                    {prop.status === 'active' ? 'نشط' :
+                     prop.status === 'pending' ? 'قيد المراجعة' :
+                     prop.status === 'deleted' ? 'محذوف' :
                      prop.status === 'archived' ? 'مؤرشف' : prop.status}
                   </Badge>
                 </TableCell>
@@ -274,7 +280,7 @@ export default function AdminPropertiesPage() {
                           <Trash2 className="mr-2 h-4 w-4" /> حذف (نقل للمحذوفات)
                         </DropdownMenuItem>
                       )}
-                       {(prop.status === 'active' || prop.status === 'pending') && ( 
+                       {(prop.status === 'active' || prop.status === 'pending') && (
                         <DropdownMenuItem onClick={() => openArchiveDialog(prop)}>
                           <Archive className="mr-2 h-4 w-4" /> أرشفة
                         </DropdownMenuItem>
@@ -304,14 +310,15 @@ export default function AdminPropertiesPage() {
             <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
             <AlertDialogDescription>
               هل أنت متأكد أنك تريد حذف العقار "{selectedProperty?.title}"؟ سيتم نقل العقار إلى قائمة المحذوفات.
-              الرجاء إدخال سبب الحذف. (تصنيف المالك لن يتغير تلقائيًا).
+              الرجاء إدخال سبب الحذف. (تصنيف المالك لن يتغير).
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <Input 
-            placeholder="سبب الحذف (مثال: مخالفة الشروط، طلب المالك)" 
+          <Textarea
+            placeholder="سبب الحذف (مثال: مخالفة الشروط، طلب المالك)"
             value={deleteReason}
             onChange={(e) => setDeleteReason(e.target.value)}
             className="my-2"
+            rows={3}
           />
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
@@ -332,12 +339,19 @@ export default function AdminPropertiesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد الأرشفة</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد أنك تريد أرشفة العقار "{selectedProperty?.title}"؟ (تصنيف المالك لن يتغير تلقائيًا).
+              هل أنت متأكد أنك تريد أرشفة العقار "{selectedProperty?.title}"؟ الرجاء إدخال سبب الأرشفة. (تصنيف المالك لن يتغير).
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <Textarea
+            placeholder="سبب الأرشفة (مثال: العقار لم يعد متوفرًا مؤقتًا، يحتاج لتحديثات)"
+            value={archiveReason}
+            onChange={(e) => setArchiveReason(e.target.value)}
+            className="my-2"
+            rows={3}
+          />
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleArchiveProperty} disabled={isLoading}>
+            <AlertDialogAction onClick={handleArchiveProperty} disabled={isLoading || !archiveReason.trim()}>
                 {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2"/>}
                 أرشفة
             </AlertDialogAction>
@@ -384,4 +398,3 @@ export default function AdminPropertiesPage() {
     </div>
   );
 }
-

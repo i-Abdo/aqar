@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { collection, query, where, getDocs, doc, updateDoc, getCountFromServer } from "firebase/firestore"; // Removed orderBy for now
+import { collection, query, where, getDocs, doc, updateDoc, getCountFromServer, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Property, Plan } from "@/types";
+import type { Property, Plan, PropertyAppeal } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle } from "lucide-react";
-import { useRouter } from "next/navigation"; 
+import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,14 +25,20 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { plans } from "@/config/plans";
+import { submitPropertyAppeal } from '@/actions/propertyAppealActions';
+
 
 // Dummy property card component for this page
-function PropertyListItemCard({ property, onDelete, onArchive }: { property: Property, onDelete: (id: string, reason: string) => void, onArchive: (id: string) => void }) {
+function PropertyListItemCard({ property, onDelete, onArchive }: { property: Property, onDelete: (id: string, reason: string) => void, onArchive: (id: string, reason: string) => void }) {
   const [deleteReason, setDeleteReason] = useState("");
+  const [archiveReason, setArchiveReason] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isAppealing, setIsAppealing] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleDeleteWithReason = async () => {
     if (!deleteReason.trim()) {
@@ -43,21 +49,60 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
     await onDelete(property.id, deleteReason);
     setIsDeleting(false);
   };
-  
-  const handleArchive = async () => {
+
+  const handleArchiveWithReason = async () => {
+    if (!archiveReason.trim()) {
+      toast({ title: "سبب الأرشفة مطلوب", description: "يرجى إدخال سبب لأرشفة العقار.", variant: "destructive"});
+      return;
+    }
     setIsArchiving(true);
-    await onArchive(property.id);
+    await onArchive(property.id, archiveReason);
     setIsArchiving(false);
   };
+
+  const handleAppeal = async () => {
+    if (!user) {
+        toast({ title: "خطأ", description: "يجب تسجيل الدخول لتقديم طعن.", variant: "destructive" });
+        return;
+    }
+    setIsAppealing(true);
+    const result = await submitPropertyAppeal({
+        propertyId: property.id,
+        propertyTitle: property.title,
+        ownerUserId: user.uid,
+        ownerEmail: user.email || "غير متوفر",
+        propertyArchivalReason: property.archivalReason || "غير محدد"
+    });
+    if (result.success) {
+        toast({ title: "تم إرسال الطعن", description: result.message });
+        // Optionally, disable the appeal button or change its text after submission
+    } else {
+        toast({ title: "خطأ في إرسال الطعن", description: result.message, variant: "destructive" });
+    }
+    setIsAppealing(false);
+  };
+
+
+  const getStatusDisplay = () => {
+    switch (property.status) {
+      case 'active': return { text: 'نشط', color: 'text-green-600' };
+      case 'pending': return { text: 'قيد المراجعة', color: 'text-yellow-600' };
+      case 'deleted': return { text: 'محذوف', color: 'text-red-600' };
+      case 'archived': return { text: 'متوقف', color: 'text-orange-600' }; // Updated for "متوقف"
+      default: return { text: property.status, color: 'text-muted-foreground' };
+    }
+  };
+  const statusDisplay = getStatusDisplay();
+
 
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
       <CardHeader className="p-0">
-        <Image 
-          src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"} 
+        <Image
+          src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
           alt={property.title}
-          width={400} 
-          height={250} 
+          width={400}
+          height={250}
           className="object-cover w-full h-48"
           data-ai-hint="house exterior"
         />
@@ -66,7 +111,13 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
         <CardTitle className="text-xl font-headline mb-1 truncate" title={property.title}>{property.title}</CardTitle>
         <p className="text-lg font-semibold text-primary mb-2">{property.price.toLocaleString()} د.ج</p>
         <p className="text-sm text-muted-foreground mb-1 truncate">{property.wilaya}, {property.city}</p>
-        <p className="text-sm text-muted-foreground">الحالة: <span className={`font-medium ${property.status === 'active' ? 'text-green-600' : property.status === 'pending' ? 'text-yellow-600' : 'text-orange-600'}`}>{property.status === 'active' ? 'نشط' : property.status === 'pending' ? 'قيد المراجعة' : property.status === 'deleted' ? 'محذوف' : 'مؤرشف'}</span></p>
+        <div className="text-sm text-muted-foreground">الحالة: <span className={`font-medium ${statusDisplay.color}`}>{statusDisplay.text}</span></div>
+        {property.status === 'archived' && property.archivalReason && (
+            <p className="text-xs text-muted-foreground mt-1">سبب التوقيف: {property.archivalReason}</p>
+        )}
+         {property.status === 'deleted' && property.deletionReason && (
+            <p className="text-xs text-muted-foreground mt-1">سبب الحذف: {property.deletionReason}</p>
+        )}
       </CardContent>
       <CardFooter className="p-4 border-t grid grid-cols-2 gap-2">
          {property.status !== 'deleted' && property.status !== 'archived' && (
@@ -85,11 +136,12 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
                     هل أنت متأكد أنك تريد حذف هذا العقار؟ سيتم نقله إلى المحذوفات. الرجاء إدخال سبب الحذف.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <Input 
-                  placeholder="سبب الحذف (مثال: تم البيع، خطأ في الإدخال)" 
+                <Textarea
+                  placeholder="سبب الحذف (مثال: تم البيع، خطأ في الإدخال)"
                   value={deleteReason}
                   onChange={(e) => setDeleteReason(e.target.value)}
                   className="my-2"
+                  rows={3}
                 />
                 <AlertDialogFooter>
                   <AlertDialogCancel>إلغاء</AlertDialogCancel>
@@ -103,9 +155,38 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
           </>
          )}
           {(property.status === 'deleted') && (
-             <Button variant="outline_secondary" size="sm" onClick={handleArchive} disabled={isArchiving} className="col-span-2 transition-smooth">
-                {isArchiving && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-                أرشفة العقار
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline_secondary" size="sm" className="col-span-2 transition-smooth">أرشفة العقار</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>تأكيد الأرشفة</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            هل أنت متأكد أنك تريد أرشفة هذا العقار؟ الرجاء إدخال سبب الأرشفة.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Textarea
+                        placeholder="سبب الأرشفة (مثال: العقار لم يعد متاحًا مؤقتًا)"
+                        value={archiveReason}
+                        onChange={(e) => setArchiveReason(e.target.value)}
+                        className="my-2"
+                        rows={3}
+                    />
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleArchiveWithReason} disabled={isArchiving || !archiveReason.trim()}>
+                            {isArchiving && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+                            أرشفة
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {property.status === 'archived' && (
+             <Button onClick={handleAppeal} variant="outline_primary" size="sm" disabled={isAppealing} className="col-span-2 transition-smooth">
+                {isAppealing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ShieldQuestion size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>}
+                {isAppealing ? "جاري إرسال الطعن..." : "طعن"}
              </Button>
           )}
       </CardFooter>
@@ -128,23 +209,18 @@ export default function MyPropertiesPage() {
     if (!user) return;
     setIsLoading(true);
     try {
-      // Fetch properties
-      // Temporarily removed orderBy("createdAt", "desc") to avoid missing index error.
-      // TODO: User should create the composite index in Firebase (userId ASC, createdAt DESC) and then re-add: orderBy("createdAt", "desc")
       const propsQuery = query(collection(db, "properties"), where("userId", "==", user.uid));
       const querySnapshot = await getDocs(propsQuery);
-      const props = querySnapshot.docs.map(doc => ({ 
-          id: doc.id, 
+      const props = querySnapshot.docs.map(doc => ({
+          id: doc.id,
           ...doc.data(),
           createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt),
           updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date(doc.data().updatedAt),
       } as Property));
-      
-      // Manual sort client-side as a temporary replacement if orderBy was removed
+
       props.sort((a, b) => (b.createdAt as any) - (a.createdAt as any));
       setProperties(props);
 
-      // Check limits
       const userPlanId = user.planId || 'free';
       const planDetails = plans.find(p => p.id === userPlanId);
       setCurrentPlan(planDetails || null);
@@ -153,10 +229,9 @@ export default function MyPropertiesPage() {
         if (planDetails.maxListings === Infinity) {
           setCanAddProperty(true);
         } else {
-          // Count only active and pending properties towards the limit
           const activePendingPropsQuery = query(
-            collection(db, "properties"), 
-            where("userId", "==", user.uid), 
+            collection(db, "properties"),
+            where("userId", "==", user.uid),
             where("status", "in", ["active", "pending"])
           );
           const countSnapshot = await getCountFromServer(activePendingPropsQuery);
@@ -164,7 +239,7 @@ export default function MyPropertiesPage() {
           setCanAddProperty(activePendingPropsCount < planDetails.maxListings);
         }
       } else {
-        setCanAddProperty(false); // Default to false if plan details not found
+        setCanAddProperty(false);
       }
     } catch (error) {
       console.error("Error fetching properties or limits:", error);
@@ -186,25 +261,25 @@ export default function MyPropertiesPage() {
   const handleDeleteProperty = async (id: string, reason: string) => {
     try {
       const propRef = doc(db, "properties", id);
-      await updateDoc(propRef, { status: 'deleted', deletionReason: reason, updatedAt: new Date() });
+      await updateDoc(propRef, { status: 'deleted', deletionReason: reason, archivalReason: "", updatedAt: Timestamp.now() });
       toast({ title: "تم الحذف", description: "تم نقل العقار إلى المحذوفات." });
-      fetchPropertiesAndLimits(); // Refresh list and limits
+      fetchPropertiesAndLimits();
     } catch (error) {
       toast({ title: "خطأ", description: "فشل حذف العقار.", variant: "destructive" });
     }
   };
-  
-  const handleArchiveProperty = async (id: string) => {
+
+  const handleArchiveProperty = async (id: string, reason: string) => {
     try {
       const propRef = doc(db, "properties", id);
-      await updateDoc(propRef, { status: 'archived', updatedAt: new Date() });
+      await updateDoc(propRef, { status: 'archived', archivalReason: reason, deletionReason: "", updatedAt: Timestamp.now() });
       toast({ title: "تمت الأرشفة", description: "تم أرشفة العقار بنجاح." });
-      fetchPropertiesAndLimits(); // Refresh list and limits
+      fetchPropertiesAndLimits();
     } catch (error) {
       toast({ title: "خطأ", description: "فشل أرشفة العقار.", variant: "destructive" });
     }
   };
-  
+
   const handleAddPropertyClick = () => {
     if (canAddProperty) {
         router.push('/dashboard/properties/new');
@@ -259,6 +334,3 @@ export default function MyPropertiesPage() {
     </div>
   );
 }
-
-
-    

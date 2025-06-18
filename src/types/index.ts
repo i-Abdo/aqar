@@ -47,6 +47,7 @@ export interface Property {
   description: string;
   status: 'active' | 'pending' | 'deleted' | 'archived';
   deletionReason?: string;
+  archivalReason?: string; // Added for appeal system
   createdAt: Date;
   updatedAt: Date;
   firebaseStudioTestField?: string;
@@ -88,4 +89,22 @@ export interface UserIssue {
   status: 'new' | 'in_progress' | 'resolved';
   adminNotes?: string;
   updatedAt?: Date;
+}
+
+// For Property Appeal System
+export type AppealStatus = 'new' | 'under_review' | 'resolved_deleted' | 'resolved_kept_archived' | 'resolved_published';
+export type AdminAppealDecisionType = 'delete' | 'keep_archived' | 'publish';
+
+export interface PropertyAppeal {
+  id: string;
+  propertyId: string;
+  propertyTitle: string;
+  ownerUserId: string;
+  ownerEmail: string;
+  submittedAt: Date; // Firestore Timestamp
+  appealStatus: AppealStatus;
+  adminDecision?: AdminAppealDecisionType;
+  adminNotes?: string; // General notes from admin for their decision
+  adminDecisionAt?: Date; // Firestore Timestamp
+  propertyArchivalReason?: string; // Store the reason why property was archived
 }
