@@ -2,43 +2,69 @@
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import React, { useEffect } from "react";
-import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks } from "lucide-react"; // Added ListChecks
+import React, { useEffect, useState } from "react";
+import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+import { collection, query, where, getCountFromServer } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
+import { Badge } from "@/components/ui/badge";
 
 
 const adminNavItems = [ 
-  { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard },
-  { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag },
-  { title: "مشاكل المستخدمين", href: "/admin/issues", icon: MessageCircleWarning },
-  { title: "عقارات قيد المراجعة", href: "/admin/pending", icon: ListChecks }, // New Item
+  { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard, countKey: "properties" },
+  { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag, countKey: "reports" },
+  { title: "مشاكل المستخدمين", href: "/admin/issues", icon: MessageCircleWarning, countKey: "issues" },
+  { title: "عقارات قيد المراجعة", href: "/admin/pending", icon: ListChecks, countKey: "pending" },
 ];
 
-function AdminSidebarNav() {
+interface AdminCounts {
+  pending: number;
+  reports: number;
+  issues: number;
+  properties?: number; // Optional, if you want to show total properties or similar
+}
+
+function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
   const pathname = usePathname();
+
+  const getCountForItem = (itemKey?: string): number => {
+    if (!itemKey) return 0;
+    return counts[itemKey as keyof AdminCounts] || 0;
+  }
+
   return (
     <SidebarMenu className="p-2">
-      {adminNavItems.map((item, index) => (
-        <SidebarMenuItem key={index}>
-          <SidebarMenuButton
-            asChild
-            isActive={pathname.startsWith(item.href)} 
-            className="justify-start text-base"
-            tooltip={item.title}
-          >
-            <Link href={item.href} className="flex items-center w-full">
-              <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
-              <span className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
-                {item.title}
-              </span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
+      {adminNavItems.map((item, index) => {
+        const count = getCountForItem(item.countKey);
+        return (
+          <SidebarMenuItem key={index}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith(item.href)} 
+              className="justify-start text-base"
+              tooltip={item.title}
+            >
+              <Link href={item.href} className="flex items-center justify-between w-full">
+                <div className="flex items-center">
+                  <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
+                  <span className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                    {item.title}
+                  </span>
+                </div>
+                {count > 0 && (
+                  <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                    {count}
+                  </Badge>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
     </SidebarMenu>
   );
 }
@@ -49,20 +75,60 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname(); // For re-fetching counts on navigation if needed
+
+  const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0 });
+  const [isLoadingCounts, setIsLoadingCounts] = useState(true);
 
   useEffect(() => {
-    if (!loading) {
+    if (!isAdmin) return;
+
+    const fetchAdminCounts = async () => {
+      setIsLoadingCounts(true);
+      try {
+        const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
+        const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
+        const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
+
+        const [pendingSnapshot, reportsSnapshot, issuesSnapshot] = await Promise.all([
+          getCountFromServer(pendingPropsQuery),
+          getCountFromServer(newReportsQuery),
+          getCountFromServer(newUserIssuesQuery),
+        ]);
+
+        setCounts({
+          pending: pendingSnapshot.data().count,
+          reports: reportsSnapshot.data().count,
+          issues: issuesSnapshot.data().count,
+        });
+      } catch (error) {
+        console.error("Error fetching admin counts:", error);
+        // Optionally set counts to 0 or handle error display
+        setCounts({ pending: 0, reports: 0, issues: 0 });
+      } finally {
+        setIsLoadingCounts(false);
+      }
+    };
+
+    fetchAdminCounts();
+    // Re-fetch counts if the pathname changes within the admin section.
+    // This is a simple way to keep counts relatively fresh.
+  }, [isAdmin, pathname]);
+
+
+  useEffect(() => {
+    if (!authLoading) {
       if (!user) {
         router.push("/login?redirect=/admin");
       } else if (!isAdmin) {
         router.push("/dashboard"); 
       }
     }
-  }, [user, isAdmin, loading, router]);
+  }, [user, isAdmin, authLoading, router]);
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -90,7 +156,7 @@ export default function AdminLayout({
            <h2 className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة الإدارة</h2>
         </SidebarHeader>
         <SidebarContent className="p-0">
-             <AdminSidebarNav />
+             <AdminSidebarNav counts={counts} />
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
