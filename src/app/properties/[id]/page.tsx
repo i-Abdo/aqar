@@ -105,7 +105,7 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <Card className="shadow-2xl overflow-hidden">
+      <Card className="shadow-2xl overflow-hidden max-w-5xl mx-auto">
         <CardHeader className="p-0">
             {imageUrls && imageUrls.length > 0 ? (
                  <Carousel className="w-full" opts={{ loop: imageUrls.length > 1, direction: "rtl" }}>
