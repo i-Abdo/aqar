@@ -4,15 +4,16 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
-import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings, Home } from "lucide-react" // Added Home
-import { Badge } from "@/components/ui/badge"; // Added Badge
+import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings, Home } from "lucide-react" 
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth"; 
 
 const dashboardNavItems = [
   {
     title: "نظرة عامة",
     href: "/dashboard",
     icon: LayoutDashboard,
-    countKey: "dashboard_overview_notifications" // Added a key for notifications
+    countKey: "dashboard_overview_notifications" 
   },
   {
     title: "عقاراتي",
@@ -41,17 +42,16 @@ const dashboardNavItems = [
   },
 ]
 
-interface DashboardNavProps {
-  notificationCount?: number;
-}
-
-export function DashboardNav({ notificationCount }: DashboardNavProps) {
-  const pathname = usePathname()
+export function DashboardNav() {
+  const pathname = usePathname();
+  const { userDashboardNotificationCount } = useAuth(); 
 
   return (
     <SidebarMenu className="p-2">
       {dashboardNavItems.map((item, index) => {
-        const showBadge = item.countKey === "dashboard_overview_notifications" && notificationCount && notificationCount > 0;
+        const showBadge = item.countKey === "dashboard_overview_notifications" && userDashboardNotificationCount > 0;
+        const countToDisplay = showBadge ? userDashboardNotificationCount : 0;
+        
         return (
           <SidebarMenuItem key={index}>
             <SidebarMenuButton
@@ -69,7 +69,7 @@ export function DashboardNav({ notificationCount }: DashboardNavProps) {
                 </div>
                 {showBadge && (
                   <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
-                    {notificationCount! > 9 ? '9+' : notificationCount}
+                    {countToDisplay > 9 ? '9+' : countToDisplay}
                   </Badge>
                 )}
               </Link>

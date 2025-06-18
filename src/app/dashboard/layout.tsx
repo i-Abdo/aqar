@@ -2,12 +2,12 @@
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react"; // Added useState
+import React, { useEffect, useState } from "react"; 
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset } from "@/components/ui/sidebar";
 import { AppLogo } from "@/components/layout/AppLogo";
-import { collection, query, where, getCountFromServer, Timestamp } from "firebase/firestore"; // Added Timestamp
+import { collection, query, where, getCountFromServer, Timestamp } from "firebase/firestore"; 
 import { db } from "@/lib/firebase/client";
 
 export default function DashboardLayout({
@@ -15,9 +15,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading, setUserDashboardNotificationCount } = useAuth();
   const router = useRouter();
-  const [userNotificationCount, setUserNotificationCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
 
   useEffect(() => {
@@ -28,7 +27,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (loading || !user) {
-      setUserNotificationCount(0);
+      setUserDashboardNotificationCount(0);
       return;
     }
 
@@ -51,17 +50,17 @@ export default function DashboardLayout({
           getCountFromServer(issuesQuery),
         ]);
         totalCount = appealsSnapshot.data().count + issuesSnapshot.data().count;
-        setUserNotificationCount(totalCount);
+        setUserDashboardNotificationCount(totalCount);
       } catch (error) {
         console.error("Error fetching user notification counts for dashboard layout:", error);
-        setUserNotificationCount(0);
+        setUserDashboardNotificationCount(0);
       } finally {
         setIsLoadingNotifications(false);
       }
     };
 
     fetchUserNotificationsCount();
-  }, [user, loading]);
+  }, [user, loading, setUserDashboardNotificationCount]);
 
 
   if (loading) {
@@ -73,18 +72,18 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return null; // Or a redirect component, handled by useEffect
+    return null; 
   }
 
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar side="right" collapsible="icon" className="border-l rtl:border-r-0">
         <SidebarHeader className="p-3 flex items-center justify-center">
-          {/* <AppLogo /> */}
+          
           <h2 className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة التحكم</h2>
         </SidebarHeader>
         <SidebarContent className="p-0">
-          <DashboardNav notificationCount={userNotificationCount} />
+          <DashboardNav />
         </SidebarContent>
       </Sidebar>
       <SidebarInset>

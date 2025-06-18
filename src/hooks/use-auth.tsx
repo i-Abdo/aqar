@@ -14,6 +14,10 @@ interface AuthContextType {
   isAdmin: boolean;
   trustLevel: UserTrustLevel | null;
   signOut: () => Promise<void>;
+  userDashboardNotificationCount: number;
+  setUserDashboardNotificationCount: React.Dispatch<React.SetStateAction<number>>;
+  adminNotificationCount: number;
+  setAdminNotificationCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +27,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [trustLevel, setTrustLevel] = useState<UserTrustLevel | null>(null);
+  const [userDashboardNotificationCount, setUserDashboardNotificationCount] = useState(0);
+  const [adminNotificationCount, setAdminNotificationCount] = useState(0);
+
 
   useEffect(() => {
     let unsubscribeFirestore: (() => void) | undefined;
@@ -42,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const customData = userDocSnap.data();
             const userData: CustomUser = {
               ...firebaseUser,
-              uid: firebaseUser.uid, // ensure uid from firebaseUser is prioritized
+              uid: firebaseUser.uid, 
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
@@ -86,6 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setIsAdmin(false);
         setTrustLevel(null);
+        setUserDashboardNotificationCount(0); // Reset count on logout
+        setAdminNotificationCount(0); // Reset count on logout
         setLoading(false);
       }
     });
@@ -102,13 +111,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await firebaseSignOut(firebaseAuth);
+      // User state will be updated by onAuthStateChanged listener
     } catch (error) {
       console.error("Error signing out: ", error);
+      // setLoading(false) explicitly here if onAuthStateChanged doesn't fire quickly or errors out
     }
   };
   
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, trustLevel, signOut }}>
+    <AuthContext.Provider value={{ 
+        user, 
+        loading, 
+        isAdmin, 
+        trustLevel, 
+        signOut,
+        userDashboardNotificationCount,
+        setUserDashboardNotificationCount,
+        adminNotificationCount,
+        setAdminNotificationCount
+    }}>
       {children}
     </AuthContext.Provider>
   );
