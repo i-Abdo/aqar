@@ -11,7 +11,7 @@ import { db } from "@/lib/firebase/client";
 import type { Property, Plan, PropertyAppeal } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye } from "lucide-react"; // Added Eye icon
+import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -71,7 +71,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
         propertyTitle: property.title,
         ownerUserId: user.uid,
         ownerEmail: user.email || "غير متوفر",
-        propertyArchivalReason: property.archivalReason || "---" // Ensure a default value if undefined
+        propertyArchivalReason: property.archivalReason || "---"
     });
     if (result.success) {
         toast({ title: "تم إرسال الطعن", description: result.message });
@@ -95,15 +95,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
 
   const actionButtons = [];
 
-  // Preview Button - always available for the owner in their dashboard
-  actionButtons.push(
-    <Button key="preview" variant="outline" size="sm" asChild className="transition-smooth w-full hover:shadow-sm">
-      <Link href={`/properties/${property.id}`} target="_blank" rel="noopener noreferrer">
-        <Eye size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> معاينة
-      </Link>
-    </Button>
-  );
-
+  // Edit, Delete, Archive, Appeal buttons are added conditionally
   if (property.status !== 'deleted' && property.status !== 'archived') {
     actionButtons.push(
       <Button key="edit" variant="outline" size="sm" asChild className="transition-smooth w-full hover:shadow-sm">
@@ -178,37 +170,44 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
     );
   }
   
-  const gridColsClass = actionButtons.length === 1 ? 'grid-cols-1' : 
+  const gridColsClass = actionButtons.length === 0 ? 'hidden' : 
+                        actionButtons.length === 1 ? 'grid-cols-1' : 
                         actionButtons.length === 2 ? 'grid-cols-2' : 'grid-cols-3';
 
 
   return (
-    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
-      <CardHeader className="p-0">
-        <Image
-          src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
-          alt={property.title}
-          width={400}
-          height={250}
-          className="object-cover w-full h-48"
-          data-ai-hint="house exterior"
-        />
-      </CardHeader>
-      <CardContent className="p-4 flex-grow">
-        <CardTitle className="text-xl font-headline mb-1 truncate" title={property.title}>{property.title}</CardTitle>
-        <p className="text-lg font-semibold text-primary mb-2">{property.price.toLocaleString()} د.ج</p>
-        <p className="text-sm text-muted-foreground mb-1 truncate">{property.wilaya}, {property.city}</p>
-        <div className="text-sm text-muted-foreground">الحالة: <span className={`font-medium ${statusDisplay.color}`}>{statusDisplay.text}</span></div>
-        {property.status === 'archived' && (
-            <p className="text-xs text-muted-foreground mt-1">سبب التوقيف: {property.archivalReason || "---"}</p>
-        )}
-         {property.status === 'deleted' && property.deletionReason && (
-            <p className="text-xs text-muted-foreground mt-1">سبب الحذف: {property.deletionReason}</p>
-        )}
-      </CardContent>
-      <CardFooter className={`p-4 border-t grid ${gridColsClass} gap-2`}>
-        {actionButtons.map(button => button)}
-      </CardFooter>
+    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
+      <Link href={`/properties/${property.id}`} passHref legacyBehavior>
+        <a className="flex flex-col flex-grow cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:rounded-t-lg">
+          <CardHeader className="p-0 group-hover:opacity-90 transition-opacity">
+            <Image
+              src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
+              alt={property.title}
+              width={400}
+              height={250}
+              className="object-cover w-full h-48 rounded-t-lg"
+              data-ai-hint="house exterior"
+            />
+          </CardHeader>
+          <CardContent className="p-4 flex-grow group-hover:bg-muted/20 transition-colors">
+            <CardTitle className="text-xl font-headline mb-1 truncate group-hover:text-primary transition-colors" title={property.title}>{property.title}</CardTitle>
+            <p className="text-lg font-semibold text-primary mb-2">{property.price.toLocaleString()} د.ج</p>
+            <p className="text-sm text-muted-foreground mb-1 truncate">{property.wilaya}, {property.city}</p>
+            <div className="text-sm text-muted-foreground">الحالة: <span className={`font-medium ${statusDisplay.color}`}>{statusDisplay.text}</span></div>
+            {property.status === 'archived' && (
+                <p className="text-xs text-muted-foreground mt-1">سبب التوقيف: {property.archivalReason || "---"}</p>
+            )}
+            {property.status === 'deleted' && property.deletionReason && (
+                <p className="text-xs text-muted-foreground mt-1">سبب الحذف: {property.deletionReason}</p>
+            )}
+          </CardContent>
+        </a>
+      </Link>
+      {actionButtons.length > 0 && (
+        <CardFooter className={`p-4 border-t grid ${gridColsClass} gap-2`}>
+          {actionButtons.map(button => button)}
+        </CardFooter>
+      )}
     </Card>
   );
 }
@@ -353,3 +352,6 @@ export default function MyPropertiesPage() {
     </div>
   );
 }
+
+
+    
