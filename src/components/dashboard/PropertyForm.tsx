@@ -303,7 +303,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="price" className="flex items-center gap-1"><DollarSign size={16}/>السعر (د.ج) *</Label>
-                <Input lang="en" id="price" type="number" {...form.register("price")} placeholder="2000000" className="input-latin-numerals" />
+                <Input lang="en" id="price" type="text" {...form.register("price")} placeholder="2000000" className="input-latin-numerals" />
                 {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
               </div>
               <div>
@@ -315,12 +315,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="rooms" className="flex items-center gap-1"><BedDouble size={16}/>عدد الغرف *</Label>
-                <Input lang="en" id="rooms" type="number" {...form.register("rooms")} placeholder="3" className="input-latin-numerals" />
+                <Input lang="en" id="rooms" type="text" {...form.register("rooms")} placeholder="3" className="input-latin-numerals" />
                 {form.formState.errors.rooms && <p className="text-sm text-destructive">{form.formState.errors.rooms.message}</p>}
               </div>
               <div>
                 <Label htmlFor="bathrooms" className="flex items-center gap-1"><Bath size={16}/>عدد الحمامات *</Label>
-                <Input lang="en" id="bathrooms" type="number" {...form.register("bathrooms")} placeholder="2" className="input-latin-numerals" />
+                <Input lang="en" id="bathrooms" type="text" {...form.register("bathrooms")} placeholder="2" className="input-latin-numerals" />
                 {form.formState.errors.bathrooms && <p className="text-sm text-destructive">{form.formState.errors.bathrooms.message}</p>}
               </div>
             </div>
@@ -511,3 +511,5 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   );
 }
 
+
+    
