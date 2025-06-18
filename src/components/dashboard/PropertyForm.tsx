@@ -354,12 +354,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <div className="grid md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="length" className="flex items-center gap-1"><Ruler size={16}/>الطول (متر) *</Label>
-                <Input lang="en" id="length" type="text" {...form.register("length")} placeholder="10" className="input-latin-numerals" />
+                <Input lang="en" id="length" type="text" {...form.register("length")} placeholder="--" className="input-latin-numerals" />
                 {form.formState.errors.length && <p className="text-sm text-destructive">{form.formState.errors.length.message}</p>}
               </div>
               <div>
                 <Label htmlFor="width" className="flex items-center gap-1"><Ruler size={16}/>العرض (متر) *</Label>
-                <Input lang="en" id="width" type="text" {...form.register("width")} placeholder="8" className="input-latin-numerals" />
+                <Input lang="en" id="width" type="text" {...form.register("width")} placeholder="--" className="input-latin-numerals" />
                 {form.formState.errors.width && <p className="text-sm text-destructive">{form.formState.errors.width.message}</p>}
               </div>
               <div>
