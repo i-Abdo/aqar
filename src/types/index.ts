@@ -47,7 +47,7 @@ export interface Property {
   description: string;
   status: 'active' | 'pending' | 'deleted' | 'archived';
   deletionReason?: string;
-  archivalReason?: string; // Added for appeal system
+  archivalReason?: string; 
   createdAt: Date;
   updatedAt: Date;
   firebaseStudioTestField?: string;
@@ -108,3 +108,4 @@ export interface PropertyAppeal {
   adminDecisionAt?: Date; // Firestore Timestamp
   propertyArchivalReason?: string; // Store the reason why property was archived
 }
+

@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks } from "lucide-react";
+import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react"; // Added ShieldQuestion
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -19,13 +19,15 @@ const adminNavItems = [
   { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag, countKey: "reports" },
   { title: "مشاكل المستخدمين", href: "/admin/issues", icon: MessageCircleWarning, countKey: "issues" },
   { title: "عقارات قيد المراجعة", href: "/admin/pending", icon: ListChecks, countKey: "pending" },
+  { title: "إدارة الطعون", href: "/admin/appeals", icon: ShieldQuestion, countKey: "appeals" }, // Added appeals
 ];
 
 interface AdminCounts {
   pending: number;
   reports: number;
   issues: number;
-  properties?: number; // Optional, if you want to show total properties or similar
+  appeals: number; // Added appeals
+  properties?: number;
 }
 
 function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
@@ -77,9 +79,9 @@ export default function AdminLayout({
 }) {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname(); // For re-fetching counts on navigation if needed
+  const pathname = usePathname(); 
 
-  const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0 });
+  const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 }); // Added appeals
   const [isLoadingCounts, setIsLoadingCounts] = useState(true);
 
   useEffect(() => {
@@ -91,30 +93,30 @@ export default function AdminLayout({
         const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
         const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
         const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
+        const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new")); // Added appeals query
 
-        const [pendingSnapshot, reportsSnapshot, issuesSnapshot] = await Promise.all([
+        const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([ // Added appealsSnapshot
           getCountFromServer(pendingPropsQuery),
           getCountFromServer(newReportsQuery),
           getCountFromServer(newUserIssuesQuery),
+          getCountFromServer(newAppealsQuery), // Added appeals query
         ]);
 
         setCounts({
           pending: pendingSnapshot.data().count,
           reports: reportsSnapshot.data().count,
           issues: issuesSnapshot.data().count,
+          appeals: appealsSnapshot.data().count, // Added appeals count
         });
       } catch (error) {
         console.error("Error fetching admin counts:", error);
-        // Optionally set counts to 0 or handle error display
-        setCounts({ pending: 0, reports: 0, issues: 0 });
+        setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 }); // Added appeals
       } finally {
         setIsLoadingCounts(false);
       }
     };
 
     fetchAdminCounts();
-    // Re-fetch counts if the pathname changes within the admin section.
-    // This is a simple way to keep counts relatively fresh.
   }, [isAdmin, pathname]);
 
 
@@ -165,3 +167,4 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
+
