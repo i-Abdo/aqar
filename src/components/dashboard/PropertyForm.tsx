@@ -315,12 +315,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="rooms" className="flex items-center gap-1"><BedDouble size={16}/>عدد الغرف *</Label>
-                <Input id="rooms" type="number" {...form.register("rooms")} placeholder="3" />
+                <Input id="rooms" type="number" {...form.register("rooms")} placeholder="3" className="input-latin-numerals" />
                 {form.formState.errors.rooms && <p className="text-sm text-destructive">{form.formState.errors.rooms.message}</p>}
               </div>
               <div>
                 <Label htmlFor="bathrooms" className="flex items-center gap-1"><Bath size={16}/>عدد الحمامات *</Label>
-                <Input id="bathrooms" type="number" {...form.register("bathrooms")} placeholder="2" />
+                <Input id="bathrooms" type="number" {...form.register("bathrooms")} placeholder="2" className="input-latin-numerals" />
                 {form.formState.errors.bathrooms && <p className="text-sm text-destructive">{form.formState.errors.bathrooms.message}</p>}
               </div>
             </div>
@@ -510,3 +510,4 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     </Card>
   );
 }
+
