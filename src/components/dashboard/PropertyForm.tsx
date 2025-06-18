@@ -303,7 +303,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="price" className="flex items-center gap-1"><DollarSign size={16}/>السعر (د.ج) *</Label>
-                <Input id="price" type="number" {...form.register("price")} placeholder="2000000" />
+                <Input id="price" type="number" {...form.register("price")} placeholder="2000000" className="input-latin-numerals" />
                 {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
               </div>
               <div>
@@ -510,7 +510,3 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     </Card>
   );
 }
-
-    
-
-    
