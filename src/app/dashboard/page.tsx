@@ -3,9 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X, Trash2 } from "lucide-react"; // Added Trash2
+import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X, Trash2 } from "lucide-react"; 
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { collection, query, where, getCountFromServer, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { plans } from "@/config/plans";
@@ -13,6 +13,7 @@ import type { Plan, PropertyAppeal, AdminAppealDecisionType, UserIssue } from "@
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge"; 
+import { dismissAllUserDashboardNotifications } from "@/actions/notificationActions";
 
 interface UserStats {
   activeListings: number;
@@ -29,7 +30,7 @@ interface AppealNotification {
   translatedDecision?: string;
   adminNotes?: string;
   decisionDate?: string;
-  isDismissed?: boolean; 
+  isDismissedClientSide?: boolean; 
 }
 
 interface UserIssueUpdateForDashboard {
@@ -40,7 +41,7 @@ interface UserIssueUpdateForDashboard {
   translatedStatus: string;
   adminNotes?: string;
   lastUpdateDate: string; 
-  isDismissed?: boolean; 
+  isDismissedClientSide?: boolean; 
 }
 
 const decisionTranslations: Record<AdminAppealDecisionType, string> = {
@@ -56,7 +57,7 @@ const issueStatusTranslations: Record<UserIssue['status'], string> = {
 };
 
 export default function DashboardPage() {
-  const { user, loading: authLoading, clearUserDashboardNotificationBadge } = useAuth(); // Added clearUserDashboardNotificationBadge
+  const { user, loading: authLoading, clearUserDashboardNotificationBadge } = useAuth(); 
   const [userStats, setUserStats] = useState<UserStats>({
     activeListings: 0,
     maxListings: "0",
@@ -68,10 +69,72 @@ export default function DashboardPage() {
   const [userIssueUpdates, setUserIssueUpdates] = useState<UserIssueUpdateForDashboard[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
+  const [isLoadingDismissAll, setIsLoadingDismissAll] = useState(false);
   const [canAddProperty, setCanAddProperty] = useState(false);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<Plan | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+
+  const fetchAppealNotifications = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const appealsQuery = query(
+        collection(db, "property_appeals"),
+        where("ownerUserId", "==", user.uid),
+        where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]),
+        where("dismissedByOwner", "!=", true), 
+        orderBy("adminDecisionAt", "desc"),
+        limit(5)
+      );
+      const querySnapshot = await getDocs(appealsQuery);
+      const notifications = querySnapshot.docs.map(docSnap => {
+        const data = docSnap.data() as PropertyAppeal;
+        return {
+          id: docSnap.id,
+          propertyTitle: data.propertyTitle,
+          decision: data.adminDecision,
+          translatedDecision: data.adminDecision ? decisionTranslations[data.adminDecision] : "قرار غير محدد",
+          adminNotes: data.adminNotes,
+          decisionDate: data.adminDecisionAt ? (data.adminDecisionAt instanceof Timestamp ? data.adminDecisionAt.toDate() : new Date(data.adminDecisionAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric' }) : "غير محدد",
+          isDismissedClientSide: false,
+        };
+      });
+      setAppealNotifications(notifications);
+    } catch (error) {
+      console.error("Error fetching appeal notifications:", error);
+    }
+  }, [user]);
+
+  const fetchUserIssueUpdates = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const issuesQuery = query(
+        collection(db, "user_issues"),
+        where("userId", "==", user.uid),
+        where("status", "in", ["in_progress", "resolved"]),
+        where("dismissedByOwner", "!=", true), 
+        orderBy("updatedAt", "desc"),
+        limit(5)
+      );
+      const querySnapshot = await getDocs(issuesQuery);
+      const updates = querySnapshot.docs.map(docSnap => {
+        const data = docSnap.data() as UserIssue;
+        return {
+          id: docSnap.id,
+          propertyTitle: data.propertyTitle,
+          originalMessagePreview: data.message.substring(0, 100) + (data.message.length > 100 ? "..." : ""),
+          status: data.status,
+          translatedStatus: issueStatusTranslations[data.status] || data.status,
+          adminNotes: data.adminNotes,
+          lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "غير محدد",
+          isDismissedClientSide: false,
+        };
+      });
+      setUserIssueUpdates(updates);
+    } catch (error) {
+      console.error("Error fetching user issue updates:", error);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -87,19 +150,13 @@ export default function DashboardPage() {
         const planDetails = plans.find(p => p.id === userPlanId);
         setCurrentPlanDetails(planDetails || null);
 
-        let currentPropertyCount = 0;
         if (planDetails) {
           const propertiesRef = collection(db, "properties");
           const q = query(propertiesRef, where("userId", "==", user.uid), where("status", "in", ["active", "pending"]));
           const snapshot = await getCountFromServer(q);
-          currentPropertyCount = snapshot.data().count;
+          const currentPropertyCount = snapshot.data().count;
 
-          if (planDetails.maxListings === Infinity) {
-            setCanAddProperty(true);
-          } else {
-            setCanAddProperty(currentPropertyCount < planDetails.maxListings);
-          }
-
+          setCanAddProperty(planDetails.maxListings === Infinity || currentPropertyCount < planDetails.maxListings);
           setUserStats(prev => ({
             ...prev,
             activeListings: currentPropertyCount,
@@ -115,65 +172,6 @@ export default function DashboardPage() {
         toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات لوحة التحكم.", variant: "destructive" });
       } finally {
         setIsLoadingStats(false);
-      }
-    };
-
-    const fetchAppealNotifications = async () => {
-      if (!user?.uid) return;
-      try {
-        const appealsQuery = query(
-          collection(db, "property_appeals"),
-          where("ownerUserId", "==", user.uid),
-          where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]),
-          orderBy("adminDecisionAt", "desc"),
-          limit(5)
-        );
-        const querySnapshot = await getDocs(appealsQuery);
-        const notifications = querySnapshot.docs.map(docSnap => {
-          const data = docSnap.data() as PropertyAppeal;
-          return {
-            id: docSnap.id,
-            propertyTitle: data.propertyTitle,
-            decision: data.adminDecision,
-            translatedDecision: data.adminDecision ? decisionTranslations[data.adminDecision] : "قرار غير محدد",
-            adminNotes: data.adminNotes,
-            decisionDate: data.adminDecisionAt ? (data.adminDecisionAt instanceof Timestamp ? data.adminDecisionAt.toDate() : new Date(data.adminDecisionAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric' }) : "غير محدد",
-            isDismissed: false,
-          };
-        });
-        setAppealNotifications(notifications);
-      } catch (error) {
-        console.error("Error fetching appeal notifications:", error);
-      }
-    };
-
-    const fetchUserIssueUpdates = async () => {
-      if (!user?.uid) return;
-      try {
-        const issuesQuery = query(
-          collection(db, "user_issues"),
-          where("userId", "==", user.uid),
-          where("status", "in", ["in_progress", "resolved"]),
-          orderBy("updatedAt", "desc"),
-          limit(5)
-        );
-        const querySnapshot = await getDocs(issuesQuery);
-        const updates = querySnapshot.docs.map(docSnap => {
-          const data = docSnap.data() as UserIssue;
-          return {
-            id: docSnap.id,
-            propertyTitle: data.propertyTitle,
-            originalMessagePreview: data.message.substring(0, 100) + (data.message.length > 100 ? "..." : ""),
-            status: data.status,
-            translatedStatus: issueStatusTranslations[data.status] || data.status,
-            adminNotes: data.adminNotes,
-            lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "غير محدد",
-            isDismissed: false,
-          };
-        });
-        setUserIssueUpdates(updates);
-      } catch (error) {
-        console.error("Error fetching user issue updates:", error);
       }
     };
 
@@ -193,7 +191,7 @@ export default function DashboardPage() {
 
     fetchDashboardData();
     fetchAllNotifications();
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, toast, fetchAppealNotifications, fetchUserIssueUpdates]);
 
   const handleAddPropertyClick = () => {
     if (canAddProperty) {
@@ -208,24 +206,33 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDismissAppeal = (appealId: string) => {
+  const handleDismissAppealClientSide = (appealId: string) => {
     setAppealNotifications(prev => 
-      prev.map(notif => notif.id === appealId ? { ...notif, isDismissed: true } : notif)
+      prev.map(notif => notif.id === appealId ? { ...notif, isDismissedClientSide: true } : notif)
     );
   };
 
-  const handleDismissIssue = (issueId: string) => {
+  const handleDismissIssueClientSide = (issueId: string) => {
     setUserIssueUpdates(prev =>
-      prev.map(notif => notif.id === issueId ? { ...notif, isDismissed: true } : notif)
+      prev.map(notif => notif.id === issueId ? { ...notif, isDismissedClientSide: true } : notif)
     );
   };
 
-  const handleDismissAllNotifications = () => {
-    setAppealNotifications(prev => prev.map(notif => ({ ...notif, isDismissed: true })));
-    setUserIssueUpdates(prev => prev.map(update => ({ ...update, isDismissed: true })));
-    clearUserDashboardNotificationBadge(); // Clear the badge count in AuthContext
-    toast({ title: "تم مسح الإشعارات", description: "تم إخفاء جميع الإشعارات من العرض الحالي." });
+  const handleDismissAllNotifications = async () => {
+    if (!user) return;
+    setIsLoadingDismissAll(true);
+    const result = await dismissAllUserDashboardNotifications(user.uid);
+    if (result.success) {
+        toast({ title: "تم المسح بنجاح", description: result.message });
+        clearUserDashboardNotificationBadge(); 
+        // Re-fetch notifications to update the UI from the source of truth (Firestore)
+        await Promise.all([fetchAppealNotifications(), fetchUserIssueUpdates()]);
+    } else {
+        toast({ title: "خطأ في المسح", description: result.message, variant: "destructive" });
+    }
+    setIsLoadingDismissAll(false);
   };
+
 
   if (authLoading || (isLoadingStats && !user)) {
     return (
@@ -236,8 +243,8 @@ export default function DashboardPage() {
     );
   }
 
-  const visibleAppealNotifications = appealNotifications.filter(n => !n.isDismissed);
-  const visibleUserIssueUpdates = userIssueUpdates.filter(u => !u.isDismissed);
+  const visibleAppealNotifications = appealNotifications.filter(n => !n.isDismissedClientSide);
+  const visibleUserIssueUpdates = userIssueUpdates.filter(u => !u.isDismissedClientSide);
   const hasVisibleNotifications = visibleAppealNotifications.length > 0 || visibleUserIssueUpdates.length > 0;
   const totalVisibleNotifications = visibleAppealNotifications.length + visibleUserIssueUpdates.length;
 
@@ -317,10 +324,11 @@ export default function DashboardPage() {
                 variant="outline_primary"
                 size="sm"
                 onClick={handleDismissAllNotifications}
+                disabled={isLoadingDismissAll}
                 className="transition-smooth hover:shadow-sm"
               >
-                <Trash2 size={16} className="ml-1 rtl:mr-1 rtl:ml-0" />
-                مسح كل الإشعارات
+                {isLoadingDismissAll ? <Loader2 size={16} className="animate-spin ml-1 rtl:mr-1 rtl:ml-0" /> : <Trash2 size={16} className="ml-1 rtl:mr-1 rtl:ml-0" />}
+                {isLoadingDismissAll ? "جاري المسح..." : "مسح كل الإشعارات"}
               </Button>
             )}
           </div>
@@ -343,7 +351,7 @@ export default function DashboardPage() {
                           variant="ghost"
                           size="icon"
                           className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDismissAppeal(notification.id)}
+                          onClick={() => handleDismissAppealClientSide(notification.id)}
                           aria-label="إخفاء هذا الإشعار"
                         >
                           <X size={16} />
@@ -375,7 +383,7 @@ export default function DashboardPage() {
                           variant="ghost"
                           size="icon"
                           className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDismissIssue(update.id)}
+                          onClick={() => handleDismissIssueClientSide(update.id)}
                           aria-label="إخفاء هذا الإشعار"
                         >
                           <X size={16} />

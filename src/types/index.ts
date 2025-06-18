@@ -100,6 +100,7 @@ export interface UserIssue {
   updatedAt?: Date;
   propertyId?: string; 
   propertyTitle?: string; 
+  dismissedByOwner?: boolean; // Added
 }
 
 export type AppealStatus = 'new' | 'under_review' | 'resolved_deleted' | 'resolved_kept_archived' | 'resolved_published';
@@ -117,5 +118,7 @@ export interface PropertyAppeal {
   adminNotes?: string; 
   adminDecisionAt?: Date; 
   propertyArchivalReason?: string; 
+  dismissedByOwner?: boolean; // Added
+  updatedAt?: Date; // Added
 }
 

@@ -18,7 +18,7 @@ interface AuthContextType {
   setUserDashboardNotificationCount: React.Dispatch<React.SetStateAction<number>>;
   adminNotificationCount: number;
   setAdminNotificationCount: React.Dispatch<React.SetStateAction<number>>;
-  clearUserDashboardNotificationBadge: () => void; // New function
+  clearUserDashboardNotificationBadge: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -116,12 +116,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const appealsQuery = query(
             collection(db, "property_appeals"),
             where("ownerUserId", "==", user.uid),
-            where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"])
+            where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]),
+            where("dismissedByOwner", "!=", true) 
           );
           const issuesQuery = query(
             collection(db, "user_issues"),
             where("userId", "==", user.uid),
-            where("status", "in", ["in_progress", "resolved"])
+            where("status", "in", ["in_progress", "resolved"]),
+            where("dismissedByOwner", "!=", true) 
           );
           const [appealsSnapshot, issuesSnapshot] = await Promise.all([
             getCountFromServer(appealsQuery),
@@ -137,7 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else if (!user) {
       setUserDashboardNotificationCount(0);
     }
-  }, [user, loading]);
+  }, [user, loading]); // Re-fetch if user or loading state changes
 
   // Fetch admin notifications
   useEffect(() => {
@@ -171,7 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else if (!user || !isAdmin) {
       setAdminNotificationCount(0);
     }
-  }, [user, isAdmin, loading]);
+  }, [user, isAdmin, loading]); // Re-fetch if user, isAdmin, or loading state changes
 
   const signOut = async () => {
     setLoading(true);
@@ -183,6 +185,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearUserDashboardNotificationBadge = () => {
+    // This function now effectively sets the count to 0 client-side.
+    // The persistent dismissal is handled by the server action and subsequent re-fetch.
     setUserDashboardNotificationCount(0);
   };
   
@@ -194,10 +198,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         trustLevel, 
         signOut,
         userDashboardNotificationCount,
-        setUserDashboardNotificationCount,
+        setUserDashboardNotificationCount, // Keep this if other parts of app might directly set it, though primary update is via fetch
         adminNotificationCount,
-        setAdminNotificationCount,
-        clearUserDashboardNotificationBadge, // Provide the new function
+        setAdminNotificationCount, // Keep for similar reasons
+        clearUserDashboardNotificationBadge,
     }}>
       {children}
     </AuthContext.Provider>
