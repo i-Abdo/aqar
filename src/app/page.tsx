@@ -21,7 +21,7 @@ export default function HomePage() {
         <h1 className="text-4xl md:text-6xl font-bold font-headline mb-6 tracking-tight">
           أهلاً بك في <span className="text-primary">عقاري</span>
         </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+        <p className="text-lg md:text-xl text-muted-foreground mx-auto mb-8">
           منصتك المثالية لإيجار وبيع العقارات في الجزائر. ابحث عن منزلك المثالي أو اعرض عقارك بكل سهولة.
         </p>
         <div className="flex justify-center gap-4">
