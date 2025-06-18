@@ -4,9 +4,9 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, DollarSign, CheckCircle, Phone, MessageSquare, Flag } from 'lucide-react';
-import Image from 'next/image'; // Using next/image for placeholders
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Property } from '@/types';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -33,15 +33,16 @@ export default function PropertyDetailPage() {
           const docSnap = await getDoc(propRef);
           if (docSnap.exists()) {
             const data = docSnap.data() as Omit<Property, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any };
-            // Ensure property is active for viewing unless user is admin
+            // Ensure property is active for viewing unless user is admin OR it's their own property (for preview perhaps, though this page is public facing)
+            // For public facing, strict check: must be 'active' unless admin.
             if (data.status !== 'active' && !(user && isAdmin)) {
               setError("هذا العقار غير متاح للعرض حاليًا.");
             } else {
               setProperty({
                 id: docSnap.id,
                 ...data,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-                updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
+                createdAt: (data.createdAt as Timestamp)?.toDate ? (data.createdAt as Timestamp).toDate() : new Date(data.createdAt),
+                updatedAt: (data.updatedAt as Timestamp)?.toDate ? (data.updatedAt as Timestamp).toDate() : new Date(data.updatedAt),
               } as Property);
             }
           } else {
@@ -73,10 +74,10 @@ export default function PropertyDetailPage() {
   if (error) {
      return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center p-4">
-        <MapPin size={64} className="text-destructive mb-4" /> {/* Or an error icon */}
+        <MapPin size={64} className="text-destructive mb-4" /> {}
         <h2 className="text-2xl font-bold text-destructive mb-2">خطأ في تحميل العقار</h2>
         <p className="text-muted-foreground mb-6">{error}</p>
-        <Button onClick={() => window.history.back()} variant="outline">العودة للخلف</Button>
+        <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> {}
       </div>
     );
   }
@@ -87,7 +88,7 @@ export default function PropertyDetailPage() {
             <MapPin size={64} className="text-muted-foreground mb-4" />
             <h2 className="text-2xl font-bold mb-2">العقار غير متوفر</h2>
             <p className="text-muted-foreground mb-6">لم نتمكن من العثور على تفاصيل هذا العقار. قد يكون تم حذفه أو أن الرابط غير صحيح.</p>
-            <Button onClick={() => window.history.back()} variant="outline">العودة للخلف</Button>
+            <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> {}
         </div>
     );
   }
@@ -107,7 +108,7 @@ export default function PropertyDetailPage() {
       <Card className="shadow-2xl overflow-hidden">
         <CardHeader className="p-0">
             {imageUrls && imageUrls.length > 0 ? (
-                 <Carousel className="w-full" opts={{ loop: true, direction: "rtl" }}>
+                 <Carousel className="w-full" opts={{ loop: imageUrls.length > 1, direction: "rtl" }}>
                     <CarouselContent>
                         {imageUrls.map((url, index) => (
                         <CarouselItem key={index}>
@@ -115,11 +116,11 @@ export default function PropertyDetailPage() {
                             <Image 
                                 src={url || "https://placehold.co/1200x600.png"} 
                                 alt={`${title} - صورة ${index + 1}`} 
-                                fill // Changed from layout="fill"
+                                fill 
                                 objectFit="cover"
                                 className="rounded-t-lg"
                                 data-ai-hint="property interior room"
-                                priority={index === 0} // Prioritize loading the first image
+                                priority={index === 0} 
                             />
                             </div>
                         </CarouselItem>
@@ -220,7 +221,7 @@ export default function PropertyDetailPage() {
                             اتصال (غير متاح)
                         </Button>
                     )}
-                     <Button size="lg" variant="outline_secondary" className="flex-1 transition-smooth hover:shadow-md">
+                     <Button size="lg" variant="outline_secondary" className="flex-1 transition-smooth hover:shadow-md" disabled>
                         <MessageSquare size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> مراسلة (سيتم تنفيذها لاحقاً)
                     </Button>
                    {user && !isAdmin && property.userId !== user.uid && (
@@ -237,7 +238,7 @@ export default function PropertyDetailPage() {
             </div>
         </CardFooter>
       </Card>
-      {user && !isAdmin && (
+      {user && !isAdmin && property.userId !== user.uid && (
         <ReportPropertyDialog
             isOpen={isReportDialogOpen}
             onOpenChange={setIsReportDialogOpen}

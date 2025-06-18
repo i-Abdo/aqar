@@ -1,7 +1,7 @@
 
 'use server';
 
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Report, ReportReason } from '@/types';
 import { auth as firebaseAuth } from '@/lib/firebase/client'; // For current user
@@ -20,17 +20,20 @@ export async function submitReport(input: SubmitReportInput): Promise<{ success:
     return { success: false, message: "يجب تسجيل الدخول لتقديم بلاغ." };
   }
 
-  if (!input.propertyId || !input.reason || !input.comments.trim()) {
+  if (!input.propertyId || !input.propertyTitle || !input.reason || !input.comments.trim()) {
     return { success: false, message: "الرجاء ملء جميع الحقول المطلوبة." };
   }
   
   if (input.comments.length > 1000) {
       return { success: false, message: "التعليقات يجب ألا تتجاوز 1000 حرف." };
   }
+   if (input.comments.length < 10) {
+      return { success: false, message: "التعليقات يجب أن تكون 10 أحرف على الأقل." };
+  }
 
 
   try {
-    const reportData: Omit<Report, 'id' | 'reportedAt'> = {
+    const reportData: Omit<Report, 'id' | 'reportedAt' | 'updatedAt'> = {
       propertyId: input.propertyId,
       propertyTitle: input.propertyTitle,
       reporterUserId: currentUser.uid,
@@ -38,12 +41,13 @@ export async function submitReport(input: SubmitReportInput): Promise<{ success:
       reason: input.reason,
       comments: input.comments,
       status: 'new',
-      // reportedAt will be set by serverTimestamp
+      // reportedAt and updatedAt will be set by serverTimestamp or now
     };
 
     const reportDataWithTimestamp = {
         ...reportData,
-        reportedAt: serverTimestamp(),
+        reportedAt: serverTimestamp() as Timestamp, // Firestore will convert this
+        updatedAt: serverTimestamp() as Timestamp, // Firestore will convert this
     }
 
     await addDoc(collection(db, 'reports'), reportDataWithTimestamp);

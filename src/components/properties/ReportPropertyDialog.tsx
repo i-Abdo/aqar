@@ -65,6 +65,13 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
       setIsSubmitting(false);
     }
   };
+  
+  // Reset form when dialog is closed externally
+  React.useEffect(() => {
+    if (!isOpen) {
+      form.reset({ reason: undefined, comments: "" });
+    }
+  }, [isOpen, form]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -82,7 +89,7 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
               name="reason"
               control={form.control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <SelectTrigger id="reason">
                     <SelectValue placeholder="اختر سببًا..." />
                   </SelectTrigger>
@@ -110,7 +117,7 @@ export function ReportPropertyDialog({ isOpen, onOpenChange, propertyId, propert
           </div>
           <DialogFooter>
             <DialogClose asChild>
-                <Button type="button" variant="outline">إلغاء</Button>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
             </DialogClose>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

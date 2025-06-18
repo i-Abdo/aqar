@@ -72,4 +72,5 @@ export interface Report {
   reportedAt: Date;
   status: 'new' | 'under_review' | 'resolved' | 'dismissed';
   adminNotes?: string;
+  updatedAt?: Date; // For tracking updates to the report status or notes
 }

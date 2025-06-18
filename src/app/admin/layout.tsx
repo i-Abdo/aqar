@@ -3,17 +3,17 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
-import { Loader2, ShieldAlert, LayoutDashboard, Flag } from "lucide-react"; // Added Flag
+import { Loader2, ShieldAlert, LayoutDashboard, Flag } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { AppLogo } from "@/components/layout/AppLogo";
+
 
 const adminNavItems = [ 
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard },
-  { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag }, // Added reports link
+  { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag },
 ];
 
 function AdminSidebarNav() {
@@ -24,7 +24,7 @@ function AdminSidebarNav() {
         <SidebarMenuItem key={index}>
           <SidebarMenuButton
             asChild
-            isActive={pathname === item.href || (item.href === "/admin/reports" && pathname.startsWith("/admin/reports"))}
+            isActive={pathname.startsWith(item.href)} 
             className="justify-start text-base"
             tooltip={item.title}
           >
@@ -85,7 +85,6 @@ export default function AdminLayout({
     <SidebarProvider defaultOpen={true}>
       <Sidebar side="right" collapsible="icon" className="border-l rtl:border-r-0">
         <SidebarHeader className="p-3 flex items-center justify-center">
-          {/* <AppLogo /> */}
            <h2 className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة الإدارة</h2>
         </SidebarHeader>
         <SidebarContent className="p-0">

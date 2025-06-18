@@ -10,7 +10,7 @@ import { MoreHorizontal, Eye, Edit, Loader2, CheckCircle, AlertOctagon, ArchiveX
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Report, ReportReason } from "@/types"; // Assuming Property type is also needed for linking
+import type { Report } from "@/types";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -33,10 +33,10 @@ const reportStatusTranslations: Record<Report['status'], string> = {
 };
 
 const reportStatusVariants: Record<Report['status'], "default" | "secondary" | "destructive" | "outline"> = {
-  new: 'default', // Use primary color
-  under_review: 'secondary', // Yellowish/Grayish
-  resolved: 'outline', // Greenish or neutral outline
-  dismissed: 'destructive', // Reddish
+  new: 'default', 
+  under_review: 'secondary', 
+  resolved: 'outline', 
+  dismissed: 'destructive', 
 };
 
 
@@ -59,6 +59,7 @@ export default function AdminReportsPage() {
           id: docSnap.id,
           ...data,
           reportedAt: (data.reportedAt as Timestamp)?.toDate ? (data.reportedAt as Timestamp).toDate() : new Date(data.reportedAt || Date.now()),
+          updatedAt: (data.updatedAt as Timestamp)?.toDate ? (data.updatedAt as Timestamp).toDate() : new Date(data.updatedAt || Date.now()),
         } as Report;
       });
       setReports(reportsData);
@@ -72,7 +73,7 @@ export default function AdminReportsPage() {
 
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [toast]);
 
   const openNotesDialog = (report: Report) => {
     setSelectedReport(report);
@@ -81,23 +82,29 @@ export default function AdminReportsPage() {
   };
 
   const handleUpdateReportStatus = async (reportId: string, status: Report['status'], notes?: string) => {
+    if (!reportId) {
+        toast({title: "خطأ", description: "معرف البلاغ مفقود.", variant: "destructive"});
+        return;
+    }
     try {
       const reportRef = doc(db, "reports", reportId);
-      const updateData: Partial<Report> & { updatedAt: Timestamp } = {
+      const updateData: Partial<Omit<Report, 'id' | 'reportedAt'>> & { updatedAt: Timestamp } = { // Ensure only updatable fields + updatedAt
         status,
         updatedAt: Timestamp.now(),
       };
       if (notes !== undefined) {
         updateData.adminNotes = notes;
       }
-      await updateDoc(reportRef, updateData as any); // Cast because Timestamp is not directly in Report
+      await updateDoc(reportRef, updateData); 
       toast({ title: "تم التحديث", description: `تم تحديث حالة البلاغ إلى "${reportStatusTranslations[status]}".` });
-      fetchReports(); // Refresh
+      fetchReports(); 
     } catch (error) {
+      console.error("Error updating report status:", error);
       toast({ title: "خطأ", description: "فشل تحديث حالة البلاغ.", variant: "destructive" });
     }
     if (isNotesDialogOpen) setIsNotesDialogOpen(false);
     setSelectedReport(null);
+    setAdminNotes("");
   };
   
   const handleSaveNotesAndResolve = async () => {
@@ -126,6 +133,7 @@ export default function AdminReportsPage() {
               <TableHead>السبب</TableHead>
               <TableHead className="max-w-[250px]">التعليقات</TableHead>
               <TableHead>تاريخ البلاغ</TableHead>
+              <TableHead>ملاحظات المسؤول</TableHead>
               <TableHead>الحالة</TableHead>
               <TableHead className="text-right">إجراءات</TableHead>
             </TableRow>
@@ -133,15 +141,16 @@ export default function AdminReportsPage() {
           <TableBody>
             {reports.map((report) => (
               <TableRow key={report.id}>
-                <TableCell className="font-medium max-w-[200px] truncate" title={report.propertyTitle}>
+                <TableCell className="font-medium max-w-[180px] truncate" title={report.propertyTitle}>
                   <Link href={`/properties/${report.propertyId}`} target="_blank" className="hover:underline text-primary">
                     {report.propertyTitle}
                   </Link>
                 </TableCell>
                 <TableCell className="max-w-[150px] truncate" title={report.reporterEmail}>{report.reporterEmail}</TableCell>
-                <TableCell>{report.reason}</TableCell>
-                <TableCell className="text-xs max-w-[250px] truncate" title={report.comments}>{report.comments}</TableCell>
-                <TableCell>{new Date(report.reportedAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                <TableCell className="text-xs max-w-[120px] truncate" title={report.reason}>{report.reason}</TableCell>
+                <TableCell className="text-xs max-w-[200px] truncate" title={report.comments}>{report.comments}</TableCell>
+                <TableCell className="text-xs">{new Date(report.reportedAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                <TableCell className="text-xs max-w-[150px] truncate" title={report.adminNotes || "لا يوجد"}>{report.adminNotes || "لا يوجد"}</TableCell>
                 <TableCell>
                   <Badge variant={reportStatusVariants[report.status]}>
                     {reportStatusTranslations[report.status]}
@@ -179,8 +188,8 @@ export default function AdminReportsPage() {
                                 <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'under_review')}>
                                 <Loader2 className="mr-2 h-4 w-4 text-yellow-500 animate-spin" /> قيد المراجعة
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'resolved')}>
-                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> تم الحل
+                                <DropdownMenuItem onClick={() => {setSelectedReport(report); setAdminNotes(report.adminNotes || ""); setIsNotesDialogOpen(true);}}>
+                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> تم الحل (مع ملاحظات)
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'dismissed')}>
                                 <ArchiveX className="mr-2 h-4 w-4 text-red-500" /> مرفوض
@@ -200,14 +209,21 @@ export default function AdminReportsPage() {
         )}
       </Card>
 
-      {/* Admin Notes Dialog */}
-      <AlertDialog open={isNotesDialogOpen} onOpenChange={setIsNotesDialogOpen}>
+      {}
+      <AlertDialog open={isNotesDialogOpen} onOpenChange={(open) => {
+          setIsNotesDialogOpen(open);
+          if (!open) {
+            setSelectedReport(null); 
+            setAdminNotes("");
+          }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>ملاحظات المسؤول على البلاغ</AlertDialogTitle>
             <AlertDialogDescription>
-              عرض أو تعديل الملاحظات الخاصة بهذا البلاغ. هذه الملاحظات للاستخدام الداخلي فقط.
-              العقار: "{selectedReport?.propertyTitle}"
+              عرض أو تعديل الملاحظات الخاصة بهذا البلاغ. العقار: "{selectedReport?.propertyTitle}"
+              <br/>
+              السبب: {selectedReport?.reason} | التعليقات: {selectedReport?.comments}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
@@ -217,15 +233,19 @@ export default function AdminReportsPage() {
             rows={5}
             className="my-2"
           />
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsNotesDialogOpen(false);}}>إغلاق</AlertDialogCancel>
-            <Button onClick={handleSaveNotesAndResolve} disabled={!adminNotes.trim() && selectedReport?.status !== 'resolved'}>
-                {selectedReport?.status === 'resolved' && !adminNotes.trim() ? "تم الحل (لا توجد ملاحظات)" : "حفظ الملاحظات وحل البلاغ"}
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel onClick={() => {setSelectedReport(null); setIsNotesDialogOpen(false); setAdminNotes("");}}>إغلاق</AlertDialogCancel>
+            <Button 
+                onClick={handleSaveNotesAndResolve} 
+                disabled={!adminNotes.trim() || !selectedReport}
+                variant="default"
+            >
+                 حل البلاغ مع حفظ الملاحظات
             </Button>
-            {selectedReport?.status !== 'resolved' && (
+            {selectedReport && (
                  <Button 
                     variant="outline" 
-                    onClick={() => handleUpdateReportStatus(selectedReport!.id, selectedReport!.status, adminNotes)}
+                    onClick={() => handleUpdateReportStatus(selectedReport.id, selectedReport.status, adminNotes)}
                     disabled={!adminNotes.trim()}
                 >
                     حفظ الملاحظات فقط
