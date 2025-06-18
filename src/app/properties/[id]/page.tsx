@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'; // Added useRouter
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
@@ -12,17 +12,20 @@ import type { Property } from '@/types';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { useAuth } from '@/hooks/use-auth';
 import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
+import { ContactAdminDialog } from '@/components/dashboard/ContactAdminDialog';
 
 
 export default function PropertyDetailPage() {
   const params = useParams();
-  const router = useRouter(); // Initialized useRouter
+  const router = useRouter(); 
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user, isAdmin } = useAuth();
-  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isReportPropertyDialogOpen, setIsReportPropertyDialogOpen] = useState(false);
+  const [isContactAdminDialogOpen, setIsContactAdminDialogOpen] = useState(false);
+
 
   useEffect(() => {
     if (id) {
@@ -35,7 +38,8 @@ export default function PropertyDetailPage() {
           if (docSnap.exists()) {
             const data = docSnap.data() as Omit<Property, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any };
             
-            if (data.status !== 'active' && !(user && isAdmin)) {
+            // Allow owner or admin to see non-active properties, otherwise show error
+            if (data.status !== 'active' && !(user && (data.userId === user.uid || isAdmin))) {
               setError("هذا العقار غير متاح للعرض حاليًا.");
             } else {
               setProperty({
@@ -93,7 +97,7 @@ export default function PropertyDetailPage() {
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, filters, imageUrls, createdAt } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, filters, imageUrls, createdAt, userId: propertyOwnerId } = property;
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -101,6 +105,8 @@ export default function PropertyDetailPage() {
     gas: "غاز متوفر",
     contract: "بعقد موثق",
   };
+  
+  const isOwner = user && propertyOwnerId === user.uid;
 
 
   return (
@@ -152,6 +158,7 @@ export default function PropertyDetailPage() {
 
           <CardDescription className="text-sm text-muted-foreground mb-6">
             نشر بتاريخ: {new Date(createdAt).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' })}
+            {property.status !== 'active' && <span className="font-bold text-destructive mx-2">(الحالة: {property.status === 'pending' ? 'قيد المراجعة' : property.status === 'archived' ? 'مؤرشف' : 'محذوف'})</span>}
           </CardDescription>
 
           <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
@@ -198,34 +205,53 @@ export default function PropertyDetailPage() {
         </CardContent>
         <CardFooter className="p-6 md:p-8 border-t bg-secondary/30">
             <div className="w-full">
-                <h3 className="text-xl font-semibold mb-4 font-headline text-center">الإبلاغ</h3>
+                <h3 className="text-xl font-semibold mb-4 font-headline text-center">الإجراءات</h3>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                   {user && !isAdmin && property.userId !== user.uid && (
+                   {user && !isAdmin && !isOwner && (
                      <Button 
                         size="lg" 
                         variant="destructive_outline" 
                         className="flex-1 transition-smooth hover:shadow-md"
-                        onClick={() => setIsReportDialogOpen(true)}
+                        onClick={() => setIsReportPropertyDialogOpen(true)}
                      >
                         <Flag size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إبلاغ عن العقار
                     </Button>
                    )}
-                   {(!user || isAdmin || property.userId === user?.uid) && (
-                     <p className="text-muted-foreground text-center w-full">لا يمكنك الإبلاغ عن هذا العقار.</p>
+                    {isOwner && (
+                        <Button
+                            size="lg"
+                            variant="outline_secondary"
+                            className="flex-1 transition-smooth hover:shadow-md"
+                            onClick={() => setIsContactAdminDialogOpen(true)}
+                        >
+                            <MessageSquareWarning size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> الإبلاغ عن مشكلة بهذا العقار
+                        </Button>
+                    )}
+                   {(!user || isAdmin || isOwner) && !isOwner && ( // Show if not logged in, or admin, or (not owner AND not the report button case)
+                     <p className="text-muted-foreground text-center w-full">لإجراءات إضافية، يرجى تسجيل الدخول أو التأكد من صلاحياتك.</p>
                    )}
                 </div>
             </div>
         </CardFooter>
       </Card>
-      {user && !isAdmin && property.userId !== user.uid && (
+      {user && !isAdmin && !isOwner && (
         <ReportPropertyDialog
-            isOpen={isReportDialogOpen}
-            onOpenChange={setIsReportDialogOpen}
+            isOpen={isReportPropertyDialogOpen}
+            onOpenChange={setIsReportPropertyDialogOpen}
             propertyId={property.id}
             propertyTitle={property.title}
+        />
+      )}
+      {isOwner && user && (
+        <ContactAdminDialog
+          isOpen={isContactAdminDialogOpen}
+          onOpenChange={setIsContactAdminDialogOpen}
+          userId={user.uid}
+          userEmail={user.email || "غير متوفر"}
+          propertyId={property.id}
+          propertyTitle={property.title}
         />
       )}
     </div>
   );
 }
-

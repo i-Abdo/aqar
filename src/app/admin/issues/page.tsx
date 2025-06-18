@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Loader2, MessageSquare, UserCog, UserCheck, UserX, Mail, Eye } from "lucide-react";
+import { MoreHorizontal, Loader2, MessageSquare, UserCog, UserCheck, UserX, Mail, Eye, Building } from "lucide-react"; // Added Building icon
 import { useToast } from "@/hooks/use-toast";
 import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
@@ -24,7 +24,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label"; // Added missing import
+import { Label } from "@/components/ui/label"; 
+import Link from 'next/link'; // Added Link for property link
 
 const issueStatusTranslations: Record<UserIssue['status'], string> = {
   new: 'جديد',
@@ -85,8 +86,7 @@ export default function AdminUserIssuesPage() {
     setSelectedIssue(issue);
     setAdminNotes(issue.adminNotes || "");
     
-    // Fetch current user details to display their current trust level
-    setIsLoading(true); // Use a loading state for fetching user details
+    setIsLoading(true); 
     try {
         const userRef = doc(db, "users", issue.userId);
         const userSnap = await getDoc(userRef);
@@ -95,7 +95,7 @@ export default function AdminUserIssuesPage() {
             setCurrentUserDetails({ email: userData.email, trustLevel: userData.trustLevel || 'normal' });
             setTargetUserTrustLevel(userData.trustLevel || 'normal');
         } else {
-            setCurrentUserDetails({ email: issue.userEmail, trustLevel: 'normal' }); // Fallback
+            setCurrentUserDetails({ email: issue.userEmail, trustLevel: 'normal' }); 
             setTargetUserTrustLevel('normal');
             toast({ title: "تنبيه", description: "لم يتم العثور على بيانات المستخدم التفصيلية.", variant: "default" });
         }
@@ -154,9 +154,9 @@ export default function AdminUserIssuesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>معرف المستخدم</TableHead>
-              <TableHead>البريد الإلكتروني</TableHead>
-              <TableHead className="max-w-[300px]">الرسالة</TableHead>
+              <TableHead>البريد الإلكتروني للمستخدم</TableHead>
+              <TableHead className="max-w-[250px]">الرسالة</TableHead>
+              <TableHead className="max-w-[200px]">العقار المعني (إن وجد)</TableHead>
               <TableHead>تاريخ الإرسال</TableHead>
               <TableHead>الحالة</TableHead>
               <TableHead className="text-right">إجراءات</TableHead>
@@ -165,9 +165,17 @@ export default function AdminUserIssuesPage() {
           <TableBody>
             {issues.map((issue) => (
               <TableRow key={issue.id}>
-                <TableCell className="font-medium truncate" title={issue.userId}>{issue.userId}</TableCell>
                 <TableCell className="truncate" title={issue.userEmail}>{issue.userEmail}</TableCell>
                 <TableCell className="text-xs max-w-[250px] truncate" title={issue.message}>{issue.message}</TableCell>
+                <TableCell className="text-xs max-w-[200px] truncate">
+                  {issue.propertyId && issue.propertyTitle ? (
+                    <Link href={`/properties/${issue.propertyId}`} target="_blank" className="hover:underline text-primary flex items-center gap-1">
+                      <Building size={14}/> {issue.propertyTitle}
+                    </Link>
+                  ) : (
+                    "لا يوجد"
+                  )}
+                </TableCell>
                 <TableCell className="text-xs">{new Date(issue.submittedAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
                 <TableCell>
                   <Badge variant={issueStatusVariants[issue.status]}>
@@ -204,6 +212,12 @@ export default function AdminUserIssuesPage() {
               المستخدم: {selectedIssue?.userEmail} (ID: {selectedIssue?.userId})
               <br />
               التصنيف الحالي للمستخدم: {currentUserDetails?.trustLevel ? trustLevelTranslations[currentUserDetails.trustLevel] : 'غير محدد'}
+              {selectedIssue?.propertyTitle && (
+                <>
+                  <br />
+                  بخصوص العقار: <Link href={`/properties/${selectedIssue.propertyId}`} target="_blank" className="hover:underline text-primary">{selectedIssue.propertyTitle}</Link> (ID: {selectedIssue.propertyId})
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -243,9 +257,9 @@ export default function AdminUserIssuesPage() {
                         <SelectValue placeholder="اختر حالة المشكلة..." />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="new">{issueStatusTranslations.new}</SelectItem>
-                        <SelectItem value="in_progress">{issueStatusTranslations.in_progress}</SelectItem>
-                        <SelectItem value="resolved">{issueStatusTranslations.resolved}</SelectItem>
+                        <SelectItem value="new">{issueStatusTranslations.new} (جديد)</SelectItem>
+                        <SelectItem value="in_progress">{issueStatusTranslations.in_progress} (تم الاستلام / قيد المعالجة)</SelectItem>
+                        <SelectItem value="resolved">{issueStatusTranslations.resolved} (تم الحل)</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -266,5 +280,3 @@ export default function AdminUserIssuesPage() {
     </div>
   );
 }
-
-    

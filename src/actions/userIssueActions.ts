@@ -9,6 +9,8 @@ interface SubmitUserIssueInput {
   userId: string;
   userEmail: string;
   message: string;
+  propertyId?: string;
+  propertyTitle?: string;
 }
 
 export async function submitUserIssue(input: SubmitUserIssueInput): Promise<{ success: boolean; message: string }> {
@@ -29,6 +31,8 @@ export async function submitUserIssue(input: SubmitUserIssueInput): Promise<{ su
       userEmail: input.userEmail,
       message: input.message,
       status: 'new',
+      ...(input.propertyId && { propertyId: input.propertyId }),
+      ...(input.propertyTitle && { propertyTitle: input.propertyTitle }),
     };
 
     const issueDataWithTimestamp = {

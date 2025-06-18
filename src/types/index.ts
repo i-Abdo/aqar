@@ -89,6 +89,8 @@ export interface UserIssue {
   status: 'new' | 'in_progress' | 'resolved';
   adminNotes?: string;
   updatedAt?: Date;
+  propertyId?: string; // Added for property-specific issues
+  propertyTitle?: string; // Added for property-specific issues
 }
 
 // For Property Appeal System

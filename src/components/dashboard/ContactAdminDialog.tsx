@@ -24,9 +24,18 @@ interface ContactAdminDialogProps {
   onOpenChange: (open: boolean) => void;
   userId: string;
   userEmail: string;
+  propertyId?: string;
+  propertyTitle?: string;
 }
 
-export function ContactAdminDialog({ isOpen, onOpenChange, userId, userEmail }: ContactAdminDialogProps) {
+export function ContactAdminDialog({ 
+    isOpen, 
+    onOpenChange, 
+    userId, 
+    userEmail, 
+    propertyId, 
+    propertyTitle 
+}: ContactAdminDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -44,6 +53,8 @@ export function ContactAdminDialog({ isOpen, onOpenChange, userId, userEmail }: 
         userId,
         userEmail,
         message: data.message,
+        ...(propertyId && { propertyId }),
+        ...(propertyTitle && { propertyTitle }),
       });
 
       if (result.success) {
@@ -67,13 +78,22 @@ export function ContactAdminDialog({ isOpen, onOpenChange, userId, userEmail }: 
     }
   }, [isOpen, form]);
 
+  const dialogTitle = propertyTitle 
+    ? `الإبلاغ عن مشكلة بخصوص العقار: ${propertyTitle}` 
+    : "الاتصال بالإدارة";
+  
+  const dialogDescription = propertyTitle
+    ? "صف المشكلة التي تواجهها بخصوص هذا العقار. سيتم مراجعة رسالتك."
+    : "صف مشكلتك أو سبب اتصالك بالإدارة. سيتم مراجعة رسالتك في أقرب وقت.";
+
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>الاتصال بالإدارة</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            صف مشكلتك أو سبب اتصالك بالإدارة. سيتم مراجعة رسالتك في أقرب وقت.
+            {dialogDescription}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
