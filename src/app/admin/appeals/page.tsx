@@ -79,7 +79,7 @@ export default function AdminPropertyAppealsPage() {
 
   useEffect(() => {
     fetchAppeals();
-  }, []);
+  }, [toast]);
 
   const openDecisionDialog = (appeal: PropertyAppeal, type: AdminAppealDecisionType) => {
     setSelectedAppeal(appeal);
@@ -111,7 +111,7 @@ export default function AdminPropertyAppealsPage() {
           propertyUpdate.deletionReason = adminNotes; // Use admin notes as deletion reason
           propertyUpdate.archivalReason = ""; // Clear archival reason
           // Optionally, update owner's trust level if needed here based on policy
-          // ownerUpdate = { trustLevel: 'untrusted', updatedAt: Timestamp.now() };
+          // For now, we don't auto-change trust on delete from appeal, admin can do it via users page
           break;
         case 'keep_archived':
           newAppealStatus = 'resolved_kept_archived';
@@ -143,7 +143,7 @@ export default function AdminPropertyAppealsPage() {
       if (ownerUpdate && selectedAppeal.ownerUserId) {
         const userRef = doc(db, "users", selectedAppeal.ownerUserId);
         await updateDoc(userRef, ownerUpdate);
-         toast({ title: "تم تحديث تصنيف المالك", description: `تم تحديث تصنيف المالك إلى ${ownerUpdate.trustLevel}.` });
+         toast({ title: "تم تحديث تصنيف المالك", description: `تم تحديث تصنيف المالك إلى ${trustLevelTranslations[ownerUpdate.trustLevel!]}.` });
       }
       
       toast({ title: "تم اتخاذ القرار", description: `تم تحديث حالة الطعن والعقار بنجاح.` });
@@ -178,6 +178,13 @@ export default function AdminPropertyAppealsPage() {
     } finally {
         setIsLoading(false);
     }
+  };
+
+  // Translations for trust levels
+  const trustLevelTranslations: Record<UserTrustLevel, string> = {
+    normal: 'عادي',
+    untrusted: 'غير موثوق',
+    blacklisted: 'قائمة سوداء',
   };
 
 
@@ -310,3 +317,5 @@ export default function AdminPropertyAppealsPage() {
     </div>
   );
 }
+
+    
