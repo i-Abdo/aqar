@@ -7,17 +7,16 @@ import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset } from "@/components/ui/sidebar";
 import { AppLogo } from "@/components/layout/AppLogo";
-import { collection, query, where, getCountFromServer, Timestamp } from "firebase/firestore"; 
-import { db } from "@/lib/firebase/client";
+// Removed Firestore imports as counts are now fetched in AuthProvider
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, setUserDashboardNotificationCount } = useAuth();
+  const { user, loading, setUserDashboardNotificationCount } = useAuth(); // setUserDashboardNotificationCount might not be needed here anymore
   const router = useRouter();
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
+  // const [isLoadingNotifications, setIsLoadingNotifications] = useState(true); // This state might also be redundant
 
   useEffect(() => {
     if (!loading && !user) {
@@ -25,42 +24,14 @@ export default function DashboardLayout({
     }
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (loading || !user) {
-      setUserDashboardNotificationCount(0);
-      return;
-    }
-
-    const fetchUserNotificationsCount = async () => {
-      setIsLoadingNotifications(true);
-      let totalCount = 0;
-      try {
-        const appealsQuery = query(
-          collection(db, "property_appeals"),
-          where("ownerUserId", "==", user.uid),
-          where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"])
-        );
-        const issuesQuery = query(
-          collection(db, "user_issues"),
-          where("userId", "==", user.uid),
-          where("status", "in", ["in_progress", "resolved"])
-        );
-        const [appealsSnapshot, issuesSnapshot] = await Promise.all([
-          getCountFromServer(appealsQuery),
-          getCountFromServer(issuesQuery),
-        ]);
-        totalCount = appealsSnapshot.data().count + issuesSnapshot.data().count;
-        setUserDashboardNotificationCount(totalCount);
-      } catch (error) {
-        console.error("Error fetching user notification counts for dashboard layout:", error);
-        setUserDashboardNotificationCount(0);
-      } finally {
-        setIsLoadingNotifications(false);
-      }
-    };
-
-    fetchUserNotificationsCount();
-  }, [user, loading, setUserDashboardNotificationCount]);
+  // Removed useEffect for fetching user notifications count as it's now handled in AuthProvider
+  // useEffect(() => {
+  //   if (loading || !user) {
+  //     // setUserDashboardNotificationCount(0); // This will be handled by AuthProvider on logout
+  //     return;
+  //   }
+  //   // Fetching logic moved to AuthProvider
+  // }, [user, loading, setUserDashboardNotificationCount]);
 
 
   if (loading) {

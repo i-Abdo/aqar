@@ -77,7 +77,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAdmin, loading: authLoading, adminNotificationCount, setAdminNotificationCount } = useAuth();
+  const { user, isAdmin, loading: authLoading, adminNotificationCount } = useAuth(); // Removed setAdminNotificationCount
   const router = useRouter();
   const pathname = usePathname(); 
 
@@ -87,11 +87,11 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (!isAdmin) {
-        setAdminNotificationCount(0);
+        // setAdminNotificationCount(0); // This line is removed
         return;
     };
 
-    const fetchAdminCounts = async () => {
+    const fetchAdminCountsForSidebar = async () => { // Renamed to avoid confusion
       setIsLoadingCounts(true);
       try {
         const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
@@ -113,19 +113,20 @@ export default function AdminLayout({
           appeals: appealsSnapshot.data().count,
         };
         setCounts(currentCountsData);
-        setAdminNotificationCount(currentCountsData.pending + currentCountsData.reports + currentCountsData.issues + currentCountsData.appeals);
+        // Removed: setAdminNotificationCount(currentCountsData.pending + currentCountsData.reports + currentCountsData.issues + currentCountsData.appeals);
+        // The total adminNotificationCount is now set by AuthProvider
 
       } catch (error) {
-        console.error("Error fetching admin counts:", error);
+        console.error("Error fetching admin counts for sidebar:", error);
         setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
-        setAdminNotificationCount(0);
+        // Removed: setAdminNotificationCount(0);
       } finally {
         setIsLoadingCounts(false);
       }
     };
 
-    fetchAdminCounts();
-  }, [isAdmin, pathname, setAdminNotificationCount]);
+    fetchAdminCountsForSidebar();
+  }, [isAdmin, pathname]); // Removed setAdminNotificationCount from dependencies
 
 
   useEffect(() => {
@@ -165,6 +166,7 @@ export default function AdminLayout({
         <SidebarHeader className="p-3 flex items-center justify-center">
            <div className="flex items-center gap-2 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
              <h2 className="text-xl font-semibold">لوحة الإدارة</h2>
+             {/* Using adminNotificationCount from AuthContext for the header badge */}
              {adminNotificationCount > 0 && !isLoadingCounts && (
                <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
              )}

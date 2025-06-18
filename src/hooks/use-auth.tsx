@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { onAuthStateChanged, User as FirebaseUser, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth as firebaseAuth } from '@/lib/firebase/client';
 import type { CustomUser, UserTrustLevel } from '@/types';
-import { doc, getDoc, onSnapshot, Timestamp } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, Timestamp, collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from '@/lib/firebase/client';
 
 interface AuthContextType {
@@ -93,8 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setIsAdmin(false);
         setTrustLevel(null);
-        setUserDashboardNotificationCount(0); // Reset count on logout
-        setAdminNotificationCount(0); // Reset count on logout
+        setUserDashboardNotificationCount(0); 
+        setAdminNotificationCount(0); 
         setLoading(false);
       }
     });
@@ -107,14 +107,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Fetch user dashboard notifications
+  useEffect(() => {
+    if (user && !loading) {
+      const fetchUserNotifications = async () => {
+        try {
+          const appealsQuery = query(
+            collection(db, "property_appeals"),
+            where("ownerUserId", "==", user.uid),
+            where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"])
+          );
+          const issuesQuery = query(
+            collection(db, "user_issues"),
+            where("userId", "==", user.uid),
+            where("status", "in", ["in_progress", "resolved"])
+          );
+          const [appealsSnapshot, issuesSnapshot] = await Promise.all([
+            getCountFromServer(appealsQuery),
+            getCountFromServer(issuesQuery),
+          ]);
+          setUserDashboardNotificationCount(appealsSnapshot.data().count + issuesSnapshot.data().count);
+        } catch (error) {
+          console.error("Error fetching user dashboard notification counts in AuthProvider:", error);
+          setUserDashboardNotificationCount(0);
+        }
+      };
+      fetchUserNotifications();
+    } else if (!user) {
+      setUserDashboardNotificationCount(0);
+    }
+  }, [user, loading]);
+
+  // Fetch admin notifications
+  useEffect(() => {
+    if (user && isAdmin && !loading) {
+      const fetchAdminNotifications = async () => {
+        try {
+          const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
+          const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
+          const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
+          const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
+
+          const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
+            getCountFromServer(pendingPropsQuery),
+            getCountFromServer(newReportsQuery),
+            getCountFromServer(newUserIssuesQuery),
+            getCountFromServer(newAppealsQuery),
+          ]);
+
+          setAdminNotificationCount(
+            pendingSnapshot.data().count +
+            reportsSnapshot.data().count +
+            issuesSnapshot.data().count +
+            appealsSnapshot.data().count
+          );
+        } catch (error) {
+          console.error("Error fetching admin notification counts in AuthProvider:", error);
+          setAdminNotificationCount(0);
+        }
+      };
+      fetchAdminNotifications();
+    } else if (!user || !isAdmin) {
+      setAdminNotificationCount(0);
+    }
+  }, [user, isAdmin, loading]);
+
   const signOut = async () => {
     setLoading(true);
     try {
       await firebaseSignOut(firebaseAuth);
-      // User state will be updated by onAuthStateChanged listener
     } catch (error) {
       console.error("Error signing out: ", error);
-      // setLoading(false) explicitly here if onAuthStateChanged doesn't fire quickly or errors out
     }
   };
   
@@ -126,9 +189,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         trustLevel, 
         signOut,
         userDashboardNotificationCount,
-        setUserDashboardNotificationCount,
+        setUserDashboardNotificationCount, // Still provide setter if needed elsewhere, though primary update is here
         adminNotificationCount,
-        setAdminNotificationCount
+        setAdminNotificationCount // Still provide setter if needed elsewhere
     }}>
       {children}
     </AuthContext.Provider>
