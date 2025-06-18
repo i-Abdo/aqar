@@ -17,9 +17,11 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [themeSetting, setThemeSettingState] = useState<ThemeSetting>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem("themeSetting") as ThemeSetting) || "system";
+      // If there's a stored setting, use it. Otherwise, default to "light".
+      return (localStorage.getItem("themeSetting") as ThemeSetting) || "light";
     }
-    return "system"; // Default for SSR, will be corrected on client
+    // For SSR, default to "light". It will be corrected on client if localStorage has a value.
+    return "light";
   });
 
   const [effectiveTheme, setEffectiveTheme] = useState<EffectiveTheme>("light"); // Default to light for SSR
@@ -39,19 +41,19 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     if (themeSetting === "system") {
       currentEffectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     } else {
-      currentEffectiveTheme = themeSetting;
+      currentEffectiveTheme = themeSetting; // "light" or "dark"
     }
 
     root.classList.remove("light", "dark");
     root.classList.add(currentEffectiveTheme);
     setEffectiveTheme(currentEffectiveTheme);
-    localStorage.setItem("themeSetting", themeSetting);
+    localStorage.setItem("themeSetting", themeSetting); // Save the actual setting ("light", "dark", or "system")
 
   }, [themeSetting, hydrated]);
 
   // Listener for system theme changes IF themeSetting is "system"
   useEffect(() => {
-    if (!hydrated || themeSetting !== "system") return; // Wait for client-side hydration
+    if (!hydrated || themeSetting !== "system") return;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
@@ -62,7 +64,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       setEffectiveTheme(newEffectiveTheme);
     };
 
-    // Initial check, in case the state was 'system' but the actual check in the first useEffect didn't run yet or was based on old mediaQuery.matches
     handleChange(); 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
@@ -75,8 +76,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   
   if (!hydrated) {
     // To prevent flash of unstyled content or incorrect theme during SSR->client transition
-    // You might return null or a loader, but for theme, children might be fine with suppressHydrationWarning
-    // For now, let's render children but know that the theme class on <html> might flicker once.
   }
 
   return (
@@ -93,3 +92,4 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
+
