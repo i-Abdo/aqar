@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
-import { BedDouble, Bath, MapPin, Phone, Flag, Tag, Home } from "lucide-react"; 
+import { BedDouble, Bath, MapPin, Phone, Flag, Tag, Home, Ruler } from "lucide-react"; 
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { ReportPropertyDialog } from "./ReportPropertyDialog"; 
@@ -86,6 +86,18 @@ export function PropertyCard({ property }: PropertyCardProps) {
               <Bath size={16} className="text-muted-foreground" />
               <span>{property.bathrooms} حمامات</span>
             </div>
+            {property.area && (
+              <div className="flex items-center gap-1">
+                <Ruler size={16} className="text-muted-foreground" />
+                <span>المساحة: {property.area} م²</span>
+              </div>
+            )}
+            {property.length && property.width && (
+              <div className="flex items-center gap-1">
+                <Ruler size={16} className="text-muted-foreground" />
+                <span>الأبعاد: {property.length}م × {property.width}م</span>
+              </div>
+            )}
             {property.phoneNumber && (
               <div className="flex items-center gap-1">
                 <Phone size={16} className="text-muted-foreground" />
