@@ -5,10 +5,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { UserCog, Palette, ShieldCheck, BellDot, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useTheme } from "@/hooks/use-theme";
+import React from "react";
 
-// Metadata cannot be used in client component, ensure it's removed or handled at layout level if needed.
 
 export default function SettingsPage() {
+  const { themeSetting, setThemeSetting, effectiveTheme } = useTheme();
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const handleThemeChange = (checked: boolean) => {
+    setThemeSetting(checked ? 'dark' : 'light');
+  };
+
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold font-headline">الإعدادات</h1>
@@ -57,8 +71,30 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            (سيتم تنفيذ هذه الميزة لاحقًا) اختر بين الوضع الفاتح والداكن، أو إعدادات السمات الأخرى.
+          {isClient ? (
+            <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm">
+              <div className="space-y-0.5">
+                <Label htmlFor="dark-mode-switch" className="text-base font-medium">
+                  الوضع الداكن
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {effectiveTheme === 'dark' ? "الوضع الداكن مُفعل حالياً." : "الوضع الفاتح مُفعل حالياً."}
+                </p>
+              </div>
+              <Switch
+                id="dark-mode-switch"
+                checked={effectiveTheme === 'dark'}
+                onCheckedChange={handleThemeChange}
+                aria-label="Toggle dark mode"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-lg border p-4 shadow-sm h-[76px] animate-pulse bg-muted/50">
+              {/* Placeholder for loading state to avoid hydration mismatch */}
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground mt-4">
+            لتفضيل نظام التشغيل: (سيتم إضافة هذا الخيار قريبًا إذا كنت ترغب في مزامنة المظهر مع إعدادات نظامك).
           </p>
         </CardContent>
       </Card>
