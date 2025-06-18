@@ -112,8 +112,8 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
         <p className="text-lg font-semibold text-primary mb-2">{property.price.toLocaleString()} د.ج</p>
         <p className="text-sm text-muted-foreground mb-1 truncate">{property.wilaya}, {property.city}</p>
         <div className="text-sm text-muted-foreground">الحالة: <span className={`font-medium ${statusDisplay.color}`}>{statusDisplay.text}</span></div>
-        {property.status === 'archived' && property.archivalReason && (
-            <p className="text-xs text-muted-foreground mt-1">سبب التوقيف: {property.archivalReason}</p>
+        {property.status === 'archived' && (
+            <p className="text-xs text-muted-foreground mt-1">سبب التوقيف: {property.archivalReason || "---"}</p>
         )}
          {property.status === 'deleted' && property.deletionReason && (
             <p className="text-xs text-muted-foreground mt-1">سبب الحذف: {property.deletionReason}</p>
