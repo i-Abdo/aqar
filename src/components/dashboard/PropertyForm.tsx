@@ -134,9 +134,11 @@ const formatPriceForInputUIDisplay = (price: number | undefined): { displayValue
   const unitsPriority: PriceUnitKey[] = ["BILLION_DA", "MILLION_DA", "THOUSAND_DA"];
 
   for (const unit of unitsPriority) {
-    if (price >= unitMultipliers[unit]) {
+    if (price >= unitMultipliers[unit] && (price % unitMultipliers[unit] === 0 || price / unitMultipliers[unit] >= 1)) {
       const val = price / unitMultipliers[unit];
-      return { displayValue: Number(val.toFixed(2)).toString(), unitKey: unit };
+       if (Number.isInteger(val) || val.toString().split('.')[1]?.length <= 2) {
+          return { displayValue: Number(val.toFixed(2)).toString(), unitKey: unit };
+       }
     }
   }
   const valInThousand = price / unitMultipliers.THOUSAND_DA;
@@ -458,7 +460,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             {watchedPropertyType === 'other' && (
               <div>
                 <Label htmlFor="otherPropertyType">نوع العقار (آخر) *</Label>
-                <Input id="otherPropertyType" {...form.register("otherPropertyType")} placeholder="مثال: قطعة أرض فلاحية، محل تجاري..." />
+                <Input id="otherPropertyType" {...form.register("otherPropertyType")} placeholder="اكتب النوع الآخر هنا..." />
                 {form.formState.errors.otherPropertyType && <p className="text-sm text-destructive">{form.formState.errors.otherPropertyType.message}</p>}
               </div>
             )}
@@ -717,3 +719,4 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     </Card>
   );
 }
+
