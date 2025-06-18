@@ -118,6 +118,7 @@
 /* Custom utility for Latin numerals in number input */
 .input-latin-numerals {
   direction: ltr; /* Ensures Latin numerals and LTR behavior for number input */
+  unicode-bidi: bidi-override; /* Stronger enforcement of directionality */
   text-align: right; /* Aligns the LTR text to the right, common in RTL interfaces for numbers */
 }
 /* Hide spinners for number inputs with this class */
