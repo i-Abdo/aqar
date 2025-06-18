@@ -51,33 +51,33 @@
   }
 
   .dark {
-    --background: 224 71% 4%; /* Dark gray for dark mode background */
-    --foreground: 0 0% 98%; /* Light text for dark mode */
+    --background: 220 15% 13%; /* #1C1F26 */
+    --foreground: 0 0% 92%;    /* #EAEAEA */
 
-    --card: 224 71% 10%;
-    --card-foreground: 0 0% 98%;
+    --card: 223 15% 20%;       /* #2B2F3A */
+    --card-foreground: 0 0% 92%;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 223 15% 20%;
+    --popover-foreground: 0 0% 92%;
 
-    --primary: 205 66% 62%; /* Soft Blue, same as light */
+    --primary: 203 60% 44%;    /* #2C80B4 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 224 71% 10%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 223 15% 17%; /* Darker than card, lighter than bg */
+    --secondary-foreground: 0 0% 92%;
 
-    --muted: 224 71% 10%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 223 15% 17%;
+    --muted-foreground: 0 0% 65%; /* Adjusted for contrast */
 
-    --accent: 34 79% 60%; /* Yellow-orange, same as light */
+    --accent: 34 82% 43%;      /* #C97C14 */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62.8% 30.6%; /* Kept existing dark destructive */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 224 71% 15%;
-    --input: 224 71% 15%;
-    --ring: 205 66% 62%; /* Primary color for rings */
+    --border: 223 15% 25%;     /* Slightly lighter than card for visibility */
+    --input: 223 15% 25%;
+    --ring: 203 60% 44%;       /* New primary */
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -85,14 +85,14 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    --sidebar-background: 224 71% 6%; 
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 205 66% 62%;
+    --sidebar-background: 220 15% 13%; 
+    --sidebar-foreground: 0 0% 92%;
+    --sidebar-primary: 203 60% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 71% 12%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 224 71% 15%;
-    --sidebar-ring: 205 66% 62%;
+    --sidebar-accent: 223 15% 18%;      /* Darker than sidebar bg for hover */
+    --sidebar-accent-foreground: 0 0% 92%;
+    --sidebar-border: 223 15% 25%;
+    --sidebar-ring: 203 60% 44%;
   }
 }
 
