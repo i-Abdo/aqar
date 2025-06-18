@@ -11,7 +11,7 @@ import { db } from "@/lib/firebase/client";
 import type { Property, Plan, PropertyAppeal } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion } from "lucide-react";
+import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye } from "lucide-react"; // Added Eye icon
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -71,11 +71,10 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
         propertyTitle: property.title,
         ownerUserId: user.uid,
         ownerEmail: user.email || "غير متوفر",
-        propertyArchivalReason: property.archivalReason || "غير محدد"
+        propertyArchivalReason: property.archivalReason || "---" // Ensure a default value if undefined
     });
     if (result.success) {
         toast({ title: "تم إرسال الطعن", description: result.message });
-        // Optionally, disable the appeal button or change its text after submission
     } else {
         toast({ title: "خطأ في إرسال الطعن", description: result.message, variant: "destructive" });
     }
@@ -88,11 +87,99 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
       case 'active': return { text: 'نشط', color: 'text-green-600' };
       case 'pending': return { text: 'قيد المراجعة', color: 'text-yellow-600' };
       case 'deleted': return { text: 'محذوف', color: 'text-red-600' };
-      case 'archived': return { text: 'متوقف', color: 'text-orange-600' }; // Updated for "متوقف"
+      case 'archived': return { text: 'متوقف', color: 'text-orange-600' };
       default: return { text: property.status, color: 'text-muted-foreground' };
     }
   };
   const statusDisplay = getStatusDisplay();
+
+  const actionButtons = [];
+
+  // Preview Button - always available for the owner in their dashboard
+  actionButtons.push(
+    <Button key="preview" variant="outline" size="sm" asChild className="transition-smooth w-full">
+      <Link href={`/properties/${property.id}`} target="_blank" rel="noopener noreferrer">
+        <Eye size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> معاينة
+      </Link>
+    </Button>
+  );
+
+  if (property.status !== 'deleted' && property.status !== 'archived') {
+    actionButtons.push(
+      <Button key="edit" variant="outline" size="sm" asChild className="transition-smooth w-full">
+        <Link href={`/dashboard/properties/${property.id}/edit`}> <Edit3 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> تعديل</Link>
+      </Button>
+    );
+    actionButtons.push(
+      <AlertDialog key="delete">
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive_outline" size="sm" className="transition-smooth w-full"><Trash2 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> حذف</Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد أنك تريد حذف هذا العقار؟ سيتم نقله إلى المحذوفات. الرجاء إدخال سبب الحذف.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="سبب الحذف (مثال: تم البيع، خطأ في الإدخال)"
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            className="my-2"
+            rows={3}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteWithReason} disabled={isDeleting || !deleteReason.trim()}>
+              {isDeleting && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  } else if (property.status === 'deleted') {
+    actionButtons.push(
+      <AlertDialog key="archive">
+        <AlertDialogTrigger asChild>
+            <Button variant="outline_secondary" size="sm" className="w-full transition-smooth">أرشفة العقار</Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>تأكيد الأرشفة</AlertDialogTitle>
+                <AlertDialogDescription>
+                    هل أنت متأكد أنك تريد أرشفة هذا العقار؟ الرجاء إدخال سبب الأرشفة.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Textarea
+                placeholder="سبب الأرشفة (مثال: العقار لم يعد متاحًا مؤقتًا)"
+                value={archiveReason}
+                onChange={(e) => setArchiveReason(e.target.value)}
+                className="my-2"
+                rows={3}
+            />
+            <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={handleArchiveWithReason} disabled={isArchiving || !archiveReason.trim()}>
+                    {isArchiving && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+                    أرشفة
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    );
+  } else if (property.status === 'archived') {
+    actionButtons.push(
+     <Button key="appeal" onClick={handleAppeal} variant="outline_primary" size="sm" disabled={isAppealing} className="w-full transition-smooth">
+        {isAppealing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ShieldQuestion size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>}
+        {isAppealing ? "جاري إرسال الطعن..." : "طعن"}
+     </Button>
+    );
+  }
+  
+  const gridColsClass = actionButtons.length === 1 ? 'grid-cols-1' : 
+                        actionButtons.length === 2 ? 'grid-cols-2' : 'grid-cols-3';
 
 
   return (
@@ -119,76 +206,8 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
             <p className="text-xs text-muted-foreground mt-1">سبب الحذف: {property.deletionReason}</p>
         )}
       </CardContent>
-      <CardFooter className="p-4 border-t grid grid-cols-2 gap-2">
-         {property.status !== 'deleted' && property.status !== 'archived' && (
-          <>
-            <Button variant="outline" size="sm" asChild className="transition-smooth">
-              <Link href={`/dashboard/properties/${property.id}/edit`}> <Edit3 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> تعديل</Link>
-            </Button>
-             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive_outline" size="sm" className="transition-smooth"><Trash2 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> حذف</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    هل أنت متأكد أنك تريد حذف هذا العقار؟ سيتم نقله إلى المحذوفات. الرجاء إدخال سبب الحذف.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Textarea
-                  placeholder="سبب الحذف (مثال: تم البيع، خطأ في الإدخال)"
-                  value={deleteReason}
-                  onChange={(e) => setDeleteReason(e.target.value)}
-                  className="my-2"
-                  rows={3}
-                />
-                <AlertDialogFooter>
-                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteWithReason} disabled={isDeleting || !deleteReason.trim()}>
-                    {isDeleting && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-                    حذف
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </>
-         )}
-          {(property.status === 'deleted') && (
-             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="outline_secondary" size="sm" className="col-span-2 transition-smooth">أرشفة العقار</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>تأكيد الأرشفة</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            هل أنت متأكد أنك تريد أرشفة هذا العقار؟ الرجاء إدخال سبب الأرشفة.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <Textarea
-                        placeholder="سبب الأرشفة (مثال: العقار لم يعد متاحًا مؤقتًا)"
-                        value={archiveReason}
-                        onChange={(e) => setArchiveReason(e.target.value)}
-                        className="my-2"
-                        rows={3}
-                    />
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleArchiveWithReason} disabled={isArchiving || !archiveReason.trim()}>
-                            {isArchiving && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-                            أرشفة
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-          )}
-          {property.status === 'archived' && (
-             <Button onClick={handleAppeal} variant="outline_primary" size="sm" disabled={isAppealing} className="col-span-2 transition-smooth">
-                {isAppealing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ShieldQuestion size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>}
-                {isAppealing ? "جاري إرسال الطعن..." : "طعن"}
-             </Button>
-          )}
+      <CardFooter className={`p-4 border-t grid ${gridColsClass} gap-2`}>
+        {actionButtons.map(button => button)}
       </CardFooter>
     </Card>
   );
