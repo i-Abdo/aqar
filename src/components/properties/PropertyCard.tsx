@@ -4,16 +4,33 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { Property } from "@/types";
-import { BedDouble, Bath, MapPin, Phone, Flag } from "lucide-react"; 
+import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
+import { BedDouble, Bath, MapPin, Phone, Flag, Tag, Home } from "lucide-react"; 
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { ReportPropertyDialog } from "./ReportPropertyDialog"; 
 import { formatDisplayPrice } from '@/lib/utils';
+import { Badge } from "@/components/ui/badge";
 
 interface PropertyCardProps {
   property: Property;
 }
+
+const transactionTypeTranslations: Record<TransactionType, string> = {
+  sale: "للبيع",
+  rent: "للكراء",
+};
+
+const propertyTypeShortTranslations: Record<PropertyTypeEnum, string> = {
+  land: "أرض",
+  villa: "فيلا",
+  house: "بيت",
+  apartment: "شقة",
+  office: "مكتب",
+  warehouse: "مستودع",
+  shop: "حانوت",
+  other: "آخر",
+};
 
 export function PropertyCard({ property }: PropertyCardProps) {
   const { user, isAdmin } = useAuth();
@@ -35,6 +52,19 @@ export function PropertyCard({ property }: PropertyCardProps) {
               data-ai-hint="house exterior"
             />
           </Link>
+           <div className="absolute top-2 right-2 flex gap-1">
+            {property.transactionType && (
+              <Badge variant="default" className="text-xs">
+                {transactionTypeTranslations[property.transactionType]}
+              </Badge>
+            )}
+            {property.propertyType && (
+              <Badge variant="secondary" className="text-xs">
+                {propertyTypeShortTranslations[property.propertyType]}
+                {property.propertyType === 'other' && property.otherPropertyType ? ` (${property.otherPropertyType.substring(0,10)})` : ''}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-4 flex-grow">
           <Link href={`/properties/${property.id}`}>

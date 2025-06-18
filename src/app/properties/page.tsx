@@ -10,6 +10,7 @@ import { PropertySearchSidebar, SearchFilters } from "@/components/properties/Pr
 import { Loader2, SearchIcon, RotateCcw } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { cn } from '@/lib/utils';
 
 const PROPERTIES_PER_PAGE = 9;
 
@@ -51,8 +52,15 @@ export default function PropertiesPage() {
             p.description.toLowerCase().includes(term) ||
             p.city.toLowerCase().includes(term) ||
             p.wilaya.toLowerCase().includes(term) ||
-            (p.neighborhood && p.neighborhood.toLowerCase().includes(term))
+            (p.neighborhood && p.neighborhood.toLowerCase().includes(term)) ||
+            (p.otherPropertyType && p.otherPropertyType.toLowerCase().includes(term))
         );
+    }
+    if (filters.transactionType && filters.transactionType !== "") {
+      result = result.filter(p => p.transactionType === filters.transactionType);
+    }
+    if (filters.propertyType && filters.propertyType !== "") {
+      result = result.filter(p => p.propertyType === filters.propertyType);
     }
     if (filters.wilaya) {
       result = result.filter(p => p.wilaya === filters.wilaya);
@@ -142,10 +150,10 @@ export default function PropertiesPage() {
       let endPage = Math.min(totalPages - 1, currentPage + halfPagesToShow);
       
       if (currentPage <= halfPagesToShow + 1) {
-        endPage = Math.min(totalPages - 1, maxPagesToShow - 2); // Adjust to ensure space for last page and potentially ellipsis
+        endPage = Math.min(totalPages - 1, maxPagesToShow - 2); 
       }
       if (currentPage >= totalPages - halfPagesToShow) {
-        startPage = Math.max(2, totalPages - maxPagesToShow + 2); // Adjust to ensure space for first page and potentially ellipsis
+        startPage = Math.max(2, totalPages - maxPagesToShow + 2); 
       }
 
 

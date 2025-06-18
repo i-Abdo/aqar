@@ -24,17 +24,23 @@ export interface Plan {
   cta: string;
 }
 
+export type TransactionType = 'sale' | 'rent';
+export type PropertyTypeEnum = 'land' | 'villa' | 'house' | 'apartment' | 'office' | 'warehouse' | 'shop' | 'other';
+
 export interface Property {
   id: string;
   userId: string;
   title: string;
   price: number;
+  transactionType: TransactionType;
+  propertyType: PropertyTypeEnum;
+  otherPropertyType?: string;
   rooms: number;
   bathrooms: number;
-  length?: number; // الطول
-  width?: number;  // العرض
-  area?: number;   // المساحة
-  wilaya: string; // Algerian state/province
+  length?: number; 
+  width?: number;  
+  area?: number;   
+  wilaya: string; 
   city: string;
   neighborhood?: string;
   address?: string;
@@ -92,11 +98,10 @@ export interface UserIssue {
   status: 'new' | 'in_progress' | 'resolved';
   adminNotes?: string;
   updatedAt?: Date;
-  propertyId?: string; // Added for property-specific issues
-  propertyTitle?: string; // Added for property-specific issues
+  propertyId?: string; 
+  propertyTitle?: string; 
 }
 
-// For Property Appeal System
 export type AppealStatus = 'new' | 'under_review' | 'resolved_deleted' | 'resolved_kept_archived' | 'resolved_published';
 export type AdminAppealDecisionType = 'delete' | 'keep_archived' | 'publish';
 
@@ -106,11 +111,11 @@ export interface PropertyAppeal {
   propertyTitle: string;
   ownerUserId: string;
   ownerEmail: string;
-  submittedAt: Date; // Firestore Timestamp
+  submittedAt: Date; 
   appealStatus: AppealStatus;
   adminDecision?: AdminAppealDecisionType;
-  adminNotes?: string; // General notes from admin for their decision
-  adminDecisionAt?: Date; // Firestore Timestamp
-  propertyArchivalReason?: string; // Store the reason why property was archived
+  adminNotes?: string; 
+  adminDecisionAt?: Date; 
+  propertyArchivalReason?: string; 
 }
 

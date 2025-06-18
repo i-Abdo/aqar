@@ -8,10 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { collection, query, where, getDocs, doc, updateDoc, getCountFromServer, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Property, Plan, PropertyAppeal } from "@/types";
+import type { Property, Plan, PropertyAppeal, TransactionType, PropertyTypeEnum } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye } from "lucide-react";
+import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye, Tag, Home as HomeIcon } from "lucide-react"; // Renamed Home to HomeIcon
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -24,11 +24,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Input } from '@/components/ui/input';
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from '@/components/ui/textarea';
 import { plans } from "@/config/plans";
 import { submitPropertyAppeal } from '@/actions/propertyAppealActions';
 import { formatDisplayPrice } from '@/lib/utils';
+
+const transactionTypeTranslations: Record<TransactionType, string> = {
+  sale: "للبيع",
+  rent: "للكراء",
+};
+
+const propertyTypeShortTranslations: Record<PropertyTypeEnum, string> = {
+  land: "أرض",
+  villa: "فيلا",
+  house: "بيت",
+  apartment: "شقة",
+  office: "مكتب",
+  warehouse: "مستودع",
+  shop: "حانوت",
+  other: "آخر",
+};
 
 
 function PropertyListItemCard({ property, onDelete, onArchive }: { property: Property, onDelete: (id: string, reason: string) => void, onArchive: (id: string, reason: string) => void }) {
@@ -180,7 +196,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
         href={`/properties/${property.id}`} 
         className="flex flex-col flex-grow cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:rounded-t-lg"
       >
-          <CardHeader className="p-0 group-hover:opacity-90 transition-opacity">
+          <CardHeader className="p-0 group-hover:opacity-90 transition-opacity relative">
             <Image
               src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
               alt={property.title}
@@ -189,6 +205,19 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
               className="object-cover w-full h-48 rounded-t-lg"
               data-ai-hint="house exterior"
             />
+             <div className="absolute top-2 right-2 flex gap-1">
+                {property.transactionType && (
+                  <Badge variant="default" className="text-xs opacity-90 group-hover:opacity-100 transition-opacity">
+                    {transactionTypeTranslations[property.transactionType]}
+                  </Badge>
+                )}
+                {property.propertyType && (
+                  <Badge variant="secondary" className="text-xs opacity-90 group-hover:opacity-100 transition-opacity">
+                    {propertyTypeShortTranslations[property.propertyType]}
+                    {property.propertyType === 'other' && property.otherPropertyType ? ` (${property.otherPropertyType.substring(0,10)})` : ''}
+                  </Badge>
+                )}
+            </div>
           </CardHeader>
           <CardContent className="p-4 flex-grow group-hover:bg-muted/20 transition-colors">
             <CardTitle className="text-xl font-headline mb-1 truncate group-hover:text-primary transition-colors" title={property.title}>{property.title}</CardTitle>

@@ -3,12 +3,12 @@
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import type { Property } from '@/types';
+import type { Property, TransactionType, PropertyTypeEnum } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
 import { ContactAdminDialog } from '@/components/dashboard/ContactAdminDialog';
@@ -28,6 +28,22 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatDisplayPrice } from '@/lib/utils';
+
+const transactionTypeTranslations: Record<TransactionType, string> = {
+  sale: "بيع",
+  rent: "كراء",
+};
+
+const propertyTypeTranslations: Record<PropertyTypeEnum, string> = {
+  land: "أرض",
+  villa: "فيلا",
+  house: "بيت",
+  apartment: "شقة",
+  office: "مكتب",
+  warehouse: "مستودع (قاراج)",
+  shop: "حانوت",
+  other: "آخر",
+};
 
 
 export default function PropertyDetailPage() {
@@ -156,7 +172,7 @@ export default function PropertyDetailPage() {
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType } = property;
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -247,22 +263,24 @@ export default function PropertyDetailPage() {
 
           <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
             <div>
+              <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">المواصفات الأساسية</h3>
+              <div className="space-y-2 text-muted-foreground">
+                <p className="flex items-center gap-2"><Tag size={18} /> <strong>نوع المعاملة:</strong> {transactionTypeTranslations[transactionType]}</p>
+                <p className="flex items-center gap-2"><Home size={18} /> <strong>نوع العقار:</strong> {propertyTypeTranslations[propertyType]} {propertyType === 'other' && otherPropertyType ? ` (${otherPropertyType})` : ''}</p>
+                <p className="flex items-center gap-2"><BedDouble size={18} /> <strong>عدد الغرف:</strong> {rooms}</p>
+                <p className="flex items-center gap-2"><Bath size={18} /> <strong>عدد الحمامات:</strong> {bathrooms}</p>
+                {length && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>الطول:</strong> {length} متر</p>}
+                {width && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>العرض:</strong> {width} متر</p>}
+                {area && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>المساحة:</strong> {area} م²</p>}
+              </div>
+            </div>
+             <div>
               <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">الموقع</h3>
               <div className="space-y-2 text-muted-foreground">
                 <p className="flex items-center gap-2"><MapPin size={18} /> <strong>الولاية:</strong> {wilaya}</p>
                 <p className="flex items-center gap-2"><MapPin size={18} /> <strong>المدينة/البلدية:</strong> {city}</p>
                 {neighborhood && <p className="flex items-center gap-2"><MapPin size={18} /> <strong>الحي:</strong> {neighborhood}</p>}
                 {address && <p className="flex items-center gap-2"><MapPin size={18} /> <strong>العنوان:</strong> {address}</p>}
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">المواصفات</h3>
-              <div className="space-y-2 text-muted-foreground">
-                <p className="flex items-center gap-2"><BedDouble size={18} /> <strong>عدد الغرف:</strong> {rooms}</p>
-                <p className="flex items-center gap-2"><Bath size={18} /> <strong>عدد الحمامات:</strong> {bathrooms}</p>
-                {length && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>الطول:</strong> {length} متر</p>}
-                {width && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>العرض:</strong> {width} متر</p>}
-                {area && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>المساحة:</strong> {area} م²</p>}
               </div>
             </div>
           </div>

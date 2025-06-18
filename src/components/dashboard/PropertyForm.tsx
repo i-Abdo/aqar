@@ -14,10 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Property } from "@/types";
+import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
 import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"; 
@@ -39,8 +39,27 @@ const wilayas = [
 
 const algerianPhoneNumberRegex = /^0[567]\d{8}$/;
 
+const transactionTypes: { value: TransactionType; label: string }[] = [
+  { value: 'sale', label: 'بيع' },
+  { value: 'rent', label: 'كراء' },
+];
+
+const propertyTypes: { value: PropertyTypeEnum; label: string }[] = [
+  { value: 'apartment', label: 'شقة' },
+  { value: 'house', label: 'بيت' },
+  { value: 'villa', label: 'فيلا' },
+  { value: 'land', label: 'أرض' },
+  { value: 'office', label: 'مكتب' },
+  { value: 'warehouse', label: 'مستودع (قاراج)' },
+  { value: 'shop', label: 'حانوت' },
+  { value: 'other', label: 'آخر' },
+];
+
 const propertyFormSchema = z.object({
   title: z.string().min(5, "العنوان يجب أن لا يقل عن 5 أحرف."),
+  transactionType: z.enum(['sale', 'rent'], { required_error: "نوع المعاملة مطلوب." }),
+  propertyType: z.enum(['land', 'villa', 'house', 'apartment', 'office', 'warehouse', 'shop', 'other'], { required_error: "نوع العقار مطلوب." }),
+  otherPropertyType: z.string().optional(),
   price: z.coerce.number({invalid_type_error: "السعر يجب أن يكون رقمًا."}).positive("السعر يجب أن يكون رقمًا موجبًا.").min(1, "السعر لا يمكن أن يكون صفرًا."),
   rooms: z.coerce.number().int().min(1, "عدد الغرف يجب أن يكون 1 على الأقل."),
   bathrooms: z.coerce.number().int().min(1, "عدد الحمامات يجب أن يكون 1 على الأقل."),
@@ -64,6 +83,18 @@ const propertyFormSchema = z.object({
     gas: z.boolean().default(false),
     contract: z.boolean().default(false),
   }),
+}).superRefine((data, ctx) => {
+  if (data.propertyType === 'other' && (!data.otherPropertyType || data.otherPropertyType.trim().length < 2)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "الرجاء تحديد نوع العقار الآخر (حرفين على الأقل).",
+      path: ["otherPropertyType"],
+    });
+  }
+  if (data.propertyType !== 'other' && data.otherPropertyType) {
+    // Clear otherPropertyType if propertyType is not 'other'
+    data.otherPropertyType = undefined;
+  }
 });
 
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
@@ -97,20 +128,17 @@ const unitLabels: Record<PriceUnitKey, string> = {
 
 const formatPriceForInputUIDisplay = (price: number | undefined): { displayValue: string; unitKey: PriceUnitKey } => {
   if (price === undefined || price === null || isNaN(price) || price <= 0) {
-    return { displayValue: "", unitKey: "THOUSAND_DA" }; // Default for new entries
+    return { displayValue: "", unitKey: "THOUSAND_DA" }; 
   }
 
   const unitsPriority: PriceUnitKey[] = ["BILLION_DA", "MILLION_DA", "THOUSAND_DA"];
 
   for (const unit of unitsPriority) {
-    // Check if the price is significant enough for this unit (e.g. at least 1 of this unit)
     if (price >= unitMultipliers[unit]) {
       const val = price / unitMultipliers[unit];
-      // Use Number(val.toFixed(2)).toString() to remove trailing zeros like .00 or .50 to .5
       return { displayValue: Number(val.toFixed(2)).toString(), unitKey: unit };
     }
   }
-  // If less than THOUSAND_DA, represent it in terms of THOUSAND_DA (e.g., 500 DA -> 0.5 ألف د.ج)
   const valInThousand = price / unitMultipliers.THOUSAND_DA;
   return { displayValue: Number(valInThousand.toFixed(2)).toString(), unitKey: "THOUSAND_DA" };
 };
@@ -139,9 +167,16 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: initialData 
-      ? { ...initialData, price: initialData.price || undefined } 
+      ? { 
+          ...initialData, 
+          price: initialData.price || undefined,
+          transactionType: initialData.transactionType || undefined,
+          propertyType: initialData.propertyType || undefined,
+          otherPropertyType: initialData.otherPropertyType || "",
+        } 
       : {
-          title: "", price: undefined, rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
+          title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
+          rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
           wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
           filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
         },
@@ -155,6 +190,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       form.reset({
         ...initialData, 
         price: initialData.price || undefined, 
+        transactionType: initialData.transactionType || undefined,
+        propertyType: initialData.propertyType || undefined,
+        otherPropertyType: initialData.otherPropertyType || "",
       });
        if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
@@ -168,7 +206,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setManualPriceInput(defaultFormat.displayValue);
         setSelectedUnit(defaultFormat.unitKey);
         form.reset({
-            title: "", price: undefined, rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
+            title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
+            rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
             wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
             filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
         });
@@ -193,6 +232,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
   const lengthValue = form.watch("length");
   const widthValue = form.watch("width");
+  const watchedPropertyType = form.watch("propertyType");
+
 
   React.useEffect(() => {
     const lengthNum = parseFloat(String(lengthValue));
@@ -209,7 +250,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   React.useEffect(() => {
     const numericInput = parseFloat(manualPriceInput);
     if (!isNaN(numericInput) && numericInput > 0) {
-      form.setValue('price', numericInput * (unitMultipliers[selectedUnit] || 1), { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
+      form.setValue('price', numericInput * (unitMultipliers[selectedUnit] || 1000), { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
     } else if (manualPriceInput === "" && form.getValues("price") !== undefined) {
         form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
     } else if (isNaN(numericInput) && manualPriceInput !== "" && form.getValues("price") !== undefined) {
@@ -370,7 +411,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
-          {/* Basic Info Section */}
+          
           <div className="space-y-4">
             <h3 className="text-lg font-semibold font-headline border-b pb-2">المعلومات الأساسية</h3>
             <div>
@@ -378,6 +419,49 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
               <Input id="title" {...form.register("title")} placeholder="مثال: شقة فاخرة مطلة على البحر" />
               {form.formState.errors.title && <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>}
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="transactionType" className="flex items-center gap-1"><Tag size={16}/>نوع المعاملة *</Label>
+                <Controller
+                  name="transactionType"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value || ""} >
+                      <SelectTrigger><SelectValue placeholder="اختر نوع المعاملة" /></SelectTrigger>
+                      <SelectContent>
+                        {transactionTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.transactionType && <p className="text-sm text-destructive">{form.formState.errors.transactionType.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="propertyType" className="flex items-center gap-1"><Building size={16}/>نوع العقار *</Label>
+                 <Controller
+                  name="propertyType"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value || ""} >
+                      <SelectTrigger><SelectValue placeholder="اختر نوع العقار" /></SelectTrigger>
+                      <SelectContent>
+                        {propertyTypes.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.propertyType && <p className="text-sm text-destructive">{form.formState.errors.propertyType.message}</p>}
+              </div>
+            </div>
+            
+            {watchedPropertyType === 'other' && (
+              <div>
+                <Label htmlFor="otherPropertyType">نوع العقار (آخر) *</Label>
+                <Input id="otherPropertyType" {...form.register("otherPropertyType")} placeholder="مثال: قطعة أرض فلاحية، محل تجاري..." />
+                {form.formState.errors.otherPropertyType && <p className="text-sm text-destructive">{form.formState.errors.otherPropertyType.message}</p>}
+              </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                  <div>
@@ -421,12 +505,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="rooms" className="flex items-center gap-1"><BedDouble size={16}/>عدد الغرف *</Label>
-                <Input lang="en" id="rooms" type="text" {...form.register("rooms")} placeholder="3" className="input-latin-numerals" />
+                <Input lang="en" id="rooms" type="text" {...form.register("rooms")} placeholder="--" className="input-latin-numerals" />
                 {form.formState.errors.rooms && <p className="text-sm text-destructive">{form.formState.errors.rooms.message}</p>}
               </div>
               <div>
                 <Label htmlFor="bathrooms" className="flex items-center gap-1"><Bath size={16}/>عدد الحمامات *</Label>
-                <Input lang="en" id="bathrooms" type="text" {...form.register("bathrooms")} placeholder="2" className="input-latin-numerals" />
+                <Input lang="en" id="bathrooms" type="text" {...form.register("bathrooms")} placeholder="--" className="input-latin-numerals" />
                 {form.formState.errors.bathrooms && <p className="text-sm text-destructive">{form.formState.errors.bathrooms.message}</p>}
               </div>
             </div>
@@ -449,7 +533,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             </div>
           </div>
 
-          {/* Location Section */}
+          
           <div className="space-y-4">
             <h3 className="text-lg font-semibold font-headline border-b pb-2 flex items-center gap-1"><MapPin size={18}/>الموقع</h3>
              <div className="grid md:grid-cols-2 gap-4">
@@ -487,7 +571,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             </div>
           </div>
           
-          {/* Filters/Features Section */}
+          
           <div className="space-y-4">
             <h3 className="text-lg font-semibold font-headline border-b pb-2">الميزات والخدمات</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -512,7 +596,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             </div>
           </div>
 
-          {/* Image Upload Section */}
+          
           <div className="space-y-6">
             <div>
                 <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageIcon size={18}/>صورة العقار الرئيسية *</h3>
@@ -571,7 +655,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           </div>
 
 
-          {/* Description Section */}
+          
           <div className="space-y-4">
             <h3 className="text-lg font-semibold font-headline border-b pb-2">وصف العقار *</h3>
             <Controller

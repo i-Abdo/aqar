@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Filter, Search, RotateCcw } from 'lucide-react';
-import type { Property } from '@/types';
+import type { Property, TransactionType, PropertyTypeEnum } from '@/types';
 
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
@@ -27,8 +27,28 @@ const wilayas = [
   { code: "45", name: "النعامة" }, { code: "46", name: "عين تموشنت" }, { code: "47", name: "غرداية" }, { code: "48", name: "غليزان" }
 ];
 
+const transactionTypeOptions: { value: TransactionType | ""; label: string }[] = [
+  { value: "", label: "الكل (بيع/كراء)" },
+  { value: 'sale', label: 'بيع' },
+  { value: 'rent', label: 'كراء' },
+];
+
+const propertyTypeOptions: { value: PropertyTypeEnum | ""; label: string }[] = [
+  { value: "", label: "الكل (أنواع العقارات)" },
+  { value: 'apartment', label: 'شقة' },
+  { value: 'house', label: 'بيت' },
+  { value: 'villa', label: 'فيلا' },
+  { value: 'land', label: 'أرض' },
+  { value: 'office', label: 'مكتب' },
+  { value: 'warehouse', label: 'مستودع (قاراج)' },
+  { value: 'shop', label: 'حانوت' },
+  { value: 'other', label: 'آخر' },
+];
+
 
 export interface SearchFilters {
+  transactionType?: TransactionType | "";
+  propertyType?: PropertyTypeEnum | "";
   wilaya?: string;
   city?: string;
   minPrice?: number;
@@ -48,6 +68,8 @@ const MAX_PRICE = 100000000;
 const MAX_ROOMS = 10;
 
 const initialFormState: SearchFilters = {
+    transactionType: "",
+    propertyType: "",
     wilaya: "", 
     city: "",
     minPrice: undefined,
@@ -87,7 +109,10 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
   const handleSelectChange = (name: string, value: string) => {
     if (name === "wilaya" && value === ALL_WILAYAS_VALUE) {
       setFilters(prev => ({ ...prev, [name]: "" })); 
-    } else {
+    } else if (name === "transactionType" || name === "propertyType") {
+       setFilters(prev => ({ ...prev, [name]: value as (TransactionType | PropertyTypeEnum | "") }));
+    }
+    else {
       setFilters(prev => ({ ...prev, [name]: value }));
     }
   };
@@ -136,7 +161,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
         maxRooms: MAX_ROOMS, 
     };
     setFilters(resetStateForUiSliders);
-    onSearch({...initialFormState}); // Pass a new object copy
+    onSearch({...initialFormState}); 
   };
 
   const featureLabels: Record<keyof Property['filters'], string> = {
@@ -166,6 +191,26 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
               onChange={handleChange}
               placeholder="مثال: شقة، فيلا، بالقرب من..."
             />
+          </div>
+
+          <div>
+            <Label htmlFor="transactionType">نوع المعاملة</Label>
+            <Select name="transactionType" value={filters.transactionType || ""} onValueChange={(value) => handleSelectChange("transactionType", value)}>
+              <SelectTrigger id="transactionType"><SelectValue placeholder="اختر نوع المعاملة" /></SelectTrigger>
+              <SelectContent>
+                {transactionTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="propertyType">نوع العقار</Label>
+            <Select name="propertyType" value={filters.propertyType || ""} onValueChange={(value) => handleSelectChange("propertyType", value)}>
+              <SelectTrigger id="propertyType"><SelectValue placeholder="اختر نوع العقار" /></SelectTrigger>
+              <SelectContent>
+                {propertyTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         
           <div>
@@ -262,4 +307,3 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     </Card>
   );
 }
-
