@@ -1,7 +1,9 @@
+
 import { AppLogo } from "./AppLogo";
 import { MainNav } from "./MainNav";
 import { UserAccountNav } from "./UserAccountNav";
 import { MobileNav } from "./MobileNav"; // Assuming MobileNav for smaller screens
+import { ThemeToggleButton } from "./ThemeToggleButton"; // Added import
 
 export function SiteHeader() {
   return (
@@ -13,7 +15,8 @@ export function SiteHeader() {
                 <MainNav />
             </div>
         </div>
-        <div className="flex flex-1 items-center justify-end space-x-4 rtl:space-x-reverse">
+        <div className="flex flex-1 items-center justify-end space-x-2 rtl:space-x-reverse rtl:space-x-0"> {/* Adjusted space-x for RTL compatibility */}
+          <ThemeToggleButton /> {/* Added theme toggle button */}
           <div className="hidden md:flex">
             <UserAccountNav />
           </div>
