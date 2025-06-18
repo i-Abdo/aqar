@@ -172,7 +172,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
   
   const gridColsClass = actionButtons.length === 0 ? 'hidden' : 
                         actionButtons.length === 1 ? 'grid-cols-1' : 
-                        actionButtons.length === 2 ? 'grid-cols-2' : 'grid-cols-2'; // Changed from 3 to 2 since View is part of link now
+                        actionButtons.length === 2 ? 'grid-cols-2' : 'grid-cols-2';
 
 
   return (
@@ -194,7 +194,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
           </CardHeader>
           <CardContent className="p-4 flex-grow group-hover:bg-muted/20 transition-colors">
             <CardTitle className="text-xl font-headline mb-1 truncate group-hover:text-primary transition-colors" title={property.title}>{property.title}</CardTitle>
-            <p className="text-lg font-semibold text-primary mb-2">{property.price.toLocaleString()} د.ج</p>
+            <p className="text-lg font-semibold text-green-600 mb-2">{property.price.toLocaleString()} د.ج</p>
             <p className="text-sm text-muted-foreground mb-1 truncate">{property.wilaya}, {property.city}</p>
             <div className="text-sm text-muted-foreground">الحالة: <span className={`font-medium ${statusDisplay.color}`}>{statusDisplay.text}</span></div>
             {property.status === 'archived' && (

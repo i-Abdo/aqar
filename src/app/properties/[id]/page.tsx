@@ -228,7 +228,7 @@ export default function PropertyDetailPage() {
             <CardTitle className="font-headline text-3xl md:text-4xl text-primary mb-2 md:mb-0">
               {title}
             </CardTitle>
-            <div className="text-2xl md:text-3xl font-bold text-accent flex items-center gap-1 whitespace-nowrap">
+            <div className="text-2xl md:text-3xl font-bold text-green-600 flex items-center gap-1 whitespace-nowrap">
                {price.toLocaleString()} د.ج
             </div>
           </div>

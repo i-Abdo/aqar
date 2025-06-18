@@ -41,7 +41,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
               {property.title}
             </CardTitle>
           </Link>
-          <p className="text-lg font-semibold text-primary mb-2">{property.price.toLocaleString()} د.ج</p>
+          <p className="text-lg font-semibold text-green-600 mb-2">{property.price.toLocaleString()} د.ج</p>
           <div className="text-sm text-muted-foreground space-y-1">
             <div className="flex items-center gap-1 truncate">
               <MapPin size={16} className="text-muted-foreground" />
