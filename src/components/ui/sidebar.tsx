@@ -150,7 +150,7 @@ const Sidebar = React.forwardRef<
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
     collapsible?: "offcanvas" | "icon" | "none"
-    title?: string; // New title prop
+    title?: string;
   }
 >(
   (
@@ -159,30 +159,29 @@ const Sidebar = React.forwardRef<
       collapsible = "offcanvas",
       className,
       children,
-      title, // Destructure new title prop
+      title, 
       ...props
     },
     ref
   ) => {
     const { isMobile, open, setOpen, state } = useSidebar()
 
-    if (isMobile && (collapsible === "offcanvas" || collapsible === "icon")) {
+    if (isMobile && collapsible === "offcanvas") {
       return (
         <Sheet open={open} onOpenChange={setOpen} {...props}>
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            data-collapsible={collapsible} // Keep track of original intent
+            data-collapsible={collapsible}
             className="w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground shadow-xl [&>button]:hidden"
             side={side}
           >
-            {/* Render SheetHeader with title here */}
             {title && (
-              <UiSheetHeader className="px-6 pt-6 pb-2 border-b border-sidebar-border">
-                <UiSheetTitle>{title}</UiSheetTitle>
+              <UiSheetHeader className="border-b border-sidebar-border p-3">
+                <UiSheetTitle className="text-xl font-semibold">{title}</UiSheetTitle>
               </UiSheetHeader>
             )}
-            <div className="flex h-full w-full flex-col overflow-y-auto"> {/* Added overflow for children */}
+            <div className="flex h-full w-full flex-col overflow-y-auto">
                  {children}
             </div>
           </SheetContent>
@@ -193,27 +192,21 @@ const Sidebar = React.forwardRef<
     let currentWidth = "0px";
     let isHidden = false;
 
-    if (isMobile) { 
-      if (collapsible === "none") {
-        currentWidth = 'var(--sidebar-width-mobile)';
-      } else { 
-        isHidden = true; // Should be handled by Sheet now for "icon" and "offcanvas" on mobile
-      }
-    } else { // Desktop
-      if (collapsible === "none") {
-        currentWidth = 'var(--sidebar-width)';
-      } else if (collapsible === "icon") {
-        currentWidth = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
-      } else if (collapsible === "offcanvas") {
-        currentWidth = open ? 'var(--sidebar-width)' : '0px';
+    if (collapsible === "icon") {
+        currentWidth = isMobile 
+            ? (open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)')
+            : (open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)');
+    } else if (collapsible === "none") {
+        currentWidth = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
+    } else if (collapsible === "offcanvas") { // Only applies to desktop if not a sheet
+        currentWidth = open ? (isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)') : '0px';
         isHidden = !open;
-      }
     }
     
-    if (isHidden) {
+    if (isHidden && !isMobile) { // offcanvas hidden on desktop
       return null;
     }
-
+    
     return (
       <div
         ref={ref}
@@ -307,21 +300,14 @@ SidebarRail.displayName = "SidebarRail"
 const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const { isMobile, open, state } = useSidebar();
+>(({ className, style, ...props }, ref) => {
+  const { isMobile, open, state } = useSidebar(); 
   
-  let marginValue = '0px';
-
-  if (isMobile) {
-    // On mobile, if sidebar is "icon" or "offcanvas", it's a Sheet, so no margin needed for inset.
-    // If it's "none", it would take full width but that's not the current setup for admin/dashboard.
-    // For icon mode on mobile (if it were to push content):
-    // marginValue = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
-  } else { // Desktop
-    // Assuming side="right" and collapsible="icon" for admin/dashboard based on prior context
-    marginValue = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
-  }
-
+  // This assumes sidebar is always on the right for dashboard/admin
+  // and collapsible mode is "icon"
+  const sidebarWidthWhenOpen = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
+  const sidebarWidthWhenClosed = 'var(--sidebar-width-icon)';
+  const marginRightValue = open ? sidebarWidthWhenOpen : sidebarWidthWhenClosed;
 
   return (
     <div
@@ -331,8 +317,8 @@ const SidebarInset = React.forwardRef<
         className
       )}
       style={{
-        marginRight: !isMobile ? marginValue : '0px', // Apply margin only on desktop for icon collapsible
-        // Ensure header height is accounted for by the parent layout or this component's structure
+        marginRight: marginRightValue, 
+        ...style,
       }}
       {...props}
     />
@@ -366,7 +352,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2 border-b border-sidebar-border", className)} 
+      className={cn("flex flex-col gap-2 p-3 border-b border-sidebar-border", className)} 
       {...props}
     />
   )
@@ -765,6 +751,6 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-  UiSheetTitle as SheetTitle, // Re-export SheetTitle under a more generic name if needed, or use directly
-  UiSheetHeader as SheetHeader // Re-export SheetHeader for use within Sidebar if needed
+  UiSheetTitle as SheetTitle, 
+  UiSheetHeader as SheetHeader 
 }
