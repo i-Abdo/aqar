@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useAuth } from "@/hooks/use-auth";
 import { AppLogo } from "./AppLogo";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function MobileNav() {
   const [open, setOpen] = React.useState(false);
@@ -32,17 +33,33 @@ export function MobileNav() {
     allLinks.push({ title: "إنشاء حساب", href: "/signup", specialClass: "text-primary" });
   }
 
+  const userInitials = user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : "U");
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon" // Changed from custom padding to size="icon" for h-10 w-10
-          className="text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
-        >
-          <Menu className="h-6 w-6" /> {/* Icon size remains h-6 w-6 */}
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
+        {user ? (
+          <Button
+            variant="ghost"
+            className="relative h-10 w-10 rounded-full md:hidden"
+            aria-label="Open navigation menu"
+          >
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
+              <AvatarFallback>{userInitials}</AvatarFallback>
+            </Avatar>
+            <span className="sr-only">Toggle Menu</span>
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon" // This makes it h-10 w-10
+            className="text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
+          >
+            <Menu className="h-6 w-6" />
+            <span className="sr-only">Toggle Menu</span>
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent side="left" className="flex flex-col p-0">
         <SheetHeader className="px-6 pt-6 pb-2 border-b">
@@ -58,7 +75,7 @@ export function MobileNav() {
                   <MobileLink
                     href={item.href}
                     onOpenChange={setOpen}
-                    className={cn("py-3 text-sm", item.specialClass)} // text-sm applied here
+                    className={cn("py-3 text-sm", item.specialClass)}
                   >
                     {item.title}
                   </MobileLink>
