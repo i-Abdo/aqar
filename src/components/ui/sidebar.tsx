@@ -159,21 +159,59 @@ const Sidebar = React.forwardRef<
       collapsible = "offcanvas",
       className,
       children,
-      title,
+      title, // Added title prop
       ...props
     },
     ref
   ) => {
     const { isMobile, open, setOpen, state } = useSidebar()
 
-    if (isMobile && collapsible === "offcanvas") { // Only use Sheet for true "offcanvas" on mobile
+    // Logic for collapsible="icon" (same for mobile and desktop now)
+    if (collapsible === "icon") {
+      const currentWidth = isMobile
+        ? (open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)')
+        : (open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)');
+
+      return (
+        <div
+          ref={ref}
+          data-sidebar="sidebar"
+          data-state={state}
+          data-collapsible={collapsible}
+          data-side={side}
+          data-mobile={isMobile ? "true" : "false"}
+          className={cn(
+            "group bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 ease-linear",
+            "fixed flex flex-col", // Removed bottom-0
+            "max-h-[calc(100svh-var(--main-content-top-offset,var(--header-height,0px)))]", // Changed from h- to max-h-
+            side === "left" ? "left-0 border-r" : "right-0 border-l",
+            className
+          )}
+          style={{
+            width: currentWidth,
+            top: 'var(--main-content-top-offset, var(--header-height, 0px))',
+            borderColor: 'hsl(var(--sidebar-border))',
+            zIndex: 40 
+          }}
+          {...props}
+        >
+          <div className="flex h-full w-full flex-col overflow-hidden"> 
+            {children}
+          </div>
+        </div>
+      );
+    }
+    
+    // Logic for collapsible="offcanvas" (uses Sheet, typically mobile or specific desktop needs)
+    // This section remains largely unchanged for "offcanvas" behavior.
+    if (isMobile && collapsible === "offcanvas") {
       return (
         <Sheet open={open} onOpenChange={setOpen} {...props}>
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
             data-collapsible={collapsible}
-            className="w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground shadow-xl [&>button]:hidden"
+            className="w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground shadow-xl [&>button]:hidden" // Keep the sheet specific classes
             side={side}
           >
             {title && (
@@ -182,30 +220,20 @@ const Sidebar = React.forwardRef<
               </UiSheetHeader>
             )}
             <div className="flex h-full w-full flex-col overflow-y-auto">
-                 {children}
+              {children}
             </div>
           </SheetContent>
         </Sheet>
-      )
-    }
-    
-    // For collapsible="icon" (on mobile and desktop) and collapsible="none" (desktop)
-    // Render as a fixed div that pushes content
-    let currentWidth = "0px";
-    if (collapsible === "icon") {
-      currentWidth = isMobile
-        ? (open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)')
-        : (open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)');
-    } else if (collapsible === "none") { // Typically desktop only
-      currentWidth = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
-    } else if (collapsible === "offcanvas" && !isMobile) { // Desktop offcanvas (hidden if not open)
-        if (!open) return null;
-        currentWidth = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
+      );
     }
 
+    // Default/desktop "none" or unhandled "offcanvas" on desktop
+    // This part handles non-collapsible sidebars or offcanvas sidebars on desktop (if open)
+    const desktopWidth = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
+    if (collapsible === "offcanvas" && !open && !isMobile) return null; // Hide desktop offcanvas if not open
 
     return (
-      <div
+       <div
         ref={ref}
         data-sidebar="sidebar"
         data-state={state}
@@ -214,14 +242,14 @@ const Sidebar = React.forwardRef<
         data-mobile={isMobile ? "true" : "false"}
         className={cn(
           "group bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 ease-linear",
-          "fixed bottom-0 flex flex-col",
-          "h-[calc(100svh-var(--main-content-top-offset,var(--header-height,0px)))]", // Adjusted height
+          "fixed flex flex-col",
+          "max-h-[calc(100svh-var(--main-content-top-offset,var(--header-height,0px)))]",
           side === "left" ? "left-0 border-r" : "right-0 border-l",
           className
         )}
         style={{
-          width: currentWidth,
-          top: 'var(--main-content-top-offset, var(--header-height, 0px))', // Adjusted top
+          width: desktopWidth, // Use the full width for non-icon collapsible or offcanvas desktop
+          top: 'var(--main-content-top-offset, var(--header-height, 0px))',
           borderColor: 'hsl(var(--sidebar-border))',
           zIndex: 40
         }}
@@ -231,7 +259,7 @@ const Sidebar = React.forwardRef<
           {children}
         </div>
       </div>
-    )
+    );
   }
 )
 Sidebar.displayName = "Sidebar"
@@ -256,7 +284,6 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      {/* Icon removed, handled by specific layout headers */}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -301,13 +328,12 @@ const SidebarInset = React.forwardRef<
   const { isMobile, open, state } = useSidebar();
 
   let marginRightValue = '0px';
-  // Assuming sidebar is always on the right and collapsible mode is "icon" for dashboard/admin
-  // This logic applies when the sidebar is NOT an offcanvas sheet
-    if (isMobile) {
-        marginRightValue = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
-    } else {
-        marginRightValue = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
-    }
+  // This logic applies when the sidebar is collapsible="icon"
+  if (isMobile) {
+      marginRightValue = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
+  } else {
+      marginRightValue = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
+  }
 
   return (
     <div
@@ -317,7 +343,7 @@ const SidebarInset = React.forwardRef<
         className
       )}
       style={{
-        marginRight: marginRightValue,
+        marginRight: marginRightValue, // Assuming sidebar is always on the right for these layouts
         ...style,
       }}
       {...props}
@@ -751,8 +777,6 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-  UiSheetTitle as SheetTitle,
-  UiSheetHeader as SheetHeader
+  UiSheetTitle as SheetTitle, // Keep SheetTitle exported if used by offcanvas
+  UiSheetHeader as SheetHeader // Keep SheetHeader exported if used by offcanvas
 }
-
-    

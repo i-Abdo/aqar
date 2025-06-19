@@ -48,7 +48,7 @@ export function SiteHeader() {
       </div>
 
       {/* Mobile Search Bar */}
-      <div className="md:hidden container mx-auto px-4 py-2 space-y-2">
+      <div className="md:hidden container mx-auto px-4 pt-1 pb-2">
         <GlobalSearchInput />
       </div>
     </header>
