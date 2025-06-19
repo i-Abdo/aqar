@@ -10,40 +10,39 @@ export function SiteHeader() {
   return (
     <header className={cn(
         "sticky top-0 z-50 w-full border-b border-border/40",
-        "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg" 
+        "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg"
       )}
     >
       {/* Main Header Bar */}
-      <div className="container flex h-16 items-center justify-between flex-row-reverse md:flex-row">
-        
-        {/* GROUP 1: Logo (Right on LTR, Right on RTL) & Desktop Search (Center) */}
-        {/* On mobile, due to parent flex-row-reverse, AppLogo (order-1 within this group) is visually on the RIGHT */}
-        {/* On desktop, this entire group is md:order-1 (overall right for LTR, becomes tricky with internal orders for RTL) */}
-        {/* Let's simplify: Logo is order-1, Search is order-2, Navs are order-3 for desktop */}
-
-        <div className="flex items-center gap-x-1 md:order-1"> {/* Logo Group */}
+      <div className="container flex h-16 items-center justify-between">
+        {/* Group 1: Logo & Desktop Search (md:order-1) */}
+        <div className="flex items-center gap-x-1 md:order-1">
           <AppLogo />
-        </div>
-        
-        {/* Search Group - Center on Desktop */}
-        <div className="hidden md:flex flex-1 items-center justify-center md:order-2 mx-2"> {/* Reduced mx-4 to mx-2 */}
-          <div className="w-full max-w-sm lg:max-w-md xl:max-w-lg">
-            <GlobalSearchInput />
+          {/* Desktop Search - Part of Group 1 visually on desktop */}
+          <div className="hidden md:flex items-center ml-2">
+            <div className="w-full max-w-sm lg:max-w-md xl:max-w-lg">
+              <GlobalSearchInput />
+            </div>
           </div>
         </div>
 
-        {/* GROUP 3: Navs & Toggles (Left on LTR, Left on RTL) */}
-        {/* On mobile, due to parent flex-row-reverse, this group is visually on the LEFT */}
-        {/* On desktop, this entire group is md:order-3 */}
-        <div className="flex items-center gap-x-2 md:order-3">
-          {/* MainNav for Desktop - always visible */}
-          <div className="hidden md:flex">
-             <MainNav />
-          </div>
-          {/* UserAccountNav and ThemeToggle for All sizes */}
-          <div className="flex items-center gap-x-1"> {/* Reduced gap here if needed */}
+        {/* Group 2: MainNav for Desktop (md:order-2) */}
+        {/* Changed mx-2 to mx-0 to make space "very small" */}
+        <div className="hidden md:flex flex-1 items-center justify-center md:order-2 mx-0">
+          <MainNav />
+        </div>
+
+        {/* Group 3: Toggles & User Nav (md:order-3) */}
+        <div className="flex items-center gap-x-1 md:order-3">
+          {/* Mobile Nav Trigger (Avatar/Menu) + Theme */}
+          <div className="md:hidden flex items-center gap-x-1"> {/* Reordered for mobile: Avatar then ThemeToggle */}
+            <UserAccountNav /> {/* Handles Avatar or Login/Signup */}
             <ThemeToggleButton />
-            <UserAccountNav /> {/* This handles mobile (avatar/menu) & desktop */}
+          </div>
+          {/* Desktop ThemeToggle + UserAccountNav */}
+          <div className="hidden md:flex items-center gap-x-1">
+            <ThemeToggleButton />
+            <UserAccountNav />
           </div>
         </div>
       </div>
@@ -55,4 +54,3 @@ export function SiteHeader() {
     </header>
   );
 }
-
