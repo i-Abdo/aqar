@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar"; // Added SidebarTrigger
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +77,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAdmin, loading: authLoading, adminNotificationCount, refreshAdminNotifications } = useAuth(); 
+  const { user, isAdmin, loading: authLoading, adminNotificationCount } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname(); 
 
@@ -160,7 +160,11 @@ export default function AdminLayout({
       defaultOpen={true}
       style={{ '--sidebar-width': '16rem' } as React.CSSProperties}
     >
-      <Sidebar side="right" collapsible="none" className="border-l rtl:border-r-0">
+      <Sidebar 
+        side="right" 
+        collapsible="icon" // Changed from "none" to "icon"
+        className="border-l rtl:border-r-0"
+      >
         <SidebarHeader className="p-3 flex items-center justify-center">
            <div className="flex items-center gap-2 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
              <h2 className="text-xl font-semibold">لوحة الإدارة</h2>
@@ -176,7 +180,19 @@ export default function AdminLayout({
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <div className="p-6">{children}</div>
+        <div className="flex flex-col h-full bg-background">
+           {/* Mobile Header for trigger */}
+           <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10">
+            <SidebarTrigger />
+            <h2 className="mr-2 rtl:ml-2 rtl:mr-0 font-semibold text-lg">
+              لوحة الإدارة
+            </h2>
+          </header>
+          {/* Main Content Area */}
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto">
+            {children}
+          </div>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
