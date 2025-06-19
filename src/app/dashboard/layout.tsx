@@ -4,15 +4,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation"; 
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, PanelLeftOpen } from "lucide-react"; // Added PanelLeftOpen
+import { Loader2, PanelLeftOpen, ChevronsRight, ChevronsLeft } from "lucide-react"; 
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { SheetTitle } from "@/components/ui/sheet";
-// Removed AppLogo import as it's replaced
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // New internal component
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
-  const { isMobile, open } = useSidebar();
+  const { isMobile, open, toggleSidebar } = useSidebar();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -26,18 +26,32 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
         collapsible="icon"
         className="border-l rtl:border-r-0 rtl:border-l" 
       >
-        <SidebarHeader className="p-3 flex items-center justify-center">
-          {hydrated && isMobile ? (
-            <SheetTitle className="text-xl font-semibold px-3">لوحة التحكم</SheetTitle>
-          ) : hydrated && !isMobile ? (
-            <>
-              <div className={cn("text-xl font-semibold px-3", !open && "hidden")}>لوحة التحكم</div>
-              {/* Icon for desktop collapsed state */}
-              <PanelLeftOpen className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
-            </>
-          ) : (
-             <div className="h-6 w-full"></div> 
-          )}
+        <SidebarHeader className="p-3 border-b border-sidebar-border">
+          <div className="flex items-center justify-between">
+            {/* Title/Logo Area */}
+             <div className="flex items-center gap-2">
+              {hydrated && isMobile ? (
+                <SheetTitle className="text-xl font-semibold">لوحة التحكم</SheetTitle>
+              ) : hydrated && !isMobile && open ? (
+                <div className="text-xl font-semibold">لوحة التحكم</div>
+              ) : (
+                 <div className={cn(hydrated && !isMobile && !open ? "w-0" : "h-6")}></div>
+              )}
+            </div>
+
+            {/* Desktop Toggle Button */}
+            {hydrated && !isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className="h-8 w-8"
+                aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
+              >
+                {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
+              </Button>
+            )}
+          </div>
         </SidebarHeader>
         <SidebarContent className="p-0">
           <DashboardNav />

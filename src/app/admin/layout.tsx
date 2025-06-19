@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar, SidebarSeparator, SidebarFooter } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { SheetTitle } from "@/components/ui/sheet";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
@@ -84,9 +84,6 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
     setHydrated(true);
   }, []);
   
-  const ToggleIcon = open ? ChevronsRight : ChevronsLeft;
-
-
   return (
     <>
       <Sidebar 
@@ -94,32 +91,40 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
         collapsible="icon"
         className="border-l rtl:border-r-0 rtl:border-l" 
       >
-        <SidebarHeader className="p-3 flex items-center justify-center">
-          {hydrated && isMobile ? (
+        <SidebarHeader className="p-3 border-b border-sidebar-border">
+          <div className="flex items-center justify-between">
+            {/* Title/Logo Area */}
             <div className="flex items-center gap-2">
-              <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
-              {adminNotificationCount > 0 && !isLoadingCounts && (
-                <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+              {hydrated && isMobile ? (
+                <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
+              ) : hydrated && !isMobile && open ? (
+                <div className="text-xl font-semibold">لوحة الإدارة</div>
+              ) : (
+                <div className={cn(hydrated && !isMobile && !open ? "w-0" : "h-6")}></div> // Placeholder for collapsed desktop or pre-hydration
+              )}
+              {/* Badge for mobile and desktop expanded */}
+              {hydrated && (isMobile || (!isMobile && open)) && adminNotificationCount > 0 && !isLoadingCounts && (
+                 <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
               )}
             </div>
-          ) : hydrated && !isMobile ? (
-            <>
-              <div className={cn("flex items-center gap-2", !open && "hidden")}>
-                <div className="text-xl font-semibold">لوحة الإدارة</div>
-                {adminNotificationCount > 0 && !isLoadingCounts && (
-                  <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
-                )}
-              </div>
-              <PanelLeftOpen className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
-            </>
-          ) : (
-             <div className="h-6 w-full"></div> 
-          )}
+
+            {/* Desktop Toggle Button */}
+            {hydrated && !isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className="h-8 w-8" 
+                aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
+              >
+                {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
+              </Button>
+            )}
+          </div>
         </SidebarHeader>
         <SidebarContent className="p-0">
              <AdminSidebarNav counts={counts} />
         </SidebarContent>
-         {/* Desktop only footer toggle - will be visible due to Sidebar component's internal logic */}
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">

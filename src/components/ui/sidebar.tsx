@@ -4,14 +4,14 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft, ChevronsRight, ChevronsLeft } from "lucide-react" // Added Chevrons
+import { PanelLeft, ChevronsRight, ChevronsLeft } from "lucide-react" 
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet" // Added SheetTitle
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet" 
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -22,9 +22,9 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem" // Default desktop width
-const SIDEBAR_WIDTH_MOBILE = "16rem" // Explicit mobile width when open
-const SIDEBAR_WIDTH_ICON = "3rem" // Width when collapsed to icons
+const SIDEBAR_WIDTH = "16rem" 
+const SIDEBAR_WIDTH_MOBILE = "16rem" 
+const SIDEBAR_WIDTH_ICON = "3rem" 
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextValue = {
@@ -173,14 +173,14 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, open, setOpen, state, toggleSidebar } = useSidebar()
+    const { isMobile, open, setOpen, state } = useSidebar()
 
     if (collapsible === "none") {
       const widthVar = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
       return (
         <div
           className={cn(
-            "flex h-full flex-col bg-sidebar text-sidebar-foreground shadow-lg", // Added shadow-lg
+            "flex h-full flex-col bg-sidebar text-sidebar-foreground shadow-lg", 
             isMobile ? "border-l rtl:border-r-0 rtl:border-l" : (side === "left" ? "border-r" : "border-l"),
             className
           )}
@@ -193,32 +193,25 @@ const Sidebar = React.forwardRef<
         </div>
       )
     }
-
-    if (isMobile) {
-      // On mobile, both "icon" and "offcanvas" collapsible types use a Sheet (overlay)
-      if (collapsible === "icon" || collapsible === "offcanvas") {
-        return (
-          <Sheet open={open} onOpenChange={setOpen} {...props}>
-            <SheetContent
-              data-sidebar="sidebar"
-              data-mobile="true"
-              className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden shadow-xl" // Added shadow-xl
-              side={side}
-            >
-              <div className="flex h-full w-full flex-col">{children}</div>
-            </SheetContent>
-          </Sheet>
-        );
-      }
+    
+    if (isMobile && (collapsible === "icon" || collapsible === "offcanvas")) {
+      return (
+        <Sheet open={open} onOpenChange={setOpen} {...props}>
+          <SheetContent
+            data-sidebar="sidebar"
+            data-mobile="true"
+            className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden shadow-xl" 
+            side={side}
+          >
+            <div className="flex h-full w-full flex-col">{children}</div>
+          </SheetContent>
+        </Sheet>
+      );
     }
 
-    // Desktop Logic
     const currentSidebarWidth = open
       ? 'var(--sidebar-width)'
       : (collapsible === "icon" ? 'var(--sidebar-width-icon)' : '0px');
-
-    const ToggleIcon = side === 'right' ? (open ? ChevronsRight : ChevronsLeft) : (open ? ChevronsLeft : ChevronsRight);
-
 
     return (
       <div
@@ -244,31 +237,11 @@ const Sidebar = React.forwardRef<
         <div
           data-sidebar="sidebar"
           className={cn(
-            "flex h-full w-full flex-col bg-sidebar shadow-lg", // Added shadow-lg
+            "flex h-full w-full flex-col bg-sidebar shadow-lg", 
             (variant === "floating" || variant === "inset") && "rounded-lg border border-sidebar-border"
           )}
         >
-          {React.Children.map(children, child => {
-            if (React.isValidElement(child) && child.type === SidebarContent) {
-              return React.cloneElement(child as React.ReactElement<any>, {
-                className: cn(child.props.className, "pb-12") // Add padding for footer
-              });
-            }
-            return child;
-          })}
-          {collapsible === "icon" && !isMobile && (
-            <SidebarFooter className="mt-auto border-t border-sidebar-border p-2">
-              <SidebarMenuButton
-                onClick={toggleSidebar}
-                className="w-full justify-center"
-                tooltip={open ? (side === 'right' ? "طي الشريط لليمين" : "طي الشريط لليسار") : (side === 'right' ? "فتح الشريط من اليمين" : "فتح الشريط من اليسار")}
-                aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-                size="sm"
-              >
-                <ToggleIcon className="h-5 w-5" />
-              </SidebarMenuButton>
-            </SidebarFooter>
-          )}
+          {children}
         </div>
          {!isMobile && (collapsible === "icon" || collapsible === "offcanvas") && <SidebarRail />}
       </div>
@@ -380,7 +353,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2 border-b border-sidebar-border", className)} // Added border-b
+      className={cn("flex flex-col gap-2 p-2 border-b border-sidebar-border", className)} 
       {...props}
     />
   )
@@ -410,7 +383,7 @@ const SidebarSeparator = React.forwardRef<
     <Separator
       ref={ref}
       data-sidebar="separator"
-      className={cn("mx-2 my-1 w-auto bg-sidebar-border", className)} // my-1 for spacing
+      className={cn("mx-2 my-1 w-auto bg-sidebar-border", className)} 
       {...props}
     />
   )
@@ -779,5 +752,5 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-  SheetTitle // Export SheetTitle for use in layouts
+  SheetTitle 
 }
