@@ -4,14 +4,14 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { PanelLeft, ChevronsRight, ChevronsLeft } from "lucide-react" // Added Chevrons
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet" // Added SheetTitle
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -165,22 +165,22 @@ const Sidebar = React.forwardRef<
   (
     {
       side = "left",
-      variant = "sidebar", 
-      collapsible = "offcanvas", 
+      variant = "sidebar",
+      collapsible = "offcanvas",
       className,
       children,
       ...props
     },
     ref
   ) => {
-    const { isMobile, open, setOpen, state } = useSidebar()
+    const { isMobile, open, setOpen, state, toggleSidebar } = useSidebar()
 
     if (collapsible === "none") {
       const widthVar = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
       return (
         <div
           className={cn(
-            "flex h-full flex-col bg-sidebar text-sidebar-foreground",
+            "flex h-full flex-col bg-sidebar text-sidebar-foreground shadow-lg", // Added shadow-lg
             isMobile ? "border-l rtl:border-r-0 rtl:border-l" : (side === "left" ? "border-r" : "border-l"),
             className
           )}
@@ -202,7 +202,7 @@ const Sidebar = React.forwardRef<
             <SheetContent
               data-sidebar="sidebar"
               data-mobile="true"
-              className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+              className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden shadow-xl" // Added shadow-xl
               side={side}
             >
               <div className="flex h-full w-full flex-col">{children}</div>
@@ -210,26 +210,28 @@ const Sidebar = React.forwardRef<
           </Sheet>
         );
       }
-      // If collapsible is "none" on mobile, it's handled by the "collapsible === 'none'" block above.
     }
 
     // Desktop Logic
     const currentSidebarWidth = open
       ? 'var(--sidebar-width)'
-      : (collapsible === "icon" ? 'var(--sidebar-width-icon)' : '0px'); // offcanvas on desktop collapses to 0 width
+      : (collapsible === "icon" ? 'var(--sidebar-width-icon)' : '0px');
+
+    const ToggleIcon = side === 'right' ? (open ? ChevronsRight : ChevronsLeft) : (open ? ChevronsLeft : ChevronsRight);
+
 
     return (
       <div
         ref={ref}
         className={cn(
           "group text-sidebar-foreground transition-[width] duration-200 ease-linear",
-          "hidden md:flex h-full flex-col", // Changed from md:block to md:flex and added h-full, flex-col
+          "hidden md:flex h-full flex-col",
           variant === "sidebar" && "fixed bottom-0 top-16 z-10 h-[calc(100svh-theme(spacing.16))]",
           variant === "sidebar" && (side === "left" ? "left-0 border-r" : "right-0 border-l"),
-          (variant === "floating" || variant === "inset") && "relative p-2 border-transparent", 
+          (variant === "floating" || variant === "inset") && "relative p-2 border-transparent",
           className
         )}
-        style={{ 
+        style={{
             width: currentSidebarWidth,
             borderColor: (variant === "sidebar") ? 'hsl(var(--sidebar-border))' : undefined,
         }}
@@ -240,13 +242,33 @@ const Sidebar = React.forwardRef<
         {...props}
       >
         <div
-          data-sidebar="sidebar" 
+          data-sidebar="sidebar"
           className={cn(
-            "flex h-full w-full flex-col bg-sidebar",
-            (variant === "floating" || variant === "inset") && "rounded-lg border border-sidebar-border shadow"
+            "flex h-full w-full flex-col bg-sidebar shadow-lg", // Added shadow-lg
+            (variant === "floating" || variant === "inset") && "rounded-lg border border-sidebar-border"
           )}
         >
-          {children}
+          {React.Children.map(children, child => {
+            if (React.isValidElement(child) && child.type === SidebarContent) {
+              return React.cloneElement(child as React.ReactElement<any>, {
+                className: cn(child.props.className, "pb-12") // Add padding for footer
+              });
+            }
+            return child;
+          })}
+          {collapsible === "icon" && !isMobile && (
+            <SidebarFooter className="mt-auto border-t border-sidebar-border p-2">
+              <SidebarMenuButton
+                onClick={toggleSidebar}
+                className="w-full justify-center"
+                tooltip={open ? (side === 'right' ? "طي الشريط لليمين" : "طي الشريط لليسار") : (side === 'right' ? "فتح الشريط من اليمين" : "فتح الشريط من اليسار")}
+                aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+                size="sm"
+              >
+                <ToggleIcon className="h-5 w-5" />
+              </SidebarMenuButton>
+            </SidebarFooter>
+          )}
         </div>
          {!isMobile && (collapsible === "icon" || collapsible === "offcanvas") && <SidebarRail />}
       </div>
@@ -287,7 +309,7 @@ const SidebarRail = React.forwardRef<
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
   const { toggleSidebar, isMobile } = useSidebar()
-  if (isMobile) return null; 
+  if (isMobile) return null;
 
   return (
     <button
@@ -299,7 +321,7 @@ const SidebarRail = React.forwardRef<
       title="Toggle Sidebar"
       className={cn(
         "absolute bottom-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
-        "top-0 h-full", 
+        "top-0 h-full",
         "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar",
@@ -314,15 +336,15 @@ const SidebarRail = React.forwardRef<
 SidebarRail.displayName = "SidebarRail"
 
 const SidebarInset = React.forwardRef<
-  HTMLDivElement, 
-  React.HTMLAttributes<HTMLDivElement> 
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
   const { isMobile } = useSidebar();
   return (
-    <div 
+    <div
       ref={ref}
       className={cn(
-        "relative flex-1 flex flex-col overflow-hidden", 
+        "relative flex-1 flex flex-col overflow-hidden",
         !isMobile && "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className
       )}
@@ -358,7 +380,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2 border-b border-sidebar-border", className)} // Added border-b
       {...props}
     />
   )
@@ -388,7 +410,7 @@ const SidebarSeparator = React.forwardRef<
     <Separator
       ref={ref}
       data-sidebar="separator"
-      className={cn("mx-2 w-auto bg-sidebar-border", className)}
+      className={cn("mx-2 my-1 w-auto bg-sidebar-border", className)} // my-1 for spacing
       {...props}
     />
   )
@@ -757,6 +779,5 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
+  SheetTitle // Export SheetTitle for use in layouts
 }
-
-    

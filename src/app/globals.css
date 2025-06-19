@@ -42,7 +42,7 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     
-    --sidebar-background: 0 0% 100%; /* White sidebar */
+    --sidebar-background: 216 25% 98%; /* Very light cool gray #F5F7FA */
     --sidebar-foreground: 224 71% 4%;
     --sidebar-primary: 205 66% 62%; /* Primary color for active items */
     --sidebar-primary-foreground: 0 0% 100%;
@@ -89,11 +89,11 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    --sidebar-background: 220 15% 13%; 
+    --sidebar-background: 220 15% 18%; /* Darker than main bg #262A33 */
     --sidebar-foreground: 0 0% 92%;
     --sidebar-primary: 203 60% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 223 15% 18%;      /* Darker than sidebar bg for hover */
+    --sidebar-accent: 223 15% 22%;      /* Darker than sidebar bg for hover */
     --sidebar-accent-foreground: 0 0% 92%;
     --sidebar-border: 223 15% 25%;
     --sidebar-ring: 203 60% 44%;
