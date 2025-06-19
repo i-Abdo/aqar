@@ -2,13 +2,13 @@
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"; // Added useState
 import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar } from "@/components/ui/sidebar"; // Added useSidebar
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { SheetTitle } from "@/components/ui/sheet";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
@@ -81,10 +81,15 @@ export default function AdminLayout({
   const { user, isAdmin, loading: authLoading, adminNotificationCount } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname(); 
-  const { isMobile, open } = useSidebar(); // Get sidebar state
+  const { isMobile, open } = useSidebar();
 
   const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
   const [isLoadingCounts, setIsLoadingCounts] = useState(true);
+  const [hydrated, setHydrated] = useState(false); // Added hydrated state
+
+  useEffect(() => {
+    setHydrated(true); // Set hydrated to true on client mount
+  }, []);
 
 
   useEffect(() => {
@@ -136,7 +141,7 @@ export default function AdminLayout({
     }
   }, [user, isAdmin, authLoading, router]);
 
-  if (authLoading) {
+  if (authLoading || !hydrated) { // Added !hydrated check
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -168,14 +173,14 @@ export default function AdminLayout({
         className="border-l rtl:border-r-0 rtl:border-l" 
       >
         <SidebarHeader className="p-3 flex items-center justify-center">
-          {isMobile ? (
+          {hydrated && isMobile ? (
             <div className="flex items-center gap-2">
               <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
               {adminNotificationCount > 0 && !isLoadingCounts && (
                 <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
               )}
             </div>
-          ) : (
+          ) : hydrated && !isMobile ? (
             <>
               <div className={cn("flex items-center gap-2", !open && "hidden")}>
                 <div className="text-xl font-semibold">لوحة الإدارة</div>
@@ -185,6 +190,8 @@ export default function AdminLayout({
               </div>
               <LayoutDashboard className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
             </>
+          ) : (
+             <div className="h-6 w-full"></div> // Placeholder for title area before hydration
           )}
         </SidebarHeader>
         <SidebarContent className="p-0">

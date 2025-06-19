@@ -2,13 +2,13 @@
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation"; 
-import React, { useEffect } from "react"; 
+import React, { useEffect, useState } from "react"; // Added useState
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2 } from "lucide-react";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar"; // Added useSidebar
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { SheetTitle } from "@/components/ui/sheet";
 import { AppLogo } from "@/components/layout/AppLogo";
-import { cn } from "@/lib/utils"; // Added cn
+import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
   children,
@@ -18,7 +18,12 @@ export default function DashboardLayout({
   const { user, loading } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname();
-  const { isMobile, open } = useSidebar(); // Get sidebar state
+  const { isMobile, open } = useSidebar();
+  const [hydrated, setHydrated] = useState(false); // Added hydrated state
+
+  useEffect(() => {
+    setHydrated(true); // Set hydrated to true on client mount
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -27,7 +32,7 @@ export default function DashboardLayout({
   }, [user, loading, router]);
 
 
-  if (loading) {
+  if (loading || !hydrated) { // Added !hydrated check
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -50,15 +55,17 @@ export default function DashboardLayout({
         className="border-l rtl:border-r-0 rtl:border-l" 
       >
         <SidebarHeader className="p-3 flex items-center justify-center">
-          {isMobile ? (
+          {hydrated && isMobile ? (
             <SheetTitle className="text-xl font-semibold px-3">لوحة التحكم</SheetTitle>
-          ) : (
+          ) : hydrated && !isMobile ? (
             <>
               <div className={cn("text-xl font-semibold px-3", !open && "hidden")}>لوحة التحكم</div>
               <div className={cn("hidden", !open && "block")}>
                 <AppLogo />
               </div>
             </>
+          ) : (
+             <div className="h-6 w-full"></div> // Placeholder for title area before hydration
           )}
         </SidebarHeader>
         <SidebarContent className="p-0">
