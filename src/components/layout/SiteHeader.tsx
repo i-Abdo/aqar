@@ -17,36 +17,27 @@ export function SiteHeader() {
       <div className="container flex h-16 items-center justify-between"> {/* Parent Flex Container */}
         
         {/* Group 1: Logo (md:order-1 visually) */}
-        <div className="md:order-1"> {/* Adjusted to not be flex itself, just a container for logo */}
+        <div className="md:order-1"> 
           <AppLogo />
         </div>
 
         {/* Group 2: Desktop Search (md:order-2 visually) */}
-        {/* This group will have flex-1 to take up available space */}
         <div className="hidden md:flex flex-1 items-center justify-center md:order-2 mx-2"> 
-          {/* Increased max-widths significantly. w-full makes the input take the width of this div. */}
-          <div className="w-full max-w-xl lg:max-w-2xl xl:max-w-3xl"> 
+          <div className="w-full max-w-lg lg:max-w-xl xl:max-w-2xl"> 
             <GlobalSearchInput />
           </div>
         </div>
         
         {/* Group 3: MainNav for Desktop (md:order-3 visually) */}
-        {/* MainNav should not have flex-1 so it doesn't push the search bar. Added mx-2 for spacing. */}
-        <div className="hidden md:flex items-center justify-center md:order-3 mx-2"> 
+        <div className="hidden md:flex flex-1 items-center justify-center md:order-3 mx-2"> 
           <MainNav />
         </div>
 
         {/* Group 4: Toggles & User Nav (md:order-4 visually) */}
         <div className="flex items-center gap-x-1 md:order-4">
-          {/* Mobile Only Items */}
-          <div className="md:hidden flex items-center">
+          <div className="flex items-center"> {/* Simplified: ThemeToggle and UserAccountNav are now always in this flex container */}
             <ThemeToggleButton />
             <UserAccountNav /> 
-          </div>
-          {/* Desktop Only Items */}
-          <div className="hidden md:flex items-center">
-            <ThemeToggleButton />
-            <UserAccountNav />
           </div>
         </div>
       </div>
