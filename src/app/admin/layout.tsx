@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, PanelLeftOpen, LayoutDashboard, ChevronsRight, ChevronsLeft } from "lucide-react"; 
+import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, PanelLeftOpen, LayoutDashboard, ChevronsRight, ChevronsLeft, PanelLeft } from "lucide-react"; 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -99,8 +99,10 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
                 <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
               ) : hydrated && !isMobile && open ? (
                 <div className="text-xl font-semibold">لوحة الإدارة</div>
-              ) : (
-                <div className={cn(hydrated && !isMobile && !open ? "w-0" : "h-6")}></div> // Placeholder for collapsed desktop or pre-hydration
+              ) : hydrated && !isMobile && !open ? (
+                 <PanelLeftOpen className="h-6 w-6 shrink-0 mx-auto" />
+              ): (
+                <div className="h-6 w-6"></div> 
               )}
               {/* Badge for mobile and desktop expanded */}
               {hydrated && (isMobile || (!isMobile && open)) && adminNotificationCount > 0 && !isLoadingCounts && (
@@ -128,7 +130,7 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
-           <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10">
+           <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10" style={{ top: 'var(--header-height, 0px)' }}>
             <SidebarTrigger />
             <h2 className="mr-2 rtl:ml-2 rtl:mr-0 font-semibold text-lg">
               لوحة الإدارة
@@ -232,7 +234,12 @@ export default function AdminLayout({
   return (
     <SidebarProvider 
       defaultOpen={true}
-      style={{ '--sidebar-width': '16rem', '--sidebar-width-mobile': '16rem' } as React.CSSProperties}
+      style={{ 
+        '--sidebar-width': '16rem', 
+        '--sidebar-width-mobile': '16rem',
+        '--sidebar-width-icon': '3.5rem',
+        '--header-height': '4rem',
+      } as React.CSSProperties}
     >
       <AdminInternalLayout counts={counts} adminNotificationCount={adminNotificationCount} isLoadingCounts={isLoadingCounts}>
         {children}
@@ -240,3 +247,4 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
+

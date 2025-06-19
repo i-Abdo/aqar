@@ -22,9 +22,12 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem" 
-const SIDEBAR_WIDTH_MOBILE = "16rem" 
-const SIDEBAR_WIDTH_ICON = "3rem" 
+// Default CSS variable values, actual values are set via style prop on SidebarProvider
+// const SIDEBAR_WIDTH = "16rem" 
+// const SIDEBAR_WIDTH_MOBILE = "16rem" 
+// const SIDEBAR_WIDTH_ICON = "3.5rem" // Default icon width
+// const HEADER_HEIGHT = "4rem"; // Default header height
+
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextValue = {
@@ -59,7 +62,7 @@ const SidebarProvider = React.forwardRef<
       open: openProp,
       onOpenChange: setOpenProp,
       className,
-      style,
+      style, // Consumers will pass CSS variables here
       children,
       ...props
     },
@@ -130,16 +133,9 @@ const SidebarProvider = React.forwardRef<
       <SidebarContext.Provider value={contextValue}>
         <TooltipProvider delayDuration={0}>
           <div
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH,
-                "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE,
-                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-                ...style,
-              } as React.CSSProperties
-            }
+            style={style as React.CSSProperties} // Consumers pass vars like --sidebar-width etc.
             className={cn(
-              "group/sidebar-wrapper flex h-full w-full has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper flex h-full w-full",
               className
             )}
             ref={ref}
@@ -158,14 +154,12 @@ const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
-    variant?: "sidebar" | "floating" | "inset"
     collapsible?: "offcanvas" | "icon" | "none"
   }
 >(
   (
     {
       side = "left",
-      variant = "sidebar",
       collapsible = "offcanvas",
       className,
       children,
@@ -175,75 +169,75 @@ const Sidebar = React.forwardRef<
   ) => {
     const { isMobile, open, setOpen, state } = useSidebar()
 
-    if (collapsible === "none") {
-      const widthVar = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
-      return (
-        <div
-          className={cn(
-            "flex h-full flex-col bg-sidebar text-sidebar-foreground shadow-lg", 
-            isMobile ? "border-l rtl:border-r-0 rtl:border-l" : (side === "left" ? "border-r" : "border-l"),
-            className
-          )}
-          style={{ width: widthVar, borderColor: 'hsl(var(--sidebar-border))' }}
-          ref={ref}
-          data-sidebar="sidebar"
-          {...props}
-        >
-          {children}
-        </div>
-      )
-    }
-    
-    if (isMobile && (collapsible === "icon" || collapsible === "offcanvas")) {
+    if (isMobile && collapsible === "offcanvas") {
       return (
         <Sheet open={open} onOpenChange={setOpen} {...props}>
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden shadow-xl" 
+            data-collapsible="offcanvas"
+            className="w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground shadow-xl [&>button]:hidden"
             side={side}
           >
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <React.Fragment>
+              <div className="flex h-full w-full flex-col">{children}</div>
+            </React.Fragment>
           </SheetContent>
         </Sheet>
-      );
+      )
     }
 
-    const currentSidebarWidth = open
-      ? 'var(--sidebar-width)'
-      : (collapsible === "icon" ? 'var(--sidebar-width-icon)' : '0px');
+    let currentWidth = "0px";
+    if (isMobile) { // icon or none on mobile
+      if (collapsible === "none") {
+        currentWidth = 'var(--sidebar-width-mobile)';
+      } else if (collapsible === "icon") {
+        currentWidth = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
+      }
+    } else { // Desktop
+      if (collapsible === "none") {
+        currentWidth = 'var(--sidebar-width)';
+      } else if (collapsible === "icon") {
+        currentWidth = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
+      } else if (collapsible === "offcanvas") {
+        currentWidth = open ? 'var(--sidebar-width)' : '0px';
+      }
+    }
+    
+    // Hide sidebar completely if it's offcanvas and collapsed on desktop, or if it's offcanvas on mobile and closed (handled by Sheet)
+    const isHidden = (!isMobile && collapsible === "offcanvas" && !open);
+    if (isMobile && collapsible === "offcanvas") { // Mobile offcanvas is handled by Sheet, so Sidebar renders nothing direct
+      return null;
+    }
+
 
     return (
       <div
         ref={ref}
+        data-sidebar="sidebar"
+        data-state={state}
+        data-collapsible={collapsible}
+        data-side={side}
+        data-mobile={isMobile ? "true" : "false"}
         className={cn(
-          "group text-sidebar-foreground transition-[width] duration-200 ease-linear",
-          "hidden md:flex h-full flex-col",
-          variant === "sidebar" && "fixed bottom-0 top-16 z-10 h-[calc(100svh-theme(spacing.16))]",
-          variant === "sidebar" && (side === "left" ? "left-0 border-r" : "right-0 border-l"),
-          (variant === "floating" || variant === "inset") && "relative p-2 border-transparent",
+          "group bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 ease-linear",
+          "fixed bottom-0 flex flex-col", // Common fixed positioning
+          "h-[calc(100svh-var(--header-height,0px))]", // Adjusted for header
+          side === "left" ? "left-0 border-r" : "right-0 border-l",
+          isHidden && "hidden",
           className
         )}
         style={{
-            width: currentSidebarWidth,
-            borderColor: (variant === "sidebar") ? 'hsl(var(--sidebar-border))' : undefined,
+          width: currentWidth,
+          top: 'var(--header-height, 0px)',
+          borderColor: 'hsl(var(--sidebar-border))',
+          zIndex: 40 
         }}
-        data-state={state}
-        data-collapsible={collapsible === "icon" && state === "collapsed" ? "icon" : (collapsible === "offcanvas" && state === "collapsed" ? "offcanvas" : "")}
-        data-variant={variant}
-        data-side={side}
         {...props}
       >
-        <div
-          data-sidebar="sidebar"
-          className={cn(
-            "flex h-full w-full flex-col bg-sidebar shadow-lg", 
-            (variant === "floating" || variant === "inset") && "rounded-lg border border-sidebar-border"
-          )}
-        >
+        <div className="flex h-full w-full flex-col overflow-hidden">
           {children}
         </div>
-         {!isMobile && (collapsible === "icon" || collapsible === "offcanvas") && <SidebarRail />}
       </div>
     )
   }
@@ -312,15 +306,33 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
-  const { isMobile } = useSidebar();
+  const { isMobile, open, state } = useSidebar();
+  // This component assumes it's being used with a sidebar that has side="right" and collapsible="icon"
+  // as per the admin and dashboard layouts' current configuration.
+  // A more robust solution would involve passing side/collapsible props or using a richer context.
+
+  let marginValue = '0px';
+
+  if (isMobile) {
+    // Assuming collapsible="icon" for mobile as per current layouts
+    marginValue = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
+  } else {
+    // Assuming collapsible="icon" for desktop as per current layouts
+    marginValue = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
+  }
+
   return (
     <div
       ref={ref}
       className={cn(
-        "relative flex-1 flex flex-col overflow-hidden",
-        !isMobile && "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+        "flex-1 flex flex-col overflow-hidden transition-[margin] duration-200 ease-linear",
         className
       )}
+      style={{
+        marginRight: marginValue, // Hardcoded for side="right"
+        // marginLeft: side === "left" ? marginValue : "0px",
+        // No paddingTop here, should be handled by parent or SiteHeader being sticky
+      }}
       {...props}
     />
   )
@@ -368,7 +380,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2 mt-auto border-t border-sidebar-border", className)}
       {...props}
     />
   )
@@ -754,3 +766,4 @@ export {
   useSidebar,
   SheetTitle 
 }
+

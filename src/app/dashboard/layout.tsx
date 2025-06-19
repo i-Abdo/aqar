@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation"; 
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, PanelLeftOpen, ChevronsRight, ChevronsLeft } from "lucide-react"; 
+import { Loader2, PanelLeftOpen, ChevronsRight, ChevronsLeft, PanelLeft } from "lucide-react"; 
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -34,8 +34,10 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                 <SheetTitle className="text-xl font-semibold">لوحة التحكم</SheetTitle>
               ) : hydrated && !isMobile && open ? (
                 <div className="text-xl font-semibold">لوحة التحكم</div>
+              ) : hydrated && !isMobile && !open ? (
+                <PanelLeftOpen className="h-6 w-6 shrink-0 mx-auto" />
               ) : (
-                 <div className={cn(hydrated && !isMobile && !open ? "w-0" : "h-6")}></div>
+                 <div className="h-6 w-6"></div>
               )}
             </div>
 
@@ -59,7 +61,7 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
-          <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10">
+          <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10" style={{ top: 'var(--header-height, 0px)' }}>
             <SidebarTrigger />
             <h2 className="mr-2 rtl:ml-2 rtl:mr-0 font-semibold text-lg">
               لوحة التحكم
@@ -109,9 +111,15 @@ export default function DashboardLayout({
   return (
     <SidebarProvider 
         defaultOpen={true}
-        style={{ '--sidebar-width': '16rem', '--sidebar-width-mobile': '16rem' } as React.CSSProperties}
+        style={{ 
+          '--sidebar-width': '16rem', 
+          '--sidebar-width-mobile': '16rem',
+          '--sidebar-width-icon': '3.5rem', // Added icon width
+          '--header-height': '4rem',      // Added header height
+        } as React.CSSProperties}
     >
       <DashboardInternalLayout>{children}</DashboardInternalLayout>
     </SidebarProvider>
   );
 }
+
