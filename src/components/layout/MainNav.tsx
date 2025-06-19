@@ -19,7 +19,11 @@ export function MainNav() {
   });
 
   return (
-    <nav className="hidden md:flex items-center space-x-6 rtl:space-x-reverse text-sm font-medium">
+    <nav className={cn(
+      "flex items-center space-x-4 rtl:space-x-reverse text-sm font-medium",
+      "overflow-x-auto whitespace-nowrap py-2 md:py-0", // For mobile: scrollable, some padding
+      "md:overflow-visible md:whitespace-normal md:space-x-6" // For desktop: normal flow
+    )}>
       {navItemsToDisplay.map((item) => {
         let showBadge = false;
         let countToShow = 0;
@@ -37,7 +41,7 @@ export function MainNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "transition-colors hover:text-primary relative flex items-center gap-1.5", 
+              "transition-colors hover:text-primary relative flex items-center gap-1.5 px-1 md:px-0", // Added some padding for mobile scroll items
               pathname === item.href ? "text-primary" : "text-foreground/60"
             )}
           >
