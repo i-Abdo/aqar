@@ -32,12 +32,12 @@ export function ThemeToggleButton() {
       size="icon"
       onClick={toggleTheme}
       aria-label={effectiveTheme === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
-      className="h-10 w-10"
+      className="h-10 w-10" // Button size is h-10 w-10
     >
       {effectiveTheme === 'dark' ? (
-        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <Sun className="h-6 w-6" /> // Icon size changed to h-6 w-6
       ) : (
-        <Moon className="h-[1.2rem] w-[1.2rem]" />
+        <Moon className="h-6 w-6" /> // Icon size changed to h-6 w-6
       )}
       <span className="sr-only">Toggle theme</span>
     </Button>

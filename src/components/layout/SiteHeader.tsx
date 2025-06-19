@@ -9,18 +9,19 @@ import { GlobalSearchInput } from "./GlobalSearchInput";
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Top Bar */}
+      {/* Main Header Bar */}
       {/* Base is flex-row-reverse for mobile RTL (last DOM item is rightmost visually) */}
       {/* md:flex-row ensures normal LTR-like DOM order for desktop logic (first DOM item is rightmost visually in RTL) */}
       <div className="container flex h-16 items-center justify-between flex-row-reverse md:flex-row">
         
         {/* Group 1 (Mobile: Appears Left due to flex-row-reverse | Desktop: Order 3, Appears Left) */}
         {/* Contains: Mobile Nav/Theme, Desktop Search/User/Theme */}
-        <div className="flex items-center gap-2 md:gap-4 md:order-3">
+        <div className="flex items-center gap-2 md:order-3">
           {/* Mobile Only Items */}
+          {/* Order changed here: ThemeToggleButton is now before MobileNav in DOM for flex-row-reverse */}
           <div className="md:hidden flex items-center">
-            <MobileNav />
             <ThemeToggleButton />
+            <MobileNav />
           </div>
           {/* Desktop Only Items */}
           <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse">
