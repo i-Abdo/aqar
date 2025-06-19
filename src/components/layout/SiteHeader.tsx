@@ -9,8 +9,8 @@ import { GlobalSearchInput } from "./GlobalSearchInput";
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        {/* Section 1 (Right-most in RTL): Logo (Desktop & Mobile) */}
+      <div className="container flex h-16 items-center justify-between flex-row-reverse md:flex-row">
+        {/* Section 1 (Right-most in RTL for Desktop, Left-most for Mobile): Logo */}
         <div className="flex items-center">
           <AppLogo />
         </div>
@@ -22,7 +22,7 @@ export function SiteHeader() {
           </div>
         </div>
 
-        {/* Section 3 (Left-most in RTL): Navigations and Toggles */}
+        {/* Section 3 (Left-most in RTL for Desktop, Right-most for Mobile): Navigations and Toggles */}
         <div className="flex items-center gap-2 md:gap-4">
           {/* Desktop: MainNav, ThemeToggle, UserAccountNav */}
           <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse">
