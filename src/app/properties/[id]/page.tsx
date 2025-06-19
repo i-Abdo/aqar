@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'; // Added React
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrustLevel } from '@/types';
@@ -67,7 +67,12 @@ export default function PropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  const id = React.useMemo(() => {
+    const rawId = params?.id;
+    return Array.isArray(rawId) ? rawId[0] : rawId;
+  }, [params?.id]);
+
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

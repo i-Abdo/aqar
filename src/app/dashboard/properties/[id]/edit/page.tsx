@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"; // Added React
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,7 +22,10 @@ export default function EditPropertyPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
 
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const id = React.useMemo(() => {
+    const rawId = params?.id;
+    return Array.isArray(rawId) ? rawId[0] : rawId;
+  }, [params?.id]);
 
   const [initialPropertyData, setInitialPropertyData] = useState<Property | null>(null);
   const [isLoadingProperty, setIsLoadingProperty] = useState(true);
