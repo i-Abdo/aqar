@@ -165,8 +165,8 @@ const Sidebar = React.forwardRef<
   (
     {
       side = "left",
-      variant = "sidebar", // "sidebar" means fixed/sticky on desktop, in-flow on mobile icon mode
-      collapsible = "offcanvas", // Default to offcanvas if not specified
+      variant = "sidebar", 
+      collapsible = "offcanvas", 
       className,
       children,
       ...props
@@ -195,7 +195,8 @@ const Sidebar = React.forwardRef<
     }
 
     if (isMobile) {
-      if (collapsible === "offcanvas") {
+      // On mobile, both "icon" and "offcanvas" collapsible types use a Sheet (overlay)
+      if (collapsible === "icon" || collapsible === "offcanvas") {
         return (
           <Sheet open={open} onOpenChange={setOpen} {...props}>
             <SheetContent
@@ -208,31 +209,8 @@ const Sidebar = React.forwardRef<
             </SheetContent>
           </Sheet>
         );
-      } else if (collapsible === "icon") {
-        // Render inline, collapsible sidebar for mobile "icon" mode
-        const currentSidebarWidth = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
-        return (
-          <div
-            ref={ref}
-            className={cn(
-              "group text-sidebar-foreground transition-[width] duration-200 ease-linear",
-              "relative flex h-full flex-col bg-sidebar", 
-              side === "left" ? "border-r" : "border-l rtl:border-r-0 rtl:border-l",
-              className
-            )}
-            style={{ 
-                width: currentSidebarWidth,
-                borderColor: 'hsl(var(--sidebar-border))',
-            }}
-            data-state={state}
-            data-collapsible={collapsible}
-            data-sidebar="sidebar"
-            {...props}
-          >
-            {children}
-          </div>
-        );
       }
+      // If collapsible is "none" on mobile, it's handled by the "collapsible === 'none'" block above.
     }
 
     // Desktop Logic
@@ -245,10 +223,10 @@ const Sidebar = React.forwardRef<
         ref={ref}
         className={cn(
           "group text-sidebar-foreground transition-[width] duration-200 ease-linear",
-          "hidden md:block", // Only for desktop
+          "hidden md:flex h-full flex-col", // Changed from md:block to md:flex and added h-full, flex-col
           variant === "sidebar" && "fixed bottom-0 top-16 z-10 h-[calc(100svh-theme(spacing.16))]",
           variant === "sidebar" && (side === "left" ? "left-0 border-r" : "right-0 border-l"),
-          (variant === "floating" || variant === "inset") && "relative p-2 border-transparent", // For floating/inset, provide relative positioning
+          (variant === "floating" || variant === "inset") && "relative p-2 border-transparent", 
           className
         )}
         style={{ 
