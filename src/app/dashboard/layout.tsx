@@ -4,8 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, ChevronsRight, ChevronsLeft, LayoutDashboard } from "lucide-react";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar, SheetTitle, SheetHeader } from "@/components/ui/sidebar";
+import { Loader2, ChevronsRight, ChevronsLeft, LayoutDashboard, PanelLeftOpen } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar, UiSheetTitle, UiSheetHeader } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -26,17 +26,17 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
       <Sidebar
         side="right"
         collapsible="icon"
-        title="لوحة التحكم"
+        title="لوحة التحكم" 
         className="border-l rtl:border-r-0 rtl:border-l"
       >
         <SidebarHeader>
           {hydrated && (
-            <div className={cn("flex items-center justify-between h-8", isMobile && "p-0")}>
-              {open && (
+            <div className={cn("flex items-center justify-between h-8")}>
+              {(open || (isMobile === undefined || isMobile)) && ( 
                  <div className="flex items-center gap-2">
-                    <span className={cn("text-xl font-semibold", isMobile && "hidden")}>لوحة التحكم</span>
+                    <span className={cn("text-xl font-semibold", (isMobile === false && !open) && "hidden")}>لوحة التحكم</span>
                     {userDashboardNotificationCount > 0 && (
-                        <Badge variant="destructive">{userDashboardNotificationCount > 9 ? '9+' : userDashboardNotificationCount}</Badge>
+                        <Badge variant="destructive" className={cn((isMobile === false && !open) && "hidden")}>{userDashboardNotificationCount > 9 ? '9+' : userDashboardNotificationCount}</Badge>
                     )}
                  </div>
               )}
@@ -44,7 +44,7 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className={cn("h-8 w-8", !open && !isMobile && "mx-auto")}
+                className={cn("h-8 w-8", (isMobile === false && !open) && "mx-auto w-full justify-center")}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
@@ -106,13 +106,12 @@ export default function DashboardLayout({
           '--sidebar-width': '16rem',
           '--sidebar-width-mobile': '16rem',
           '--sidebar-width-icon': '3.5rem',
-          '--header-height': '4rem',
-          '--main-content-top-offset': 'calc(var(--header-height) + 2rem)'
+          '--header-height': '4rem', // Main part of SiteHeader
+          // '--mobile-search-height': '3.25rem', // Defined in globals, used by SiteHeader.tsx
+          // '--total-mobile-header-height': '7.25rem', // Defined in globals
         } as React.CSSProperties}
     >
       <DashboardInternalLayout>{children}</DashboardInternalLayout>
     </SidebarProvider>
   );
 }
-
-    

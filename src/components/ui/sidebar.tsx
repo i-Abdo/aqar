@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetHeader as UiSheetHeader, SheetTitle as UiSheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader as UiSheetHeader, SheetTitle as UiSheetTitle } from "@/components/ui/sheet" // Keep these for potential "offcanvas"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -29,7 +29,7 @@ type SidebarContextValue = {
   state: "expanded" | "collapsed"
   open: boolean
   setOpen: (open: boolean) => void
-  isMobile: boolean
+  isMobile: boolean | undefined; // Can be undefined initially
   toggleSidebar: () => void
 }
 
@@ -150,7 +150,7 @@ const Sidebar = React.forwardRef<
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
     collapsible?: "offcanvas" | "icon" | "none"
-    title?: string;
+    title?: string; 
   }
 >(
   (
@@ -159,14 +159,21 @@ const Sidebar = React.forwardRef<
       collapsible = "offcanvas",
       className,
       children,
-      title, // Added title prop
+      title,
       ...props
     },
     ref
   ) => {
     const { isMobile, open, setOpen, state } = useSidebar()
 
-    // Logic for collapsible="icon" (same for mobile and desktop now)
+    if (isMobile === undefined) {
+      // Render a placeholder or null until isMobile is determined
+      // to avoid hydration issues with server-rendered fixed elements.
+      return null; 
+    }
+
+    // For "icon" collapsible type, render as a fixed div pushing content
+    // This now applies to both mobile and desktop for a consistent experience
     if (collapsible === "icon") {
       const currentWidth = isMobile
         ? (open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)')
@@ -182,16 +189,16 @@ const Sidebar = React.forwardRef<
           data-mobile={isMobile ? "true" : "false"}
           className={cn(
             "group bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 ease-linear",
-            "fixed flex flex-col", // Removed bottom-0
-            "max-h-[calc(100svh-var(--main-content-top-offset,var(--header-height,0px)))]", // Changed from h- to max-h-
+            "fixed flex flex-col", 
             side === "left" ? "left-0 border-r" : "right-0 border-l",
             className
           )}
           style={{
             width: currentWidth,
-            top: 'var(--main-content-top-offset, var(--header-height, 0px))',
+            top: 'var(--current-sticky-header-height)', // Use the dynamic header height
+            maxHeight: 'calc(100svh - var(--current-sticky-header-height))', // Adjusted max-height
             borderColor: 'hsl(var(--sidebar-border))',
-            zIndex: 40 
+            zIndex: 39 // Ensure it's below main header (z-50) but above general content
           }}
           {...props}
         >
@@ -202,8 +209,7 @@ const Sidebar = React.forwardRef<
       );
     }
     
-    // Logic for collapsible="offcanvas" (uses Sheet, typically mobile or specific desktop needs)
-    // This section remains largely unchanged for "offcanvas" behavior.
+    // For "offcanvas" on mobile (uses Sheet)
     if (isMobile && collapsible === "offcanvas") {
       return (
         <Sheet open={open} onOpenChange={setOpen} {...props}>
@@ -211,8 +217,12 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             data-mobile="true"
             data-collapsible={collapsible}
-            className="w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground shadow-xl [&>button]:hidden" // Keep the sheet specific classes
+            className="w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground shadow-xl [&>button]:hidden" 
             side={side}
+            style={{ 
+              top: 'var(--current-sticky-header-height)', 
+              height: 'calc(100vh - var(--current-sticky-header-height))' 
+            }}
           >
             {title && (
               <UiSheetHeader className="border-b border-sidebar-border p-3">
@@ -227,10 +237,9 @@ const Sidebar = React.forwardRef<
       );
     }
 
-    // Default/desktop "none" or unhandled "offcanvas" on desktop
-    // This part handles non-collapsible sidebars or offcanvas sidebars on desktop (if open)
-    const desktopWidth = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
-    if (collapsible === "offcanvas" && !open && !isMobile) return null; // Hide desktop offcanvas if not open
+    // Default/desktop "none" or unhandled "offcanvas" on desktop (fixed div)
+    const desktopWidth = 'var(--sidebar-width)';
+    if (collapsible === "offcanvas" && !open && !isMobile) return null;
 
     return (
        <div
@@ -243,15 +252,15 @@ const Sidebar = React.forwardRef<
         className={cn(
           "group bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 ease-linear",
           "fixed flex flex-col",
-          "max-h-[calc(100svh-var(--main-content-top-offset,var(--header-height,0px)))]",
           side === "left" ? "left-0 border-r" : "right-0 border-l",
           className
         )}
         style={{
-          width: desktopWidth, // Use the full width for non-icon collapsible or offcanvas desktop
-          top: 'var(--main-content-top-offset, var(--header-height, 0px))',
+          width: desktopWidth,
+          top: 'var(--current-sticky-header-height)',
+          maxHeight: 'calc(100svh - var(--current-sticky-header-height))',
           borderColor: 'hsl(var(--sidebar-border))',
-          zIndex: 40
+          zIndex: 39
         }}
         {...props}
       >
@@ -295,7 +304,7 @@ const SidebarRail = React.forwardRef<
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
   const { toggleSidebar, isMobile } = useSidebar()
-  if (isMobile) return null;
+  if (isMobile === undefined || isMobile) return null; // Also check for undefined
 
   return (
     <button
@@ -327,13 +336,29 @@ const SidebarInset = React.forwardRef<
 >(({ className, style, ...props }, ref) => {
   const { isMobile, open, state } = useSidebar();
 
-  let marginRightValue = '0px';
-  // This logic applies when the sidebar is collapsible="icon"
-  if (isMobile) {
-      marginRightValue = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
-  } else {
-      marginRightValue = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
+  if (isMobile === undefined) {
+    // While isMobile is undefined, we might not want to apply margin to avoid layout shifts
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "flex-1 flex flex-col overflow-hidden",
+          className
+        )}
+        style={{ ...style }} // No margin right initially
+        {...props}
+      />
+    );
   }
+  
+  let marginRightValue = '0px';
+
+  if (isMobile) { // Applies to mobile, where sidebar is fixed and pushes content
+    marginRightValue = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
+  } else { // Applies to desktop, where sidebar is fixed and pushes content
+    marginRightValue = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
+  }
+
 
   return (
     <div
@@ -343,7 +368,7 @@ const SidebarInset = React.forwardRef<
         className
       )}
       style={{
-        marginRight: marginRightValue, // Assuming sidebar is always on the right for these layouts
+        marginRight: marginRightValue, 
         ...style,
       }}
       {...props}
@@ -374,6 +399,12 @@ const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
+  // This SidebarHeader is primarily for desktop view or direct content inside the sidebar.
+  // For mobile Sheet view, the title is handled by Sidebar component internally.
+  const { isMobile } = useSidebar();
+  
+  if (isMobile === undefined) return null;
+
   return (
     <div
       ref={ref}
@@ -586,7 +617,7 @@ const SidebarMenuButton = React.forwardRef<
       />
     )
 
-    if (!tooltip) {
+    if (!tooltip || isMobile === undefined) { // Also check if isMobile is undefined
       return button
     }
 
@@ -595,14 +626,17 @@ const SidebarMenuButton = React.forwardRef<
         children: tooltip,
       }
     }
+    
+    const tooltipDisabled = state !== "collapsed" || isMobile;
+
 
     return (
       <Tooltip>
         <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent
-          side="right"
+          side="right" // Assuming sidebar is on the right
           align="center"
-          hidden={state !== "collapsed" || isMobile}
+          hidden={tooltipDisabled} // Use hidden prop to control visibility based on state
           {...tooltip}
         />
       </Tooltip>
@@ -777,6 +811,6 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-  UiSheetTitle as SheetTitle, // Keep SheetTitle exported if used by offcanvas
-  UiSheetHeader as SheetHeader // Keep SheetHeader exported if used by offcanvas
+  UiSheetTitle, 
+  UiSheetHeader
 }
