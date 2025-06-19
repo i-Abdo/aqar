@@ -34,8 +34,6 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                 <SheetTitle className="text-xl font-semibold">لوحة التحكم</SheetTitle>
               ) : hydrated && !isMobile && open ? (
                 <div className="text-xl font-semibold">لوحة التحكم</div>
-              ) : hydrated && !isMobile && !open ? (
-                <PanelLeftOpen className="h-6 w-6 shrink-0 mx-auto" />
               ) : (
                  <div className="h-6 w-6"></div>
               )}
@@ -114,8 +112,8 @@ export default function DashboardLayout({
         style={{ 
           '--sidebar-width': '16rem', 
           '--sidebar-width-mobile': '16rem',
-          '--sidebar-width-icon': '3.5rem', // Added icon width
-          '--header-height': '4rem',      // Added header height
+          '--sidebar-width-icon': '3.5rem', 
+          '--header-height': '4rem',      
         } as React.CSSProperties}
     >
       <DashboardInternalLayout>{children}</DashboardInternalLayout>

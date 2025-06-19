@@ -99,10 +99,8 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
                 <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
               ) : hydrated && !isMobile && open ? (
                 <div className="text-xl font-semibold">لوحة الإدارة</div>
-              ) : hydrated && !isMobile && !open ? (
-                 <PanelLeftOpen className="h-6 w-6 shrink-0 mx-auto" />
-              ): (
-                <div className="h-6 w-6"></div> 
+              ) : (
+                 <div className="h-6 w-6"></div> 
               )}
               {/* Badge for mobile and desktop expanded */}
               {hydrated && (isMobile || (!isMobile && open)) && adminNotificationCount > 0 && !isLoadingCounts && (
