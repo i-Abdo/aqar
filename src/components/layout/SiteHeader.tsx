@@ -14,40 +14,44 @@ export function SiteHeader() {
       )}
     >
       {/* Main Header Bar */}
-      <div className="container flex h-16 items-center justify-between">
-        {/* Group 1: Logo & Desktop Search (md:order-1) */}
-        <div className="flex items-center gap-x-1 md:order-1">
+      <div className="container flex h-16 items-center justify-between"> {/* Parent Flex Container */}
+        
+        {/* Group 1: Logo (md:order-1 visually) */}
+        <div className="md:order-1"> {/* Adjusted to not be flex itself, just a container for logo */}
           <AppLogo />
-          {/* Desktop Search - Part of Group 1 visually on desktop */}
-          <div className="hidden md:flex items-center ml-2">
-            <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl"> {/* Updated max-widths here */}
-              <GlobalSearchInput />
-            </div>
-          </div>
         </div>
 
-        {/* Group 2: MainNav for Desktop (md:order-2) */}
-        {/* Changed mx-2 to mx-0 to make space "very small" */}
-        <div className="hidden md:flex flex-1 items-center justify-center md:order-2 mx-0">
+        {/* Group 2: Desktop Search (md:order-2 visually) */}
+        {/* This group will have flex-1 to take up available space */}
+        <div className="hidden md:flex flex-1 items-center justify-center md:order-2 mx-2"> 
+          {/* Increased max-widths significantly. w-full makes the input take the width of this div. */}
+          <div className="w-full max-w-xl lg:max-w-2xl xl:max-w-3xl"> 
+            <GlobalSearchInput />
+          </div>
+        </div>
+        
+        {/* Group 3: MainNav for Desktop (md:order-3 visually) */}
+        {/* MainNav should not have flex-1 so it doesn't push the search bar. Added mx-2 for spacing. */}
+        <div className="hidden md:flex items-center justify-center md:order-3 mx-2"> 
           <MainNav />
         </div>
 
-        {/* Group 3: Toggles & User Nav (md:order-3) */}
-        <div className="flex items-center gap-x-1 md:order-3">
-          {/* Mobile Nav Trigger (Avatar/Menu) + Theme */}
-          <div className="md:hidden flex items-center gap-x-1"> 
+        {/* Group 4: Toggles & User Nav (md:order-4 visually) */}
+        <div className="flex items-center gap-x-1 md:order-4">
+          {/* Mobile Only Items */}
+          <div className="md:hidden flex items-center">
             <ThemeToggleButton />
-            <UserAccountNav /> {/* Handles Avatar or Login/Signup / MobileNav trigger is now part of UserAccountNav logic */}
+            <UserAccountNav /> 
           </div>
-          {/* Desktop ThemeToggle + UserAccountNav */}
-          <div className="hidden md:flex items-center gap-x-1">
+          {/* Desktop Only Items */}
+          <div className="hidden md:flex items-center">
             <ThemeToggleButton />
             <UserAccountNav />
           </div>
         </div>
       </div>
 
-      {/* Mobile Search Bar (Below Header) */}
+      {/* Mobile Search Bar */}
       <div className="md:hidden container mx-auto px-4 py-2 space-y-2">
         <GlobalSearchInput />
       </div>
