@@ -2,7 +2,7 @@
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react"; // Added useState
+import React, { useEffect, useState } from "react";
 import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { SheetTitle } from "@/components/ui/sheet";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
-
 
 const adminNavItems = [ 
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard, countKey: "properties" },
@@ -72,6 +71,64 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
   );
 }
 
+// New internal component
+function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadingCounts }: { children: React.ReactNode; counts: AdminCounts; adminNotificationCount: number; isLoadingCounts: boolean; }) {
+  const { isMobile, open } = useSidebar();
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  return (
+    <>
+      <Sidebar 
+        side="right" 
+        collapsible="icon"
+        className="border-l rtl:border-r-0 rtl:border-l" 
+      >
+        <SidebarHeader className="p-3 flex items-center justify-center">
+          {hydrated && isMobile ? (
+            <div className="flex items-center gap-2">
+              <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
+              {adminNotificationCount > 0 && !isLoadingCounts && (
+                <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+              )}
+            </div>
+          ) : hydrated && !isMobile ? (
+            <>
+              <div className={cn("flex items-center gap-2", !open && "hidden")}>
+                <div className="text-xl font-semibold">لوحة الإدارة</div>
+                {adminNotificationCount > 0 && !isLoadingCounts && (
+                  <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+                )}
+              </div>
+              <LayoutDashboard className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
+            </>
+          ) : (
+             <div className="h-6 w-full"></div> 
+          )}
+        </SidebarHeader>
+        <SidebarContent className="p-0">
+             <AdminSidebarNav counts={counts} />
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <div className="flex flex-col h-full bg-background">
+           <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10">
+            <SidebarTrigger />
+            <h2 className="mr-2 rtl:ml-2 rtl:mr-0 font-semibold text-lg">
+              لوحة الإدارة
+            </h2>
+          </header>
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto">
+            {children}
+          </div>
+        </div>
+      </SidebarInset>
+    </>
+  );
+}
 
 export default function AdminLayout({
   children,
@@ -81,16 +138,15 @@ export default function AdminLayout({
   const { user, isAdmin, loading: authLoading, adminNotificationCount } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname(); 
-  const { isMobile, open } = useSidebar();
-
+  // Removed useSidebar from here
+  
   const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
   const [isLoadingCounts, setIsLoadingCounts] = useState(true);
-  const [hydrated, setHydrated] = useState(false); // Added hydrated state
+  const [authHydrated, setAuthHydrated] = useState(false); 
 
   useEffect(() => {
-    setHydrated(true); // Set hydrated to true on client mount
+    setAuthHydrated(true); 
   }, []);
-
 
   useEffect(() => {
     if (!isAdmin) {
@@ -130,7 +186,6 @@ export default function AdminLayout({
     fetchAdminCountsForSidebar();
   }, [isAdmin, pathname, adminNotificationCount]); 
 
-
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
@@ -141,7 +196,7 @@ export default function AdminLayout({
     }
   }, [user, isAdmin, authLoading, router]);
 
-  if (authLoading || !hydrated) { // Added !hydrated check
+  if (authLoading || !authHydrated) { 
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -167,50 +222,9 @@ export default function AdminLayout({
       defaultOpen={true}
       style={{ '--sidebar-width': '16rem', '--sidebar-width-mobile': '16rem' } as React.CSSProperties}
     >
-      <Sidebar 
-        side="right" 
-        collapsible="icon"
-        className="border-l rtl:border-r-0 rtl:border-l" 
-      >
-        <SidebarHeader className="p-3 flex items-center justify-center">
-          {hydrated && isMobile ? (
-            <div className="flex items-center gap-2">
-              <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
-              {adminNotificationCount > 0 && !isLoadingCounts && (
-                <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
-              )}
-            </div>
-          ) : hydrated && !isMobile ? (
-            <>
-              <div className={cn("flex items-center gap-2", !open && "hidden")}>
-                <div className="text-xl font-semibold">لوحة الإدارة</div>
-                {adminNotificationCount > 0 && !isLoadingCounts && (
-                  <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
-                )}
-              </div>
-              <LayoutDashboard className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
-            </>
-          ) : (
-             <div className="h-6 w-full"></div> // Placeholder for title area before hydration
-          )}
-        </SidebarHeader>
-        <SidebarContent className="p-0">
-             <AdminSidebarNav counts={counts} />
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <div className="flex flex-col h-full bg-background">
-           <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10">
-            <SidebarTrigger />
-            <h2 className="mr-2 rtl:ml-2 rtl:mr-0 font-semibold text-lg">
-              لوحة الإدارة
-            </h2>
-          </header>
-          <div className="flex-1 p-4 md:p-6 overflow-y-auto">
-            {children}
-          </div>
-        </div>
-      </SidebarInset>
+      <AdminInternalLayout counts={counts} adminNotificationCount={adminNotificationCount} isLoadingCounts={isLoadingCounts}>
+        {children}
+      </AdminInternalLayout>
     </SidebarProvider>
   );
 }

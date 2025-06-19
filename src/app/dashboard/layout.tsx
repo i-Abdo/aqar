@@ -2,7 +2,7 @@
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation"; 
-import React, { useEffect, useState } from "react"; // Added useState
+import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
@@ -10,45 +10,17 @@ import { SheetTitle } from "@/components/ui/sheet";
 import { AppLogo } from "@/components/layout/AppLogo";
 import { cn } from "@/lib/utils";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const { user, loading } = useAuth(); 
-  const router = useRouter();
-  const pathname = usePathname();
+// New internal component
+function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
   const { isMobile, open } = useSidebar();
-  const [hydrated, setHydrated] = useState(false); // Added hydrated state
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setHydrated(true); // Set hydrated to true on client mount
+    setHydrated(true);
   }, []);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
-
-
-  if (loading || !hydrated) { // Added !hydrated check
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null; 
-  }
-
   return (
-    <SidebarProvider 
-        defaultOpen={true}
-        style={{ '--sidebar-width': '16rem', '--sidebar-width-mobile': '16rem' } as React.CSSProperties}
-    >
+    <>
       <Sidebar 
         side="right" 
         collapsible="icon"
@@ -65,7 +37,7 @@ export default function DashboardLayout({
               </div>
             </>
           ) : (
-             <div className="h-6 w-full"></div> // Placeholder for title area before hydration
+             <div className="h-6 w-full"></div> 
           )}
         </SidebarHeader>
         <SidebarContent className="p-0">
@@ -85,6 +57,50 @@ export default function DashboardLayout({
           </div>
         </div>
       </SidebarInset>
+    </>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { user, loading } = useAuth(); 
+  const router = useRouter();
+  // Removed useSidebar from here
+  // Removed hydrated state from here, it's now in DashboardInternalLayout
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
+  // Moved hydrated check for loader to here, as it's about auth loading
+  const [authHydrated, setAuthHydrated] = useState(false);
+  useEffect(() => {
+    setAuthHydrated(true);
+  }, []);
+
+  if (loading || !authHydrated) { 
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; 
+  }
+
+  return (
+    <SidebarProvider 
+        defaultOpen={true}
+        style={{ '--sidebar-width': '16rem', '--sidebar-width-mobile': '16rem' } as React.CSSProperties}
+    >
+      <DashboardInternalLayout>{children}</DashboardInternalLayout>
     </SidebarProvider>
   );
 }
