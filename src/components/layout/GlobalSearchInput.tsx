@@ -29,8 +29,8 @@ export function GlobalSearchInput() {
     <form onSubmit={handleSearch} className="relative w-full">
       <Input
         type="search"
-        placeholder="ابحث عن منزل، شقة، أو أرض..."
-        className="h-10 pr-10 pl-4 rounded-full border-border focus:border-primary transition-smooth text-sm peer"
+        placeholder="ابحث عن منزل، شقة، أو أرض..." // Shortened placeholder
+        className="h-10 pr-10 pl-4 rounded-full border-border focus:border-primary transition-smooth text-sm peer bg-background" // Added bg-background
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         aria-label="بحث عن عقارات"
