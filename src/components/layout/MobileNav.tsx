@@ -10,10 +10,10 @@ import { siteConfig, type NavItem } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"; // Added SheetHeader, SheetTitle
 import { useAuth } from "@/hooks/use-auth";
 import { AppLogo } from "./AppLogo";
-import { Separator } from "@/components/ui/separator"; // Added Separator import
+import { Separator } from "@/components/ui/separator";
 
 export function MobileNav() {
   const [open, setOpen] = React.useState(false);
@@ -30,10 +30,6 @@ export function MobileNav() {
   if (!user) {
     allLinks.push({ title: "تسجيل الدخول", href: "/login", specialClass: "text-primary" });
     allLinks.push({ title: "إنشاء حساب", href: "/signup", specialClass: "text-primary" });
-  } else {
-    // Dashboard and Admin links are already potentially in baseNavItems if auth conditions met.
-    // We can add a sign-out option or other user-specific links if needed in the future.
-    // Example: allLinks.push({ title: "تسجيل الخروج", href: "#", action: () => console.log('signout') });
   }
 
   return (
@@ -47,12 +43,13 @@ export function MobileNav() {
           <span className="sr-only">Toggle Menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="pl-0 pr-6 pt-6 pb-6"> {/* Changed side to "left", adjusted padding */}
-        <div className="px-4"> {/* Logo container */}
+      <SheetContent side="left" className="flex flex-col p-0"> {/* Changed padding to p-0, added flex flex-col */}
+        <SheetHeader className="px-6 pt-6 pb-2 border-b"> {/* Added SheetHeader with padding and border */}
           <AppLogo />
-        </div>
+          <SheetTitle className="sr-only">القائمة الرئيسية</SheetTitle> {/* Added sr-only SheetTitle */}
+        </SheetHeader>
         
-        <ScrollArea className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6"> {/* pl-6 for content inside scroll area */}
+        <ScrollArea className="flex-1 px-6 py-4"> {/* Adjusted padding and added flex-1 for scroll area */}
           <div className="flex flex-col">
             {allLinks.map((item, index) => (
               item.href && (
@@ -60,11 +57,11 @@ export function MobileNav() {
                   <MobileLink
                     href={item.href}
                     onOpenChange={setOpen}
-                    className={cn("py-3 text-sm", item.specialClass)} // Applied py-3 and text-sm
+                    className={cn("py-3 text-sm", item.specialClass)}
                   >
                     {item.title}
                   </MobileLink>
-                  {index < allLinks.length - 1 && <Separator className="my-0 bg-border/70" />} {/* Separator with adjusted margin */}
+                  {index < allLinks.length - 1 && <Separator className="my-0 bg-border/70" />}
                 </React.Fragment>
               )
             ))}
@@ -96,7 +93,7 @@ function MobileLink({
         router.push(href.toString());
         onOpenChange?.(false);
       }}
-      className={cn("block text-foreground/80 hover:text-foreground transition-colors", className)} // Base styling for link
+      className={cn("block text-foreground/80 hover:text-foreground transition-colors", className)}
       {...props}
     >
       {children}
