@@ -7,6 +7,8 @@
     --background: 216 25% 95%; /* Light gray #F0F2F5 */
     --foreground: 224 71% 4%; /* Darker gray for text, adjusted for contrast */
 
+    --header-background: 216 25% 92%; /* Slightly darker than page background */
+
     --card: 0 0% 100%; /* White */
     --card-foreground: 224 71% 4%;
 
@@ -53,6 +55,8 @@
   .dark {
     --background: 220 15% 13%; /* #1C1F26 */
     --foreground: 0 0% 92%;    /* #EAEAEA */
+
+    --header-background: 220 15% 10%; /* Slightly darker than page background for dark mode */
 
     --card: 223 15% 20%;       /* #2B2F3A */
     --card-foreground: 0 0% 92%;
