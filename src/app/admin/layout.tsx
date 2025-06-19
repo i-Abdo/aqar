@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
+import { SheetTitle } from "@/components/ui/sheet"; // Added import
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
@@ -163,11 +164,11 @@ export default function AdminLayout({
       <Sidebar 
         side="right" 
         collapsible="icon"
-        className="border-l rtl:border-r-0 rtl:border-l" // Ensure border is correct for RTL
+        className="border-l rtl:border-r-0 rtl:border-l" 
       >
         <SidebarHeader className="p-3 flex items-center justify-center">
            <div className="flex items-center gap-2 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
-             <h2 className="text-xl font-semibold">لوحة الإدارة</h2>
+             <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
              {adminNotificationCount > 0 && !isLoadingCounts && (
                <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
              )}
@@ -195,5 +196,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-
-    

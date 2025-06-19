@@ -6,6 +6,7 @@ import React, { useEffect } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SheetTitle } from "@/components/ui/sheet"; // Added import
 import { AppLogo } from "@/components/layout/AppLogo";
 
 export default function DashboardLayout({
@@ -44,12 +45,13 @@ export default function DashboardLayout({
       <Sidebar 
         side="right" 
         collapsible="icon"
-        className="border-l rtl:border-r-0 rtl:border-l" // Ensure border is correct for RTL
+        className="border-l rtl:border-r-0 rtl:border-l" 
       >
         <SidebarHeader className="p-3 flex items-center justify-center">
-          <h2 className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة التحكم</h2>
-          {/* Placeholder for logo/icon when collapsed if needed */}
-          <AppLogo /> {/* Or an icon if AppLogo is too big when collapsed */}
+          <SheetTitle className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة التحكم</SheetTitle>
+          <div className="hidden group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:block group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:block">
+            <AppLogo />
+          </div>
         </SidebarHeader>
         <SidebarContent className="p-0">
           <DashboardNav />
@@ -71,5 +73,3 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
-
-    
