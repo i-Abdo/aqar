@@ -8,8 +8,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { SheetTitle } from "@/components/ui/sheet"; // Added import
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar } from "@/components/ui/sidebar"; // Added useSidebar
+import { SheetTitle } from "@/components/ui/sheet";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +81,7 @@ export default function AdminLayout({
   const { user, isAdmin, loading: authLoading, adminNotificationCount } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname(); 
+  const { isMobile, open } = useSidebar(); // Get sidebar state
 
   const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
   const [isLoadingCounts, setIsLoadingCounts] = useState(true);
@@ -167,14 +168,24 @@ export default function AdminLayout({
         className="border-l rtl:border-r-0 rtl:border-l" 
       >
         <SidebarHeader className="p-3 flex items-center justify-center">
-           <div className="flex items-center gap-2 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
-             <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
-             {adminNotificationCount > 0 && !isLoadingCounts && (
-               <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
-             )}
-           </div>
-           
-           <LayoutDashboard className="h-6 w-6 shrink-0 hidden group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:block group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:block mx-auto" />
+          {isMobile ? (
+            <div className="flex items-center gap-2">
+              <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
+              {adminNotificationCount > 0 && !isLoadingCounts && (
+                <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className={cn("flex items-center gap-2", !open && "hidden")}>
+                <div className="text-xl font-semibold">لوحة الإدارة</div>
+                {adminNotificationCount > 0 && !isLoadingCounts && (
+                  <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+                )}
+              </div>
+              <LayoutDashboard className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
+            </>
+          )}
         </SidebarHeader>
         <SidebarContent className="p-0">
              <AdminSidebarNav counts={counts} />
