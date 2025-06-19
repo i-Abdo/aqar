@@ -4,14 +4,14 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft, ChevronsRight, ChevronsLeft } from "lucide-react" 
+import { ChevronsRight, ChevronsLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetHeader as UiSheetHeader, SheetTitle as UiSheetTitle } from "@/components/ui/sheet" 
+import { Sheet, SheetContent, SheetHeader as UiSheetHeader, SheetTitle as UiSheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -57,7 +57,7 @@ const SidebarProvider = React.forwardRef<
       open: openProp,
       onOpenChange: setOpenProp,
       className,
-      style, 
+      style,
       children,
       ...props
     },
@@ -128,7 +128,7 @@ const SidebarProvider = React.forwardRef<
       <SidebarContext.Provider value={contextValue}>
         <TooltipProvider delayDuration={0}>
           <div
-            style={style as React.CSSProperties} 
+            style={style as React.CSSProperties}
             className={cn(
               "group/sidebar-wrapper flex h-full w-full",
               className
@@ -159,14 +159,14 @@ const Sidebar = React.forwardRef<
       collapsible = "offcanvas",
       className,
       children,
-      title, 
+      title,
       ...props
     },
     ref
   ) => {
     const { isMobile, open, setOpen, state } = useSidebar()
 
-    if (isMobile && collapsible === "offcanvas") {
+    if (isMobile && collapsible === "offcanvas") { // Only use Sheet for true "offcanvas" on mobile
       return (
         <Sheet open={open} onOpenChange={setOpen} {...props}>
           <SheetContent
@@ -188,25 +188,22 @@ const Sidebar = React.forwardRef<
         </Sheet>
       )
     }
-
+    
+    // For collapsible="icon" (on mobile and desktop) and collapsible="none" (desktop)
+    // Render as a fixed div that pushes content
     let currentWidth = "0px";
-    let isHidden = false;
-
     if (collapsible === "icon") {
-        currentWidth = isMobile 
-            ? (open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)')
-            : (open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)');
-    } else if (collapsible === "none") {
+      currentWidth = isMobile
+        ? (open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)')
+        : (open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)');
+    } else if (collapsible === "none") { // Typically desktop only
+      currentWidth = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
+    } else if (collapsible === "offcanvas" && !isMobile) { // Desktop offcanvas (hidden if not open)
+        if (!open) return null;
         currentWidth = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
-    } else if (collapsible === "offcanvas") { // Only applies to desktop if not a sheet
-        currentWidth = open ? (isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)') : '0px';
-        isHidden = !open;
     }
-    
-    if (isHidden && !isMobile) { // offcanvas hidden on desktop
-      return null;
-    }
-    
+
+
     return (
       <div
         ref={ref}
@@ -217,16 +214,16 @@ const Sidebar = React.forwardRef<
         data-mobile={isMobile ? "true" : "false"}
         className={cn(
           "group bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 ease-linear",
-          "fixed bottom-0 flex flex-col", 
-          "h-[calc(100svh-var(--header-height,0px))]", 
+          "fixed bottom-0 flex flex-col",
+          "h-[calc(100svh-var(--main-content-top-offset,var(--header-height,0px)))]", // Adjusted height
           side === "left" ? "left-0 border-r" : "right-0 border-l",
           className
         )}
         style={{
           width: currentWidth,
-          top: 'var(--header-height, 0px)',
+          top: 'var(--main-content-top-offset, var(--header-height, 0px))', // Adjusted top
           borderColor: 'hsl(var(--sidebar-border))',
-          zIndex: 40 
+          zIndex: 40
         }}
         {...props}
       >
@@ -259,7 +256,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      <PanelLeft />
+      {/* Icon removed, handled by specific layout headers */}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -301,13 +298,16 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { isMobile, open, state } = useSidebar(); 
-  
-  // This assumes sidebar is always on the right for dashboard/admin
-  // and collapsible mode is "icon"
-  const sidebarWidthWhenOpen = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
-  const sidebarWidthWhenClosed = 'var(--sidebar-width-icon)';
-  const marginRightValue = open ? sidebarWidthWhenOpen : sidebarWidthWhenClosed;
+  const { isMobile, open, state } = useSidebar();
+
+  let marginRightValue = '0px';
+  // Assuming sidebar is always on the right and collapsible mode is "icon" for dashboard/admin
+  // This logic applies when the sidebar is NOT an offcanvas sheet
+    if (isMobile) {
+        marginRightValue = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
+    } else {
+        marginRightValue = open ? 'var(--sidebar-width)' : 'var(--sidebar-width-icon)';
+    }
 
   return (
     <div
@@ -317,7 +317,7 @@ const SidebarInset = React.forwardRef<
         className
       )}
       style={{
-        marginRight: marginRightValue, 
+        marginRight: marginRightValue,
         ...style,
       }}
       {...props}
@@ -352,7 +352,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-3 border-b border-sidebar-border", className)} 
+      className={cn("flex flex-col gap-2 p-3 border-b border-sidebar-border", className)}
       {...props}
     />
   )
@@ -382,7 +382,7 @@ const SidebarSeparator = React.forwardRef<
     <Separator
       ref={ref}
       data-sidebar="separator"
-      className={cn("mx-2 my-1 w-auto bg-sidebar-border", className)} 
+      className={cn("mx-2 my-1 w-auto bg-sidebar-border", className)}
       {...props}
     />
   )
@@ -751,6 +751,8 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-  UiSheetTitle as SheetTitle, 
-  UiSheetHeader as SheetHeader 
+  UiSheetTitle as SheetTitle,
+  UiSheetHeader as SheetHeader
 }
+
+    

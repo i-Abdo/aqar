@@ -1,14 +1,15 @@
 
 "use client";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter, usePathname } from "next/navigation"; 
+import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, ChevronsRight, ChevronsLeft } from "lucide-react"; 
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar, SheetTitle } from "@/components/ui/sidebar";
+import { Loader2, ChevronsRight, ChevronsLeft, LayoutDashboard } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar, SheetTitle, SheetHeader } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { AppLogo } from "@/components/layout/AppLogo";
 
 // New internal component
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
@@ -22,28 +23,28 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Sidebar 
-        side="right" 
+      <Sidebar
+        side="right"
         collapsible="icon"
-        className="border-l rtl:border-r-0 rtl:border-l" 
         title="لوحة التحكم"
+        className="border-l rtl:border-r-0 rtl:border-l"
       >
         <SidebarHeader>
           {hydrated && (
-            <div className="flex items-center justify-between h-8">
+            <div className={cn("flex items-center justify-between h-8", isMobile && "p-0")}>
               {open && (
-                <div className="flex items-center gap-2">
-                  <div className="text-xl font-semibold">لوحة التحكم</div>
-                  {userDashboardNotificationCount > 0 && (
-                    <Badge variant="destructive">{userDashboardNotificationCount > 9 ? '9+' : userDashboardNotificationCount}</Badge>
-                  )}
-                </div>
+                 <div className="flex items-center gap-2">
+                    <span className={cn("text-xl font-semibold", isMobile && "hidden")}>لوحة التحكم</span>
+                    {userDashboardNotificationCount > 0 && (
+                        <Badge variant="destructive">{userDashboardNotificationCount > 9 ? '9+' : userDashboardNotificationCount}</Badge>
+                    )}
+                 </div>
               )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className={cn("h-8 w-8", !open && "mx-auto")}
+                className={cn("h-8 w-8", !open && !isMobile && "mx-auto")}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
@@ -57,7 +58,6 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
-          {/* Mobile-specific header removed, main sidebar header will be used */}
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
           </div>
@@ -72,9 +72,9 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth(); 
+  const { user, loading } = useAuth();
   const router = useRouter();
-  
+
   const [authHydrated, setAuthHydrated] = useState(false);
   useEffect(() => {
     setAuthHydrated(true);
@@ -87,7 +87,7 @@ export default function DashboardLayout({
   }, [user, loading, router]);
 
 
-  if (loading || !authHydrated) { 
+  if (loading || !authHydrated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -96,20 +96,23 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return null; 
+    return null;
   }
 
   return (
-    <SidebarProvider 
+    <SidebarProvider
         defaultOpen={true}
-        style={{ 
-          '--sidebar-width': '16rem', 
+        style={{
+          '--sidebar-width': '16rem',
           '--sidebar-width-mobile': '16rem',
-          '--sidebar-width-icon': '3.5rem', 
-          '--header-height': '4rem',      
+          '--sidebar-width-icon': '3.5rem',
+          '--header-height': '4rem',
+          '--main-content-top-offset': 'calc(var(--header-height) + 2rem)'
         } as React.CSSProperties}
     >
       <DashboardInternalLayout>{children}</DashboardInternalLayout>
     </SidebarProvider>
   );
 }
+
+    
