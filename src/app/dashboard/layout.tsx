@@ -4,10 +4,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation"; 
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2 } from "lucide-react";
+import { Loader2, PanelLeftOpen } from "lucide-react"; // Added PanelLeftOpen
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { SheetTitle } from "@/components/ui/sheet";
-import { AppLogo } from "@/components/layout/AppLogo";
+// Removed AppLogo import as it's replaced
 import { cn } from "@/lib/utils";
 
 // New internal component
@@ -32,9 +32,8 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
           ) : hydrated && !isMobile ? (
             <>
               <div className={cn("text-xl font-semibold px-3", !open && "hidden")}>لوحة التحكم</div>
-              <div className={cn("hidden", !open && "block")}>
-                <AppLogo />
-              </div>
+              {/* Icon for desktop collapsed state */}
+              <PanelLeftOpen className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
             </>
           ) : (
              <div className="h-6 w-full"></div> 
@@ -68,8 +67,11 @@ export default function DashboardLayout({
 }) {
   const { user, loading } = useAuth(); 
   const router = useRouter();
-  // Removed useSidebar from here
-  // Removed hydrated state from here, it's now in DashboardInternalLayout
+  
+  const [authHydrated, setAuthHydrated] = useState(false);
+  useEffect(() => {
+    setAuthHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -77,11 +79,6 @@ export default function DashboardLayout({
     }
   }, [user, loading, router]);
 
-  // Moved hydrated check for loader to here, as it's about auth loading
-  const [authHydrated, setAuthHydrated] = useState(false);
-  useEffect(() => {
-    setAuthHydrated(true);
-  }, []);
 
   if (loading || !authHydrated) { 
     return (

@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react";
+import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, PanelLeftOpen, LayoutDashboard } from "lucide-react"; // Added PanelLeftOpen
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -103,7 +103,8 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
                   <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
                 )}
               </div>
-              <LayoutDashboard className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
+              {/* Icon for desktop collapsed state */}
+              <PanelLeftOpen className={cn("h-6 w-6 shrink-0", open ? "hidden" : "block mx-auto")} />
             </>
           ) : (
              <div className="h-6 w-full"></div> 
@@ -138,7 +139,6 @@ export default function AdminLayout({
   const { user, isAdmin, loading: authLoading, adminNotificationCount } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname(); 
-  // Removed useSidebar from here
   
   const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
   const [isLoadingCounts, setIsLoadingCounts] = useState(true);
