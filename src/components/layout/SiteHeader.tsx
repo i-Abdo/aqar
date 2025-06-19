@@ -20,7 +20,7 @@ export function SiteHeader() {
           <AppLogo />
           {/* Desktop Search - Part of Group 1 visually on desktop */}
           <div className="hidden md:flex items-center ml-2">
-            <div className="w-full max-w-sm lg:max-w-md xl:max-w-lg">
+            <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl"> {/* Updated max-widths here */}
               <GlobalSearchInput />
             </div>
           </div>
@@ -35,9 +35,9 @@ export function SiteHeader() {
         {/* Group 3: Toggles & User Nav (md:order-3) */}
         <div className="flex items-center gap-x-1 md:order-3">
           {/* Mobile Nav Trigger (Avatar/Menu) + Theme */}
-          <div className="md:hidden flex items-center gap-x-1"> {/* Reordered for mobile: Avatar then ThemeToggle */}
-            <UserAccountNav /> {/* Handles Avatar or Login/Signup */}
+          <div className="md:hidden flex items-center gap-x-1"> 
             <ThemeToggleButton />
+            <UserAccountNav /> {/* Handles Avatar or Login/Signup / MobileNav trigger is now part of UserAccountNav logic */}
           </div>
           {/* Desktop ThemeToggle + UserAccountNav */}
           <div className="hidden md:flex items-center gap-x-1">
