@@ -7,6 +7,7 @@ import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator } fro
 import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings, Home } from "lucide-react" 
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth"; 
+import React from "react"; // Added React import
 
 const dashboardNavItems = [
   {
