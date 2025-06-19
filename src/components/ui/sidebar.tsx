@@ -24,7 +24,7 @@ const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem" // Default desktop width
 const SIDEBAR_WIDTH_MOBILE = "16rem" // Explicit mobile width when open
-const SIDEBAR_WIDTH_ICON = "3rem"
+const SIDEBAR_WIDTH_ICON = "3rem" // Width when collapsed to icons
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextValue = {
@@ -66,7 +66,18 @@ const SidebarProvider = React.forwardRef<
     ref
   ) => {
     const isMobile = useIsMobile()
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    const [_open, _setOpen] = React.useState(() => {
+      if (typeof document !== "undefined") {
+        const cookieValue = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+          ?.split("=")[1]
+        if (cookieValue) {
+          return cookieValue === "true"
+        }
+      }
+      return defaultOpen
+    })
     const open = openProp ?? _open
 
     const setOpen = React.useCallback(
@@ -77,7 +88,9 @@ const SidebarProvider = React.forwardRef<
         } else {
           _setOpen(openState)
         }
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        if (typeof document !== "undefined") {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        }
       },
       [setOpenProp, open]
     )
@@ -152,8 +165,8 @@ const Sidebar = React.forwardRef<
   (
     {
       side = "left",
-      variant = "sidebar",
-      collapsible = "offcanvas",
+      variant = "sidebar", // "sidebar" means fixed/sticky on desktop, in-flow on mobile icon mode
+      collapsible = "offcanvas", // Default to offcanvas if not specified
       className,
       children,
       ...props
@@ -163,13 +176,17 @@ const Sidebar = React.forwardRef<
     const { isMobile, open, setOpen, state } = useSidebar()
 
     if (collapsible === "none") {
+      const widthVar = isMobile ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)';
       return (
         <div
           className={cn(
-            "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
+            "flex h-full flex-col bg-sidebar text-sidebar-foreground",
+            isMobile ? "border-l rtl:border-r-0 rtl:border-l" : (side === "left" ? "border-r" : "border-l"),
             className
           )}
+          style={{ width: widthVar, borderColor: 'hsl(var(--sidebar-border))' }}
           ref={ref}
+          data-sidebar="sidebar"
           {...props}
         >
           {children}
@@ -177,44 +194,66 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    // Mobile: 'offcanvas' uses Sheet, 'icon' uses inline collapsible
-    if (isMobile && collapsible === "offcanvas") {
-      return (
-        <Sheet open={open} onOpenChange={setOpen} {...props}>
-          <SheetContent
+    if (isMobile) {
+      if (collapsible === "offcanvas") {
+        return (
+          <Sheet open={open} onOpenChange={setOpen} {...props}>
+            <SheetContent
+              data-sidebar="sidebar"
+              data-mobile="true"
+              className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+              side={side}
+            >
+              <div className="flex h-full w-full flex-col">{children}</div>
+            </SheetContent>
+          </Sheet>
+        );
+      } else if (collapsible === "icon") {
+        // Render inline, collapsible sidebar for mobile "icon" mode
+        const currentSidebarWidth = open ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width-icon)';
+        return (
+          <div
+            ref={ref}
+            className={cn(
+              "group text-sidebar-foreground transition-[width] duration-200 ease-linear",
+              "relative flex h-full flex-col bg-sidebar", 
+              side === "left" ? "border-r" : "border-l rtl:border-r-0 rtl:border-l",
+              className
+            )}
+            style={{ 
+                width: currentSidebarWidth,
+                borderColor: 'hsl(var(--sidebar-border))',
+            }}
+            data-state={state}
+            data-collapsible={collapsible}
             data-sidebar="sidebar"
-            data-mobile="true"
-            className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-            side={side}
+            {...props}
           >
-            <div className="flex h-full w-full flex-col">{children}</div>
-          </SheetContent>
-        </Sheet>
-      )
+            {children}
+          </div>
+        );
+      }
     }
 
-    // Inline collapsible sidebar (for desktop, or mobile with collapsible="icon")
+    // Desktop Logic
     const currentSidebarWidth = open
-      ? (isMobile && collapsible === "icon" ? 'var(--sidebar-width-mobile)' : 'var(--sidebar-width)')
-      : (collapsible === "icon" ? 'var(--sidebar-width-icon)' : '0px'); // offcanvas on desktop collapses to 0
+      ? 'var(--sidebar-width)'
+      : (collapsible === "icon" ? 'var(--sidebar-width-icon)' : '0px'); // offcanvas on desktop collapses to 0 width
 
     return (
       <div
         ref={ref}
         className={cn(
           "group text-sidebar-foreground transition-[width] duration-200 ease-linear",
-          isMobile && collapsible === "icon"
-            ? "relative flex h-full flex-col bg-sidebar" // In-flow for mobile icon mode
-            : "peer hidden md:block fixed bottom-0 top-16 z-10 h-[calc(100svh-theme(spacing.16))]", // Desktop fixed
-          !isMobile && (side === "left" ? "left-0 border-r" : "right-0 border-l"),
-          !isMobile && (variant === "floating" || variant === "inset") && "p-2 border-transparent", // Desktop floating/inset specific padding & border
+          "hidden md:block", // Only for desktop
+          variant === "sidebar" && "fixed bottom-0 top-16 z-10 h-[calc(100svh-theme(spacing.16))]",
+          variant === "sidebar" && (side === "left" ? "left-0 border-r" : "right-0 border-l"),
+          (variant === "floating" || variant === "inset") && "relative p-2 border-transparent", // For floating/inset, provide relative positioning
           className
         )}
         style={{ 
             width: currentSidebarWidth,
-            borderRightWidth: (!isMobile && side === "left" && variant !== "floating" && variant !== "inset") ? '1px' : '0px',
-            borderLeftWidth: (!isMobile && side === "right" && variant !== "floating" && variant !== "inset") ? '1px' : '0px',
-            borderColor: 'hsl(var(--sidebar-border))',
+            borderColor: (variant === "sidebar") ? 'hsl(var(--sidebar-border))' : undefined,
         }}
         data-state={state}
         data-collapsible={collapsible === "icon" && state === "collapsed" ? "icon" : (collapsible === "offcanvas" && state === "collapsed" ? "offcanvas" : "")}
@@ -223,7 +262,7 @@ const Sidebar = React.forwardRef<
         {...props}
       >
         <div
-          data-sidebar="sidebar" // Inner div for consistent styling (bg, border for floating/inset)
+          data-sidebar="sidebar" 
           className={cn(
             "flex h-full w-full flex-col bg-sidebar",
             (variant === "floating" || variant === "inset") && "rounded-lg border border-sidebar-border shadow"
@@ -231,7 +270,6 @@ const Sidebar = React.forwardRef<
         >
           {children}
         </div>
-         {/* Desktop rail - conditionally render or style display:none for mobile if not needed */}
          {!isMobile && (collapsible === "icon" || collapsible === "offcanvas") && <SidebarRail />}
       </div>
     )
@@ -252,7 +290,7 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-8 w-8", className)} // Ensure consistent size
+      className={cn("h-8 w-8", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
@@ -271,7 +309,7 @@ const SidebarRail = React.forwardRef<
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
   const { toggleSidebar, isMobile } = useSidebar()
-  if (isMobile) return null; // Rail is desktop-only feature for resizing/hover toggle
+  if (isMobile) return null; 
 
   return (
     <button
@@ -298,16 +336,16 @@ const SidebarRail = React.forwardRef<
 SidebarRail.displayName = "SidebarRail"
 
 const SidebarInset = React.forwardRef<
-  HTMLDivElement, // Changed from main to div for more flexibility if needed
-  React.HTMLAttributes<HTMLDivElement> // Changed from React.ComponentProps<"main">
+  HTMLDivElement, 
+  React.HTMLAttributes<HTMLDivElement> 
 >(({ className, ...props }, ref) => {
+  const { isMobile } = useSidebar();
   return (
-    <div // Changed from main to div
+    <div 
       ref={ref}
       className={cn(
-        "relative flex-1 flex flex-col overflow-hidden", // Use flex-1 to take remaining space, flex-col
-        // Desktop inset variant specific styles (peer-based)
-        "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+        "relative flex-1 flex flex-col overflow-hidden", 
+        !isMobile && "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className
       )}
       {...props}
@@ -742,3 +780,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    

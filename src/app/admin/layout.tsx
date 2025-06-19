@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar"; // Added SidebarTrigger
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
@@ -158,12 +158,12 @@ export default function AdminLayout({
   return (
     <SidebarProvider 
       defaultOpen={true}
-      style={{ '--sidebar-width': '16rem' } as React.CSSProperties}
+      style={{ '--sidebar-width': '16rem', '--sidebar-width-mobile': '16rem' } as React.CSSProperties}
     >
       <Sidebar 
         side="right" 
-        collapsible="icon" // Changed from "none" to "icon"
-        className="border-l rtl:border-r-0"
+        collapsible="icon"
+        className="border-l rtl:border-r-0 rtl:border-l" // Ensure border is correct for RTL
       >
         <SidebarHeader className="p-3 flex items-center justify-center">
            <div className="flex items-center gap-2 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
@@ -181,14 +181,12 @@ export default function AdminLayout({
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
-           {/* Mobile Header for trigger */}
            <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10">
             <SidebarTrigger />
             <h2 className="mr-2 rtl:ml-2 rtl:mr-0 font-semibold text-lg">
               لوحة الإدارة
             </h2>
           </header>
-          {/* Main Content Area */}
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
           </div>
@@ -197,3 +195,5 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
+
+    
