@@ -3,16 +3,15 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, LayoutDashboard, ChevronsRight, ChevronsLeft, PanelLeftOpen } from "lucide-react";
+import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, LayoutDashboard, ChevronsRight, ChevronsLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar, SidebarSeparator, UiSheetTitle, UiSheetHeader } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
-import { AppLogo } from "@/components/layout/AppLogo";
 
 const adminNavItems = [
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard, countKey: "properties" },
@@ -88,26 +87,26 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
       <Sidebar
         side="right"
         collapsible="icon"
-        title="لوحة الإدارة" 
-        className="border-l rtl:border-r-0 rtl:border-l"
       >
         <SidebarHeader>
           {hydrated && (
              <div className={cn("flex items-center justify-between h-8")}>
-               {(open || (isMobile === undefined || isMobile)) && ( // Show title/badge if open OR on mobile (where header is part of sheet)
+               {open && ( 
                  <div className="flex items-center gap-2">
-                    <span className={cn("text-xl font-semibold", (isMobile === false && !open) && "hidden")}>لوحة الإدارة</span>
+                    <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
                     {adminNotificationCount > 0 && !isLoadingCounts && (
-                        <Badge variant="destructive" className={cn((isMobile === false && !open) && "hidden")}>{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+                        <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
                     )}
                  </div>
                )}
-              {/* Toggle button for desktop and mobile (when sidebar is fixed) */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className={cn("h-8 w-8", (isMobile === false && !open) && "mx-auto w-full justify-center")}
+                className={cn(
+                  "h-8 w-8",
+                  (!open && !isMobile) && "mx-auto w-full justify-center"
+                )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
@@ -121,6 +120,7 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
+          {/* Mobile Header inside content area (removed) */}
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
           </div>
@@ -223,10 +223,10 @@ export default function AdminLayout({
         '--sidebar-width': '16rem',
         '--sidebar-width-mobile': '16rem',
         '--sidebar-width-icon': '3.5rem',
-        '--header-height': '4rem', // Main part of SiteHeader
-         // These are now managed globally by SiteHeader via --current-sticky-header-height
-        // '--mobile-search-height': '3.25rem', 
-        // '--total-mobile-header-height': '7.25rem',
+        '--header-height': 'var(--header-height)', 
+        '--mobile-search-height': 'var(--mobile-search-height)',
+        '--total-mobile-header-height': 'var(--total-mobile-header-height)',
+        '--main-content-top-offset': 'calc(var(--header-height) + 0rem)'
       } as React.CSSProperties}
     >
       <AdminInternalLayout counts={counts} adminNotificationCount={adminNotificationCount} isLoadingCounts={isLoadingCounts}>

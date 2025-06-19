@@ -4,12 +4,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, ChevronsRight, ChevronsLeft, LayoutDashboard, PanelLeftOpen } from "lucide-react";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger, useSidebar, UiSheetTitle, UiSheetHeader } from "@/components/ui/sidebar";
+import { Loader2, ChevronsRight, ChevronsLeft } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { AppLogo } from "@/components/layout/AppLogo";
 
 // New internal component
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
@@ -26,15 +25,13 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
       <Sidebar
         side="right"
         collapsible="icon"
-        title="لوحة التحكم" 
-        className="border-l rtl:border-r-0 rtl:border-l"
       >
         <SidebarHeader>
           {hydrated && (
             <div className={cn("flex items-center justify-between h-8")}>
-              {(open || (isMobile === undefined || isMobile)) && ( 
+              {open && ( 
                  <div className="flex items-center gap-2">
-                    <span className={cn("text-xl font-semibold", (isMobile === false && !open) && "hidden")}>لوحة التحكم</span>
+                    <span className={cn("text-xl font-semibold")}>لوحة التحكم</span>
                     {userDashboardNotificationCount > 0 && (
                         <Badge variant="destructive" className={cn((isMobile === false && !open) && "hidden")}>{userDashboardNotificationCount > 9 ? '9+' : userDashboardNotificationCount}</Badge>
                     )}
@@ -44,7 +41,10 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className={cn("h-8 w-8", (isMobile === false && !open) && "mx-auto w-full justify-center")}
+                className={cn(
+                  "h-8 w-8",
+                  (!open && !isMobile) && "mx-auto w-full justify-center" 
+                )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
@@ -58,6 +58,7 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
+          {/* Mobile Header inside content area (removed as sidebar is now fixed and pushes content) */}
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
           </div>
@@ -106,9 +107,10 @@ export default function DashboardLayout({
           '--sidebar-width': '16rem',
           '--sidebar-width-mobile': '16rem',
           '--sidebar-width-icon': '3.5rem',
-          '--header-height': '4rem', // Main part of SiteHeader
-          // '--mobile-search-height': '3.25rem', // Defined in globals, used by SiteHeader.tsx
-          // '--total-mobile-header-height': '7.25rem', // Defined in globals
+          '--header-height': 'var(--header-height)', // From globals.css
+          '--mobile-search-height': 'var(--mobile-search-height)', // From globals.css
+          '--total-mobile-header-height': 'var(--total-mobile-header-height)', // From globals.css
+          '--main-content-top-offset': 'calc(var(--header-height) + 0rem)' // Removed 2rem as main's py-8 changed to pb-8
         } as React.CSSProperties}
     >
       <DashboardInternalLayout>{children}</DashboardInternalLayout>
