@@ -5,7 +5,7 @@ import './globals.css';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { AuthProvider } from '@/hooks/use-auth';
-import { ThemeProvider } from '@/hooks/use-theme'; // New import
+import { ThemeProvider } from '@/hooks/use-theme'; 
 
 export const metadata: Metadata = {
   title: 'عقاري - بوابتك العقارية الشاملة',
@@ -25,9 +25,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
-        <ThemeProvider> {/* Wrap AuthProvider */}
+        <ThemeProvider> 
           <AuthProvider>
             <SiteHeader />
+            {/* Removed top padding (py-8 -> pb-8) from main to allow content to sit directly under sticky header */}
             <main className="flex-grow container mx-auto px-4 pb-8">
               {children}
             </main>

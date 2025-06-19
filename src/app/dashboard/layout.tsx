@@ -5,12 +5,11 @@ import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2, ChevronsRight, ChevronsLeft } from "lucide-react";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, useSidebar } from "@/components/ui/sidebar"; // Removed SidebarSeparator as it's used in DashboardNav
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
-// New internal component
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
   const { isMobile, open, toggleSidebar } = useSidebar();
   const [hydrated, setHydrated] = React.useState(false);
@@ -24,19 +23,20 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
     <>
       <Sidebar
         side="right"
-        collapsible="icon"
+        collapsible="icon" // Kept as icon for desktop, mobile will use Sheet
+        title="لوحة التحكم" // Title for the mobile Sheet
       >
-        <SidebarHeader>
-          {hydrated && (
-            <div className={cn("flex items-center justify-between h-8")}>
-              {open && ( 
+        {!isMobile && hydrated && ( // This header is now only for desktop
+           <SidebarHeader>
+             <div className={cn("flex items-center justify-between h-8")}>
+               {open && ( 
                  <div className="flex items-center gap-2">
                     <span className={cn("text-xl font-semibold")}>لوحة التحكم</span>
                     {userDashboardNotificationCount > 0 && (
-                        <Badge variant="destructive" className={cn((isMobile === false && !open) && "hidden")}>{userDashboardNotificationCount > 9 ? '9+' : userDashboardNotificationCount}</Badge>
+                        <Badge variant="destructive">{userDashboardNotificationCount > 9 ? '9+' : userDashboardNotificationCount}</Badge>
                     )}
                  </div>
-              )}
+               )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -50,15 +50,14 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
               </Button>
             </div>
-          )}
-        </SidebarHeader>
+           </SidebarHeader>
+        )}
         <SidebarContent className="p-0">
           <DashboardNav />
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
-          {/* Mobile Header inside content area (removed as sidebar is now fixed and pushes content) */}
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
           </div>
@@ -102,15 +101,15 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider
-        defaultOpen={true}
+        defaultOpen={true} // For mobile sheet to be open by default
         style={{
           '--sidebar-width': '16rem',
-          '--sidebar-width-mobile': '16rem',
+          '--sidebar-width-mobile': '16rem', // Width for mobile sheet
           '--sidebar-width-icon': '3.5rem',
-          '--header-height': 'var(--header-height)', // From globals.css
-          '--mobile-search-height': 'var(--mobile-search-height)', // From globals.css
-          '--total-mobile-header-height': 'var(--total-mobile-header-height)', // From globals.css
-          '--main-content-top-offset': 'calc(var(--header-height) + 0rem)' // Removed 2rem as main's py-8 changed to pb-8
+          '--header-height': '4rem', 
+          '--mobile-search-height': '3.25rem',
+          '--total-mobile-header-height': 'calc(var(--header-height) + var(--mobile-search-height))',
+          '--main-content-top-offset': 'var(--current-sticky-header-height)' 
         } as React.CSSProperties}
     >
       <DashboardInternalLayout>{children}</DashboardInternalLayout>

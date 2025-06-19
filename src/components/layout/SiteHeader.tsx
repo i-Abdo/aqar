@@ -1,7 +1,7 @@
 
 "use client"; 
 
-import React, { useState, useEffect, useCallback } from "react"; // Added React and hooks
+import React, { useState, useEffect, useCallback } from "react";
 import { AppLogo } from "./AppLogo";
 import { MainNav } from "./MainNav";
 import { UserAccountNav } from "./UserAccountNav";
@@ -9,56 +9,66 @@ import { ThemeToggleButton } from "./ThemeToggleButton";
 import { GlobalSearchInput } from "./GlobalSearchInput";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { useIsMobile } from "@/hooks/use-mobile"; // Added useIsMobile
+import { useIsMobile } from "@/hooks/use-mobile"; 
 
 export function SiteHeader() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Values for header height calculation
-  const HEADER_HEIGHT_MAIN = "4rem"; // Corresponds to h-16
-  const MOBILE_SEARCH_CONTAINER_HEIGHT = "3.25rem"; // pt-1 (0.25) + h-10 input (2.5) + pb-2 (0.5)
-  const TOTAL_MOBILE_HEADER_HEIGHT = "7.25rem"; // 4rem + 3.25rem
+  const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
+  const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
+  const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = "7.25rem"; 
 
-  // Effect to update --current-sticky-header-height CSS variable
   useEffect(() => {
     const root = document.documentElement;
-    if (isMobile === undefined) return; // Wait for isMobile to be determined
+    if (isMobile === undefined) return;
 
-    if (isMobile) {
+    if (!isMobile) { // Desktop
+      root.style.setProperty('--current-sticky-header-height', HEADER_HEIGHT_MAIN_VALUE);
+    } else { // Mobile
       if (isScrolled) {
-        root.style.setProperty('--current-sticky-header-height', MOBILE_SEARCH_CONTAINER_HEIGHT);
+        root.style.setProperty('--current-sticky-header-height', MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE);
       } else {
-        root.style.setProperty('--current-sticky-header-height', TOTAL_MOBILE_HEADER_HEIGHT);
+        root.style.setProperty('--current-sticky-header-height', TOTAL_MOBILE_HEADER_HEIGHT_VALUE);
       }
-    } else { // Desktop
-      root.style.setProperty('--current-sticky-header-height', HEADER_HEIGHT_MAIN);
     }
-  }, [isScrolled, isMobile, HEADER_HEIGHT_MAIN, MOBILE_SEARCH_CONTAINER_HEIGHT, TOTAL_MOBILE_HEADER_HEIGHT]);
+  }, [isScrolled, isMobile, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
 
-  // Effect for scroll detection to hide/show main header part
   useEffect(() => {
     let lastScrollTop = 0;
-    const scrollThreshold = 10; // Pixels
+    const scrollThreshold = 10; 
 
     const handleScroll = () => {
+      if (isMobile === undefined) return;
+
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+      if (!isMobile) { // On Desktop
+        if (isScrolled) setIsScrolled(false); // Always ensure header is not considered scrolled
+        return;
+      }
+
+      // Mobile scroll logic
       if (scrollTop > lastScrollTop && scrollTop > scrollThreshold) {
-        setIsScrolled(true); // Scrolling Down
+        if(!isScrolled) setIsScrolled(true); 
       } else if (scrollTop < lastScrollTop || scrollTop <= scrollThreshold) {
-        setIsScrolled(false); // Scrolling Up or near top
+        if(isScrolled) setIsScrolled(false); 
       }
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     };
+    
+    // Ensure correct state on mount/resize for desktop
+    if (isMobile === false && isScrolled) {
+        setIsScrolled(false);
+    }
+
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      // Clean up CSS variable on unmount if needed, though it might not be necessary
-      // document.documentElement.style.removeProperty('--current-sticky-header-height');
     };
-  }, []);
+  }, [isMobile, isScrolled]); // Added isScrolled to dependencies
 
 
   return (
@@ -67,12 +77,11 @@ export function SiteHeader() {
         "sticky top-0 z-50 w-full border-b border-border/40",
         "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg"
       )}
-      data-scrolled={isScrolled} // Attribute to control styles via CSS
+      data-scrolled={isMobile ? isScrolled : false} // data-scrolled only relevant for mobile
     >
-      {/* Main Header Bar - This part will hide/show */}
       <div className={cn(
-        "container flex h-16 items-center justify-between",
-        "main-header-bar" // Class for CSS targeting
+        "container flex h-16 items-center justify-between", // h-16 corresponds to 4rem
+        "main-header-bar" 
         )}
       > 
         <div className="md:order-1"> 
@@ -94,10 +103,9 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {/* Mobile Search Bar - This part might stay or adjust */}
       <div className={cn(
-        "md:hidden container mx-auto px-4 pt-1 pb-2",
-        "mobile-search-bar-container" // Class for CSS targeting
+        "md:hidden container mx-auto px-4 pt-1 pb-2", // pt-1, pb-2 -> approx 0.75rem. Input h-10 -> 2.5rem. Total ~3.25rem
+        "mobile-search-bar-container"
         )}
       >
         <GlobalSearchInput />
