@@ -7,31 +7,20 @@ import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset } from "@/components/ui/sidebar";
 import { AppLogo } from "@/components/layout/AppLogo";
-// Removed Firestore imports as counts are now fetched in AuthProvider
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, setUserDashboardNotificationCount } = useAuth(); // setUserDashboardNotificationCount might not be needed here anymore
+  const { user, loading } = useAuth(); 
   const router = useRouter();
-  // const [isLoadingNotifications, setIsLoadingNotifications] = useState(true); // This state might also be redundant
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
-
-  // Removed useEffect for fetching user notifications count as it's now handled in AuthProvider
-  // useEffect(() => {
-  //   if (loading || !user) {
-  //     // setUserDashboardNotificationCount(0); // This will be handled by AuthProvider on logout
-  //     return;
-  //   }
-  //   // Fetching logic moved to AuthProvider
-  // }, [user, loading, setUserDashboardNotificationCount]);
 
 
   if (loading) {
@@ -48,7 +37,7 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <Sidebar side="right" collapsible="icon" className="border-l rtl:border-r-0">
+      <Sidebar side="right" collapsible="none" className="border-l rtl:border-r-0">
         <SidebarHeader className="p-3 flex items-center justify-center">
           
           <h2 className="text-xl font-semibold px-3 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">لوحة التحكم</h2>

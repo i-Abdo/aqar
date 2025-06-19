@@ -77,7 +77,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAdmin, loading: authLoading, adminNotificationCount } = useAuth(); 
+  const { user, isAdmin, loading: authLoading, adminNotificationCount, refreshAdminNotifications } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname(); 
 
@@ -121,7 +121,7 @@ export default function AdminLayout({
     };
 
     fetchAdminCountsForSidebar();
-  }, [isAdmin, pathname, adminNotificationCount]); // Added adminNotificationCount
+  }, [isAdmin, pathname, adminNotificationCount]); 
 
 
   useEffect(() => {
@@ -160,7 +160,7 @@ export default function AdminLayout({
       defaultOpen={true}
       style={{ '--sidebar-width': '16rem' } as React.CSSProperties}
     >
-      <Sidebar side="right" collapsible="icon" className="border-l rtl:border-r-0">
+      <Sidebar side="right" collapsible="none" className="border-l rtl:border-r-0">
         <SidebarHeader className="p-3 flex items-center justify-center">
            <div className="flex items-center gap-2 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
              <h2 className="text-xl font-semibold">لوحة الإدارة</h2>
