@@ -1,9 +1,10 @@
+
 "use client";
 
 import * as React from "react";
 import Link, { type LinkProps } from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, Building2 } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import { siteConfig, type NavItem } from "@/config/site";
 import { cn } from "@/lib/utils";
@@ -12,18 +13,28 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLogo } from "./AppLogo";
-
+import { Separator } from "@/components/ui/separator"; // Added Separator import
 
 export function MobileNav() {
   const [open, setOpen] = React.useState(false);
   const { user, isAdmin } = useAuth();
 
-  const navItemsToDisplay = siteConfig.mainNav.filter(item => {
+  const baseNavItems = siteConfig.mainNav.filter(item => {
     if (item.authRequired && !user) return false;
     if (item.adminRequired && !isAdmin) return false;
     return true;
   });
 
+  const allLinks: (NavItem & { specialClass?: string })[] = [...baseNavItems];
+
+  if (!user) {
+    allLinks.push({ title: "تسجيل الدخول", href: "/login", specialClass: "text-primary" });
+    allLinks.push({ title: "إنشاء حساب", href: "/signup", specialClass: "text-primary" });
+  } else {
+    // Dashboard and Admin links are already potentially in baseNavItems if auth conditions met.
+    // We can add a sign-out option or other user-specific links if needed in the future.
+    // Example: allLinks.push({ title: "تسجيل الخروج", href: "#", action: () => console.log('signout') });
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -36,43 +47,27 @@ export function MobileNav() {
           <span className="sr-only">Toggle Menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="pr-0">
-        <div className="px-4">
+      <SheetContent side="left" className="pl-0 pr-6 pt-6 pb-6"> {/* Changed side to "left", adjusted padding */}
+        <div className="px-4"> {/* Logo container */}
           <AppLogo />
         </div>
         
-        <ScrollArea className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
-          <div className="flex flex-col space-y-3">
-            {navItemsToDisplay.map(
-              (item) =>
-                item.href && (
+        <ScrollArea className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6"> {/* pl-6 for content inside scroll area */}
+          <div className="flex flex-col">
+            {allLinks.map((item, index) => (
+              item.href && (
+                <React.Fragment key={item.href + index}>
                   <MobileLink
-                    key={item.href}
                     href={item.href}
                     onOpenChange={setOpen}
+                    className={cn("py-3 text-sm", item.specialClass)} // Applied py-3 and text-sm
                   >
                     {item.title}
                   </MobileLink>
-                )
-            )}
-          </div>
-          <div className="mt-6 flex flex-col space-y-2">
-            {!user ? (
-              <>
-                <MobileLink href="/login" onOpenChange={setOpen} className="text-primary">
-                  تسجيل الدخول
-                </MobileLink>
-                <MobileLink href="/signup" onOpenChange={setOpen} className="text-primary">
-                  إنشاء حساب
-                </MobileLink>
-              </>
-            ) : (
-              <>
-                <MobileLink href="/dashboard" onOpenChange={setOpen}>لوحة التحكم</MobileLink>
-                {isAdmin && <MobileLink href="/admin/properties" onOpenChange={setOpen}>الإدارة</MobileLink>}
-                {/* Add sign out button here if desired, or rely on UserAccountNav for desktop */}
-              </>
-            )}
+                  {index < allLinks.length - 1 && <Separator className="my-0 bg-border/70" />} {/* Separator with adjusted margin */}
+                </React.Fragment>
+              )
+            ))}
           </div>
         </ScrollArea>
       </SheetContent>
@@ -101,7 +96,7 @@ function MobileLink({
         router.push(href.toString());
         onOpenChange?.(false);
       }}
-      className={cn("text-foreground/70 hover:text-foreground", className)}
+      className={cn("block text-foreground/80 hover:text-foreground transition-colors", className)} // Base styling for link
       {...props}
     >
       {children}
