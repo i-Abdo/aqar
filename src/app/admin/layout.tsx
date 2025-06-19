@@ -8,8 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
-import { SheetTitle } from "@/components/ui/sheet";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, useSidebar, SidebarSeparator, SheetTitle } from "@/components/ui/sidebar";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
@@ -90,26 +89,19 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
         side="right" 
         collapsible="icon"
         className="border-l rtl:border-r-0 rtl:border-l" 
+        title="لوحة الإدارة" // Pass title for mobile Sheet
       >
+        {/* This SidebarHeader is primarily for desktop */}
         <SidebarHeader className="p-3 border-b border-sidebar-border">
-          <div className="flex items-center justify-between">
-            {/* Title/Logo Area */}
-            <div className="flex items-center gap-2">
-              {hydrated && isMobile ? (
-                <SheetTitle className="text-xl font-semibold">لوحة الإدارة</SheetTitle>
-              ) : hydrated && !isMobile && open ? (
-                <div className="text-xl font-semibold">لوحة الإدارة</div>
-              ) : (
-                 <div className="h-6 w-6"></div> 
-              )}
-              {/* Badge for mobile and desktop expanded */}
-              {hydrated && (isMobile || (!isMobile && open)) && adminNotificationCount > 0 && !isLoadingCounts && (
-                 <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
-              )}
-            </div>
-
-            {/* Desktop Toggle Button */}
-            {hydrated && !isMobile && (
+          {hydrated && !isMobile && ( // Only render for desktop
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {open && <div className="text-xl font-semibold">لوحة الإدارة</div>}
+                {open && adminNotificationCount > 0 && !isLoadingCounts && (
+                   <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+                )}
+                {!open && <div className="h-6 w-6"></div>} {/* Placeholder when collapsed */}
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -119,8 +111,8 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
               >
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </SidebarHeader>
         <SidebarContent className="p-0">
              <AdminSidebarNav counts={counts} />
@@ -128,11 +120,16 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
-           <header className="md:hidden p-3 border-b flex items-center sticky top-0 bg-header-background z-10" style={{ top: 'var(--header-height, 0px)' }}>
-            <SidebarTrigger />
-            <h2 className="mr-2 rtl:ml-2 rtl:mr-0 font-semibold text-lg">
-              لوحة الإدارة
-            </h2>
+           <header className="md:hidden p-3 border-b flex items-center justify-between sticky top-0 bg-header-background z-10" style={{ top: 'var(--header-height, 0px)' }}>
+            <div className="flex items-center">
+                <SidebarTrigger />
+                <h2 className="mr-2 rtl:ml-2 rtl:mr-0 font-semibold text-lg">
+                لوحة الإدارة
+                </h2>
+            </div>
+            {adminNotificationCount > 0 && !isLoadingCounts && (
+                 <Badge variant="destructive" className="h-6 px-2">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+            )}
           </header>
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
@@ -234,7 +231,7 @@ export default function AdminLayout({
       defaultOpen={true}
       style={{ 
         '--sidebar-width': '16rem', 
-        '--sidebar-width-mobile': '16rem',
+        '--sidebar-width-mobile': '16rem', // Full width when open on mobile
         '--sidebar-width-icon': '3.5rem',
         '--header-height': '4rem',
       } as React.CSSProperties}
@@ -245,4 +242,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-
