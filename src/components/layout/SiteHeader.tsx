@@ -1,3 +1,4 @@
+
 "use client"; 
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -17,36 +18,29 @@ export function SiteHeader() {
 
   const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
   const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
-  const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = "calc(var(--header-height) + var(--mobile-search-height))"; 
+  const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = `calc(${HEADER_HEIGHT_MAIN_VALUE} + ${MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE})`; 
+  const SCROLL_THRESHOLD = 5; // px for scroll sensitivity
 
 
   useEffect(() => {
     let lastScrollTop = 0;
-    const scrollThreshold = 5; // Reduced threshold for more sensitivity
-
+    
     const handleScroll = () => {
-      if (isMobile === undefined) return; 
+      if (isMobile === undefined || !isMobile) { // Only apply scroll effect on mobile
+        if (isScrolled) setIsScrolled(false); // Ensure not scrolled on desktop
+        return;
+      }
 
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-      if (isMobile) { // Only apply scroll effect on mobile
-        if (scrollTop > lastScrollTop && scrollTop > scrollThreshold) {
-          if (!isScrolled) setIsScrolled(true);
-        } else if (scrollTop < lastScrollTop || scrollTop <= scrollThreshold) {
-          if (isScrolled) setIsScrolled(false);
-        }
-      } else { // On desktop, always ensure header is not considered scrolled
+      if (scrollTop > lastScrollTop && scrollTop > SCROLL_THRESHOLD) {
+        if (!isScrolled) setIsScrolled(true);
+      } else if (scrollTop < lastScrollTop || scrollTop <= SCROLL_THRESHOLD) {
         if (isScrolled) setIsScrolled(false);
       }
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     };
     
-    // Initial check for desktop
-    if (isMobile === false && isScrolled) {
-        setIsScrolled(false);
-    }
-
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
@@ -57,9 +51,9 @@ export function SiteHeader() {
     const root = document.documentElement;
     if (isMobile === undefined) return;
 
-    if (!isMobile) { // Desktop
+    if (!isMobile) { 
       root.style.setProperty('--current-sticky-header-height', HEADER_HEIGHT_MAIN_VALUE);
-    } else { // Mobile
+    } else { 
       if (isScrolled) { 
         root.style.setProperty('--current-sticky-header-height', MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE);
       } else {
@@ -101,9 +95,10 @@ export function SiteHeader() {
         </div>
       </div>
 
+      {/* Mobile Search Bar Container - always part of sticky header on mobile */}
       <div className={cn(
         "md:hidden container mx-auto px-4 pt-1 pb-2", 
-        "mobile-search-bar-container"
+        "mobile-search-bar-container" // This class is targeted by globals.css if needed
         )}
       >
         <GlobalSearchInput />
@@ -111,4 +106,3 @@ export function SiteHeader() {
     </header>
   );
 }
-

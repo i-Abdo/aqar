@@ -1,3 +1,4 @@
+
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -6,7 +7,7 @@ import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQue
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader as LayoutSidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
@@ -85,40 +86,46 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
       <Sidebar
         side="right"
         collapsible="icon"
-        title="لوحة الإدارة"
+        title="لوحة الإدارة" // Used by Sheet on mobile
       >
-        {hydrated && (
-          <SidebarHeader>
-             <div className={cn("flex items-center justify-between h-8")}>
-               {(open || isMobile) && hydrated && ( 
+        {/* This SidebarHeader is for layout-specific content like title, badge, toggle */}
+        {/* It will be rendered inside the SheetContent on mobile (if Sidebar renders as Sheet) */}
+        {/* Or directly inside the desktop sidebar div */}
+        <LayoutSidebarHeader>
+          {hydrated && (
+             <div className={cn("flex items-center justify-between h-8 w-full")}>
+                {/* Title and Badge: only shown if !isMobile and open */}
+                {open && !isMobile && ( 
                  <div className="flex items-center gap-2">
                     <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
                     {adminNotificationCount > 0 && !isLoadingCounts && (
                         <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
                     )}
                  </div>
-               )}
+                )}
+              {/* Toggle Button: always shown for desktop, or on mobile when sidebar is open */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
                 className={cn(
                   "h-8 w-8",
-                  !open && !isMobile && "mx-auto w-full justify-center" 
+                   open ? "" : (isMobile ? "" : "mx-auto w-full justify-center") // Center only if collapsed on desktop
                 )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
               </Button>
             </div>
-            </SidebarHeader>
-        )}
+          )}
+        </LayoutSidebarHeader>
         <SidebarContent className="p-0">
              <AdminSidebarNav counts={counts} />
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
         <div className="flex flex-col h-full bg-background">
+          {/* Mobile-only top bar inside content area - REMOVED as sidebar is now an overlay and header handles its own space */}
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
           </div>
@@ -220,11 +227,11 @@ export default function AdminLayout({
       style={{
         '--sidebar-width': '16rem',
         '--sidebar-width-mobile': '16rem', 
-        '--sidebar-width-icon': '3.5rem',
-        '--header-height': '4rem', 
-        '--mobile-search-height': '3.25rem', 
-        '--total-mobile-header-height': 'calc(var(--header-height) + var(--mobile-search-height))',
-        '--main-content-top-offset': 'var(--current-sticky-header-height)',
+        '--sidebar-width-icon': '3.5rem', // Width when collapsed as icon
+        '--header-height': '4rem', // Main site header height
+        '--mobile-search-height': '3.25rem', // Mobile search bar container height
+        '--total-mobile-header-height': 'calc(var(--header-height) + var(--mobile-search-height))', // Total header height on mobile when fully visible
+        // --current-sticky-header-height is set by SiteHeader.tsx
         '--sidebar-side': 'right',
       } as React.CSSProperties}
     >
@@ -234,4 +241,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-
