@@ -15,28 +15,30 @@ export function SiteHeader() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
   const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
   const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = `calc(${HEADER_HEIGHT_MAIN_VALUE} + ${MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE})`; 
-  const SCROLL_THRESHOLD = 5; // px for scroll sensitivity
+  const SCROLL_THRESHOLD = 5; 
 
 
   useEffect(() => {
     let lastScrollTop = 0;
     
     const handleScroll = () => {
-      if (isMobile === undefined || !isMobile) { // Only apply scroll effect on mobile
-        if (isScrolled) setIsScrolled(false); // Ensure not scrolled on desktop
-        return;
-      }
+      if (isMobile === undefined) return;
 
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-      if (scrollTop > lastScrollTop && scrollTop > SCROLL_THRESHOLD) {
-        if (!isScrolled) setIsScrolled(true);
-      } else if (scrollTop < lastScrollTop || scrollTop <= SCROLL_THRESHOLD) {
-        if (isScrolled) setIsScrolled(false);
+      if (isMobile) { // Only apply scroll effect on mobile
+        if (scrollTop > lastScrollTop && scrollTop > SCROLL_THRESHOLD) {
+          if (!isScrolled) setIsScrolled(true);
+        } else if (scrollTop < lastScrollTop || scrollTop <= SCROLL_THRESHOLD) {
+          if (isScrolled) setIsScrolled(false);
+        }
+      } else {
+        if (isScrolled) setIsScrolled(false); // Ensure not scrolled on desktop
       }
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     };
@@ -51,15 +53,32 @@ export function SiteHeader() {
     const root = document.documentElement;
     if (isMobile === undefined) return;
 
+    let currentHeightStyle: string;
+
     if (!isMobile) { 
-      root.style.setProperty('--current-sticky-header-height', HEADER_HEIGHT_MAIN_VALUE);
+      currentHeightStyle = HEADER_HEIGHT_MAIN_VALUE;
     } else { 
       if (isScrolled) { 
-        root.style.setProperty('--current-sticky-header-height', MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE);
+        currentHeightStyle = MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE;
       } else {
-        root.style.setProperty('--current-sticky-header-height', TOTAL_MOBILE_HEADER_HEIGHT_VALUE);
+        currentHeightStyle = TOTAL_MOBILE_HEADER_HEIGHT_VALUE;
       }
     }
+    root.style.setProperty('--current-sticky-header-height', currentHeightStyle);
+    
+    // Helper to convert CSS calc/rem to pixels for JS
+    const computePixelValue = (cssValue: string) => {
+        const tempElem = document.createElement('div');
+        tempElem.style.position = 'absolute';
+        tempElem.style.visibility = 'hidden';
+        tempElem.style.height = cssValue;
+        document.body.appendChild(tempElem);
+        const pixelHeight = tempElem.offsetHeight;
+        document.body.removeChild(tempElem);
+        return pixelHeight;
+    };
+    setHeaderHeight(computePixelValue(currentHeightStyle));
+
   }, [isScrolled, isMobile, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
 
 
@@ -72,8 +91,8 @@ export function SiteHeader() {
       data-scrolled={isMobile ? isScrolled : false} 
     >
       <div className={cn(
-        "container flex h-16 items-center justify-between", 
-        "main-header-bar" 
+        "container flex h-16 items-center justify-between", // h-16 is 4rem
+        "main-header-bar" // This class is targeted by globals.css for hide/show animation
         )}
       > 
         <div className="md:order-1"> 
@@ -98,11 +117,13 @@ export function SiteHeader() {
       {/* Mobile Search Bar Container - always part of sticky header on mobile */}
       <div className={cn(
         "md:hidden container mx-auto px-4 pt-1 pb-2", 
-        "mobile-search-bar-container" // This class is targeted by globals.css if needed
+        "mobile-search-bar-container" 
         )}
+        style={{height: isMobile ? 'var(--mobile-search-height)' : '0px'}} // Ensure it has height on mobile
       >
         <GlobalSearchInput />
       </div>
     </header>
   );
 }
+

@@ -18,12 +18,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Sheet, SheetContent, SheetHeader as UiSheetHeader, SheetTitle as UiSheetTitle } from "@/components/ui/sheet";
-
+// Removed Sheet imports as they are no longer directly used by Sidebar for mobile icon collapsible mode
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextValue = {
@@ -73,7 +71,7 @@ const SidebarProvider = React.forwardRef<
     }, []);
 
     const [_open, _setOpen] = React.useState(() => {
-      if (isMobile === false && typeof document !== "undefined") { 
+      if (!isMobile && typeof document !== "undefined") { 
         const cookieValue = document.cookie
           .split("; ")
           .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
@@ -94,7 +92,7 @@ const SidebarProvider = React.forwardRef<
         } else {
           _setOpen(openState)
         }
-        if (typeof document !== "undefined" && isMobile === false) { // Only set cookie on desktop
+        if (typeof document !== "undefined" && !isMobile) { // Only set cookie on desktop
           document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
         }
       },
@@ -148,7 +146,7 @@ const SidebarProvider = React.forwardRef<
           <div
             style={style as React.CSSProperties}
             className={cn(
-              "group/sidebar-wrapper flex h-full w-full",
+              "group/sidebar-wrapper flex h-full w-full", // h-full was removed, let content decide
               className
             )}
             ref={ref}
@@ -167,68 +165,35 @@ const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
-    collapsible?: "icon" | "none" | "offcanvas" 
+    collapsible?: "icon" | "none" // "offcanvas" removed for unified behavior
     title?: string; 
   }
 >(
   (
     {
       side = "right", 
-      collapsible = "icon",
+      collapsible = "icon", // Defaulting to icon behavior
       className,
       children,
-      title, 
+      title, // Title prop for potential internal use if needed later, but header is passed by layout
       ...props
     },
     ref
   ) => {
-    const { isMobile, open, setOpen: setContextOpen, state } = useSidebar()
+    const { isMobile, open, state } = useSidebar()
 
     if (isMobile === undefined) {
       const skeletonWidth = 'var(--sidebar-width-mobile, 16rem)';
-      return <div ref={ref} className={cn("group fixed", side === "left" ? "left-0" : "right-0", className)} {...props}><Skeleton className={`h-full w-[${skeletonWidth}]`} /></div>; 
+      return <div ref={ref} className={cn("group fixed z-40", side === "left" ? "left-0" : "right-0", className)} {...props}><Skeleton className={`h-full w-[${skeletonWidth}]`} /></div>; 
     }
     
-    if (isMobile) {
-      return (
-        <Sheet open={open} onOpenChange={setContextOpen}>
-          {/* SheetTrigger is handled by UserAccountNav/MobileNav typically */}
-          <SheetContent
-            side={side}
-            className={cn(
-              "flex flex-col p-0",
-              "bg-sidebar text-sidebar-foreground shadow-xl",
-              "transition-none data-[state=closed]:duration-0 data-[state=open]:duration-0", // Faster/no transition for sheet
-              className
-            )}
-            style={{
-              width: 'var(--sidebar-width-mobile, 16rem)',
-              top: 'var(--header-height)', // Position below main 4rem header
-              height: 'calc(100vh - var(--header-height))',
-              borderColor: 'hsl(var(--sidebar-border))',
-            }}
-            // onClick={(e) => e.stopPropagation()} // To prevent clicks inside from closing if not on close button
-            {...props}
-          >
-            {title && (
-              <UiSheetHeader className="p-3 border-b border-sidebar-border">
-                <UiSheetTitle>{title}</UiSheetTitle>
-              </UiSheetHeader>
-            )}
-            {/* Children (SidebarHeader, SidebarContent, SidebarMenu from layout) will be rendered here */}
-            <div className="flex flex-col min-h-0 flex-1">
-              {children}
-            </div>
-          </SheetContent>
-        </Sheet>
-      );
-    }
-    
-    // Desktop view (fixed overlay)
-    const desktopWidthVar = open ? 'var(--sidebar-width, 16rem)' : 'var(--sidebar-width-icon, 3.5rem)';
-    const desktopTopGap = '1rem'; // Gap below header for desktop
-    const desktopBottomClearance = '1rem'; // Visual clearance at the bottom
+    const currentSidebarWidth = open 
+      ? (isMobile ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width, 16rem)')
+      : 'var(--sidebar-width-icon, 3.5rem)';
 
+    const topPosition = 'var(--current-sticky-header-height, var(--header-height))';
+    const maxHeight = `calc(100svh - ${topPosition})`;
+    
     return (
       <div
         ref={ref}
@@ -236,24 +201,23 @@ const Sidebar = React.forwardRef<
         data-state={state}
         data-collapsible={collapsible}
         data-side={side}
-        data-mobile="false"
+        data-mobile={isMobile.toString()}
         className={cn(
           "group bg-sidebar text-sidebar-foreground shadow-xl transition-[width] duration-200 ease-linear",
-          "fixed flex flex-col", 
+          "fixed flex flex-col z-40", // z-index to be above main content, below modals
           side === "left" ? "left-0 border-r" : "right-0 border-l",
           className
         )}
         style={{
-          width: desktopWidthVar,
-          top: `calc(var(--header-height) + ${desktopTopGap})`, // Position below header + gap
-          maxHeight: `calc(100svh - var(--header-height) - ${desktopTopGap} - ${desktopBottomClearance})`, // Full height minus header, top gap, and bottom clearance
+          width: currentSidebarWidth,
+          top: topPosition,
+          maxHeight: maxHeight, 
           borderColor: 'hsl(var(--sidebar-border))',
-          zIndex: 40, 
         }}
         {...props}
       >
         <div className="flex flex-col min-h-0 flex-1"> 
-          {children}
+          {children} {/* Layouts pass SidebarHeader, SidebarContent here */}
         </div>
       </div>
     );
@@ -319,8 +283,9 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  // Sidebar is an overlay, so SidebarInset does not need margin adjustments.
-  // Its padding-top adjusts based on the sticky header's current height.
+  const { side } = useSidebar(); // Get side from context
+  const paddingProp = side === "left" ? "paddingLeft" : "paddingRight";
+
   return (
     <div
       ref={ref}
@@ -329,9 +294,8 @@ const SidebarInset = React.forwardRef<
         className
       )}
       style={{
-        paddingTop: `var(--current-sticky-header-height, var(--header-height))`, // Respects current sticky header height
-        marginRight: "0px", // Sidebar is overlay
-        marginLeft: "0px",  // Sidebar is overlay
+        paddingTop: `var(--current-sticky-header-height, var(--header-height))`,
+        [paddingProp]: `var(--sidebar-width-icon)`, // Always pad for the collapsed icon bar
         ...style,
       }}
       {...props}
@@ -571,8 +535,7 @@ const SidebarMenuButton = React.forwardRef<
       }
     }
     
-    const tooltipDisabled = state !== "collapsed" || isMobile;
-
+    const tooltipDisabled = state !== "collapsed"; // Tooltip only when collapsed
 
     return (
       <Tooltip>
@@ -755,3 +718,4 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
