@@ -9,11 +9,13 @@ import { SidebarProvider, Sidebar, SidebarHeader as LayoutSidebarHeader, Sidebar
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
-  const { isMobile, open, toggleSidebar } = useSidebar();
+  const { open, toggleSidebar } = useSidebar();
   const [hydrated, setHydrated] = React.useState(false);
   const { userDashboardNotificationCount } = useAuth();
+  const isMobile = useIsMobile(); // Get mobile state
 
   React.useEffect(() => {
     setHydrated(true);
@@ -24,11 +26,10 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
       <Sidebar
         side="right"
         collapsible="icon" 
-        // Title prop is not used here as SidebarHeader is passed as child for desktop,
-        // and mobile unified behavior does not use Sheet specific title anymore
+        title="لوحة التحكم" // Title prop for Sidebar to use for its own header on mobile
       >
-        <LayoutSidebarHeader> {/* This is the one from sidebar.tsx aliased */}
-          {hydrated && (
+        <LayoutSidebarHeader> {/* This is the one from sidebar.tsx, for DESKTOP header content */}
+          {hydrated && ( 
             <div className={cn(
               "flex items-center h-8 w-full",
               open ? "justify-between" : "justify-center"
@@ -45,7 +46,10 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="h-8 w-8" // Centering logic removed, parent div handles it
+                className={cn(
+                  "h-8 w-8",
+                  !open && !isMobile && "mx-auto w-full justify-center" // Center only on desktop collapsed
+                )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
@@ -57,7 +61,7 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
           <DashboardNav />
         </SidebarContent>
       </Sidebar>
-      <SidebarInset> {/* This will now have padding-right for the collapsed icon bar */}
+      <SidebarInset> 
         <div className="flex flex-col h-full bg-background">
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
@@ -99,17 +103,25 @@ export default function DashboardLayout({
   if (!user) {
     return null;
   }
+  
+  // Calculate initial top values for CSS variables
+  // These are fallbacks if --current-sticky-header-height isn't immediately available
+  // Though SiteHeader.tsx should set --current-sticky-header-height quickly
+  const headerHeightValue = '4rem'; 
+  const mobileSearchHeightValue = '3.25rem';
+  const totalMobileHeaderHeightValue = `calc(${headerHeightValue} + ${mobileSearchHeightValue})`;
+
 
   return (
     <SidebarProvider
         defaultOpen={true} 
         style={{
           '--sidebar-width': '16rem',
-          '--sidebar-width-mobile': '16rem', // Width when open on mobile
+          '--sidebar-width-mobile': '16rem', 
           '--sidebar-width-icon': '3.5rem', 
-          '--header-height': '4rem', 
-          '--mobile-search-height': '3.25rem',
-          '--total-mobile-header-height': 'calc(var(--header-height) + var(--mobile-search-height))',
+          '--header-height': headerHeightValue, 
+          '--mobile-search-height': mobileSearchHeightValue,
+          '--total-mobile-header-height': totalMobileHeaderHeightValue,
           '--sidebar-side': 'right',
         } as React.CSSProperties}
     >
@@ -117,4 +129,3 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
-

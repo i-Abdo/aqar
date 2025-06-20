@@ -1,7 +1,7 @@
 
 "use client"
 
-import * as React from "react"
+import *alarına React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { ChevronsRight, ChevronsLeft } from "lucide-react" 
@@ -18,7 +18,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-// Removed Sheet imports as they are no longer directly used by Sidebar for mobile icon collapsible mode
+import { Sheet, SheetContent, SheetHeader as UiSheetHeader, SheetTitle as UiSheetTitle } from "@/components/ui/sheet"
+
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -71,7 +72,8 @@ const SidebarProvider = React.forwardRef<
     }, []);
 
     const [_open, _setOpen] = React.useState(() => {
-      if (!isMobile && typeof document !== "undefined") { 
+      if (openProp !== undefined) return openProp; // Controlled component preference
+      if (!isMobile && typeof document !== "undefined" && hydrated) { 
         const cookieValue = document.cookie
           .split("; ")
           .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
@@ -82,6 +84,7 @@ const SidebarProvider = React.forwardRef<
       }
       return defaultOpen 
     })
+    
     const open = openProp ?? _open
 
     const setOpen = React.useCallback(
@@ -92,11 +95,11 @@ const SidebarProvider = React.forwardRef<
         } else {
           _setOpen(openState)
         }
-        if (typeof document !== "undefined" && !isMobile) { // Only set cookie on desktop
+        if (typeof document !== "undefined" && !isMobile && hydrated) { 
           document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
         }
       },
-      [setOpenProp, open, isMobile]
+      [setOpenProp, open, isMobile, hydrated] 
     )
     
     React.useEffect(() => {
@@ -125,6 +128,7 @@ const SidebarProvider = React.forwardRef<
     }, [toggleSidebar])
 
     const state = open ? "expanded" : "collapsed"
+    // Ensure 'style' is treated as CSSProperties & allows custom properties
     const sidebarSide = (style as React.CSSProperties & {'--sidebar-side': 'left' | 'right'})?.['--sidebar-side'] || 'right';
 
 
@@ -146,7 +150,7 @@ const SidebarProvider = React.forwardRef<
           <div
             style={style as React.CSSProperties}
             className={cn(
-              "group/sidebar-wrapper flex h-full w-full", // h-full was removed, let content decide
+              "group/sidebar-wrapper flex h-full w-full",
               className
             )}
             ref={ref}
@@ -165,17 +169,17 @@ const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
-    collapsible?: "icon" | "none" // "offcanvas" removed for unified behavior
+    collapsible?: "icon" | "none" | "offcanvas" 
     title?: string; 
   }
 >(
   (
     {
       side = "right", 
-      collapsible = "icon", // Defaulting to icon behavior
+      collapsible = "icon", 
       className,
       children,
-      title, // Title prop for potential internal use if needed later, but header is passed by layout
+      title, 
       ...props
     },
     ref
@@ -191,11 +195,16 @@ const Sidebar = React.forwardRef<
       ? (isMobile ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width, 16rem)')
       : 'var(--sidebar-width-icon, 3.5rem)';
 
-    const topPosition = 'var(--current-sticky-header-height, var(--header-height))';
-    const maxHeight = `calc(100svh - ${topPosition})`;
+    // Determine initial top value based on device for fallback if CSS var isn't ready
+    let initialTopValue = 'var(--header-height, 4rem)'; // Default for desktop
+    if (isMobile) {
+        initialTopValue = 'var(--total-mobile-header-height, calc(var(--header-height, 4rem) + var(--mobile-search-height, 3.25rem)))';
+    }
     
+    const justifyContentClass = side === "left" ? "justify-start" : "justify-end";
+
     return (
-      <div
+      <div // This is the fixed "Centering Zone / Sizing Container"
         ref={ref}
         data-sidebar="sidebar"
         data-state={state}
@@ -203,21 +212,27 @@ const Sidebar = React.forwardRef<
         data-side={side}
         data-mobile={isMobile.toString()}
         className={cn(
-          "group bg-sidebar text-sidebar-foreground shadow-xl transition-[width] duration-200 ease-linear",
-          "fixed flex flex-col z-40", // z-index to be above main content, below modals
-          side === "left" ? "left-0 border-r" : "right-0 border-l",
+          "group fixed flex items-center z-40 transition-[width] duration-200 ease-linear pointer-events-auto",
+          "p-2 sm:p-4", // Padding for the zone, so the card inside is spaced
+          justifyContentClass, // Aligns the card to the correct side within its width
+          side === "left" ? "left-0" : "right-0",
           className
         )}
         style={{
           width: currentSidebarWidth,
-          top: topPosition,
-          maxHeight: maxHeight, 
-          borderColor: 'hsl(var(--sidebar-border))',
+          top: `var(--current-sticky-header-height, ${initialTopValue})`,
+          height: `calc(100vh - var(--current-sticky-header-height, ${initialTopValue}))`,
+          // No background or border here, that's for the card inside
         }}
         {...props}
       >
-        <div className="flex flex-col min-h-0 flex-1"> 
-          {children} {/* Layouts pass SidebarHeader, SidebarContent here */}
+        <div // This is the "Actual Sidebar Panel" card
+          className={cn(
+            "flex flex-col w-full h-auto max-h-full overflow-hidden",
+            "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg" // Card-like appearance
+          )}
+        >
+          {children}
         </div>
       </div>
     );
@@ -283,19 +298,19 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { side } = useSidebar(); // Get side from context
+  const { side } = useSidebar(); 
   const paddingProp = side === "left" ? "paddingLeft" : "paddingRight";
 
   return (
     <div
       ref={ref}
       className={cn(
-        "flex-1 flex flex-col overflow-hidden", // Ensures it fills space and handles overflow
+        "flex-1 flex flex-col overflow-hidden", 
         className
       )}
       style={{
         paddingTop: `var(--current-sticky-header-height, var(--header-height))`,
-        [paddingProp]: `var(--sidebar-width-icon)`, // Always pad for the collapsed icon bar
+        [paddingProp]: `var(--sidebar-width-icon, 3.5rem)`, // Permanent gutter for collapsed icons
         ...style,
       }}
       {...props}
@@ -362,8 +377,8 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2", 
-        "overflow-y-auto overflow-x-hidden group-data-[collapsible=icon]:group-data-[state=collapsed]:overflow-hidden",
+        "flex flex-col gap-2 flex-grow overflow-y-auto overflow-x-hidden", // Added flex-grow
+        "group-data-[collapsible=icon]:group-data-[state=collapsed]:overflow-hidden",
         className
       )}
       {...props}
@@ -535,7 +550,7 @@ const SidebarMenuButton = React.forwardRef<
       }
     }
     
-    const tooltipDisabled = state !== "collapsed"; // Tooltip only when collapsed
+    const tooltipDisabled = state !== "collapsed"; 
 
     return (
       <Tooltip>
@@ -718,4 +733,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-

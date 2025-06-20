@@ -11,6 +11,7 @@ import { SidebarProvider, Sidebar, SidebarHeader as LayoutSidebarHeader, Sidebar
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const adminNavItems = [
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard, countKey: "properties" },
@@ -74,8 +75,9 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 }
 
 function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadingCounts }: { children: React.ReactNode; counts: AdminCounts; adminNotificationCount: number; isLoadingCounts: boolean; }) {
-  const { open, toggleSidebar } = useSidebar(); // Removed isMobile as unified behavior for header
+  const { open, toggleSidebar } = useSidebar(); 
   const [hydrated, setHydrated] = React.useState(false);
+  const isMobile = useIsMobile(); 
 
   React.useEffect(() => {
     setHydrated(true);
@@ -86,10 +88,10 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
       <Sidebar
         side="right"
         collapsible="icon"
-        // Title prop not used for unified behavior
+        title="لوحة الإدارة" // Title prop for Sidebar to use for its own header on mobile
       >
         <LayoutSidebarHeader> 
-          {hydrated && (
+          {hydrated && ( 
              <div className={cn(
               "flex items-center h-8 w-full",
               open ? "justify-between" : "justify-center"
@@ -106,7 +108,10 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="h-8 w-8" // Centering removed, parent div handles it
+                className={cn(
+                  "h-8 w-8",
+                  !open && !isMobile && "mx-auto w-full justify-center" // Center only on desktop collapsed
+                )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
                 {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
@@ -118,7 +123,7 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
              <AdminSidebarNav counts={counts} />
         </SidebarContent>
       </Sidebar>
-      <SidebarInset> {/* This will now have padding-right for the collapsed icon bar */}
+      <SidebarInset> 
         <div className="flex flex-col h-full bg-background">
           <div className="flex-1 p-4 md:p-6 overflow-y-auto">
             {children}
@@ -215,6 +220,10 @@ export default function AdminLayout({
     );
   }
 
+  const headerHeightValue = '4rem'; 
+  const mobileSearchHeightValue = '3.25rem';
+  const totalMobileHeaderHeightValue = `calc(${headerHeightValue} + ${mobileSearchHeightValue})`;
+
   return (
     <SidebarProvider
       defaultOpen={true} 
@@ -222,9 +231,9 @@ export default function AdminLayout({
         '--sidebar-width': '16rem',
         '--sidebar-width-mobile': '16rem', 
         '--sidebar-width-icon': '3.5rem', 
-        '--header-height': '4rem', 
-        '--mobile-search-height': '3.25rem', 
-        '--total-mobile-header-height': 'calc(var(--header-height) + var(--mobile-search-height))', 
+        '--header-height': headerHeightValue, 
+        '--mobile-search-height': mobileSearchHeightValue, 
+        '--total-mobile-header-height': totalMobileHeaderHeightValue, 
         '--sidebar-side': 'right',
       } as React.CSSProperties}
     >
@@ -234,4 +243,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-
