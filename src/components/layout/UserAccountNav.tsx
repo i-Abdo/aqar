@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { LogOut, User, Settings, LayoutDashboard, ShieldCheck } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; // DefaultUserIcon removed from direct import
+import { Avatar, AvatarImage, AvatarFallback, DefaultUserIcon } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,12 +21,28 @@ import React from "react";
 
 export function UserAccountNav() {
   const { user, signOut, isAdmin, loading: authLoading } = useAuth();
+  const [hasMounted, setHasMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    // Render a consistent placeholder for SSR and initial client render
+    // This matches the `authLoading` state to prevent mismatch if auth resolves quickly
+    return (
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-10 w-[90px]" />
+        <Skeleton className="h-10 w-[100px]" />
+      </div>
+    );
+  }
 
   if (authLoading) {
     return (
       <div className="flex items-center gap-2">
-        <Skeleton className="h-10 w-[90px]" /> 
-        <Skeleton className="h-10 w-[100px]" /> 
+        <Skeleton className="h-10 w-[90px]" />
+        <Skeleton className="h-10 w-[100px]" />
       </div>
     );
   }
@@ -44,17 +60,16 @@ export function UserAccountNav() {
     );
   }
   
-  // User initials or default fallback logic for text if needed, otherwise SVG will render
   const userInitials = user.displayName ? user.displayName.charAt(0).toUpperCase() : 
-                      (user.email ? user.email.charAt(0).toUpperCase() : ""); // Empty string if no good initials, so SVG shows
+                      (user.email ? user.email.charAt(0).toUpperCase() : "");
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10"> {/* bg-primary will be applied by AvatarFallback if it renders */}
+          <Avatar className="h-10 w-10">
             <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
-            <AvatarFallback>{userInitials}</AvatarFallback> {/* Pass initials, SVG will show if initials are empty */}
+            <AvatarFallback>{userInitials || <DefaultUserIcon />}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
