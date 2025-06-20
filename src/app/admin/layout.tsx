@@ -104,11 +104,12 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
       <Sidebar
         side="right"
         collapsible="icon"
+        title="لوحة الإدارة"
       >
         <LayoutSidebarHeader> 
           <div className={cn(
             "flex items-center h-8 w-full",
-            open ? "justify-between" : "justify-center" 
+             open ? "justify-between" : "justify-center" 
           )}>
               {open && ( 
               <div className="flex items-center gap-2">
@@ -122,11 +123,13 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
               variant="ghost"
               size="icon"
               onClick={(e) => {
-                console.log('Admin Layout Toggle clicked. Current open state:', open); 
                 e.stopPropagation();
                 toggleSidebar();
               }}
-              className={cn("h-8 w-8")}
+              className={cn(
+                "h-8 w-8",
+                !open && !isMobile && "mx-auto" // Center only on desktop when collapsed
+              )}
               aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
             >
               <ChevronIconToRender />
@@ -242,9 +245,9 @@ export default function AdminLayout({
     <SidebarProvider
       defaultOpen={true} 
       style={{
-        '--sidebar-width': '18rem', // Adjusted width for admin
+        '--sidebar-width': '18rem', 
         '--sidebar-width-mobile': '16rem', 
-        '--sidebar-width-icon': '3.5rem', 
+        '--sidebar-width-icon': '4.5rem', // Updated icon width
         '--header-height': headerHeightValue, 
         '--mobile-search-height': mobileSearchHeightValue, 
         '--total-mobile-header-height': totalMobileHeaderHeightValue, 

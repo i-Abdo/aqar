@@ -14,7 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
   const { open, toggleSidebar, isMobile, side } = useSidebar();
   const [hydrated, setHydrated] = React.useState(false);
-  const { userDashboardNotificationCount, user } = useAuth(); // Added user
+  const { userDashboardNotificationCount } = useAuth(); 
   
   React.useEffect(() => {
     setHydrated(true);
@@ -41,14 +41,14 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
       <Sidebar
         side="right"
         collapsible="icon" 
+        title="لوحة التحكم"
       >
-        {/* Sidebar Header (Title/Badge + Toggle Button) */}
         <LayoutSidebarHeader> 
             <div className={cn(
-                "flex items-center h-8 w-full", // Ensure height matches button
-                open ? "justify-between" : "justify-center" // Center button when collapsed
+                "flex items-center h-8 w-full", 
+                open ? "justify-between" : "justify-center" 
             )}>
-                {open && ( // Show title and badge only when open
+                {open && ( 
                 <div className="flex items-center gap-2">
                     <span className={cn("text-xl font-semibold")}>لوحة التحكم</span>
                     {userDashboardNotificationCount > 0 && (
@@ -56,16 +56,17 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                     )}
                 </div>
                 )}
-                {/* Toggle button is always rendered */}
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={(e) => {
-                        console.log('Dashboard Layout Toggle clicked. Current open state:', open); 
                         e.stopPropagation();
                         toggleSidebar();
                     }}
-                    className={cn("h-8 w-8")} 
+                    className={cn(
+                        "h-8 w-8",
+                        !open && !isMobile && "mx-auto" // Center only on desktop when collapsed
+                    )} 
                     aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
                 >
                     <ChevronIconToRender />
@@ -116,28 +117,25 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return null; // Or a redirect component if preferred, but useEffect handles redirect
+    return null; 
   }
   
-  // CSS Variables for sidebar and header dimensions
-  // These are now primarily used by SiteHeader and Sidebar for positioning
   const headerHeightValue = '4rem'; 
-  const mobileSearchHeightValue = '3.25rem'; // Height of the mobile search bar area
+  const mobileSearchHeightValue = '3.25rem'; 
   const totalMobileHeaderHeightValue = `calc(${headerHeightValue} + ${mobileSearchHeightValue})`;
 
 
   return (
     <SidebarProvider
-        defaultOpen={true} // Sidebar open by default on mobile
+        defaultOpen={true} 
         style={{
           '--sidebar-width': '16rem',
           '--sidebar-width-mobile': '16rem', 
-          '--sidebar-width-icon': '3.5rem', 
-          '--header-height': headerHeightValue, // Main header part height
-          '--mobile-search-height': mobileSearchHeightValue, // Mobile search bar container height
-          '--total-mobile-header-height': totalMobileHeaderHeightValue, // Full header height on mobile when not scrolled
-          '--sidebar-side': 'right', // Sidebar on the right for RTL
-           // --current-sticky-header-height is set dynamically by SiteHeader
+          '--sidebar-width-icon': '4.5rem', // Updated icon width
+          '--header-height': headerHeightValue, 
+          '--mobile-search-height': mobileSearchHeightValue, 
+          '--total-mobile-header-height': totalMobileHeaderHeightValue, 
+          '--sidebar-side': 'right', 
         } as React.CSSProperties}
     >
       <DashboardInternalLayout>{children}</DashboardInternalLayout>

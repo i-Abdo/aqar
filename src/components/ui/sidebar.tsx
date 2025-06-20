@@ -72,14 +72,14 @@ const SidebarProvider = React.forwardRef<
 
     const [_open, _setOpen] = React.useState(() => {
         if (openProp !== undefined) return openProp;
-        // For SSR, initially respect defaultOpen. Client-side effect will adjust.
         return defaultOpen;
     });
     
     React.useEffect(() => {
-        if (hydrated && openProp === undefined) { // Only run if not controlled and client-side
+        if (hydrated && openProp === undefined) { 
             if (isMobile) {
-                _setOpen(defaultOpen); // Mobile always respects defaultOpen prop post-hydration
+                 // Always respect defaultOpen on mobile after hydration, unless controlled
+                _setOpen(defaultOpen);
             } else {
                 const cookieValue = document.cookie
                     .split("; ")
@@ -88,7 +88,7 @@ const SidebarProvider = React.forwardRef<
                 if (cookieValue) {
                     _setOpen(cookieValue === "true");
                 } else {
-                     _setOpen(defaultOpen); // Desktop respects defaultOpen if no cookie
+                     _setOpen(defaultOpen); 
                 }
             }
         }
@@ -172,6 +172,7 @@ const Sidebar = React.forwardRef<
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
     collapsible?: "icon" | "none"
+    title?: string; // Used for SheetTitle on mobile
   }
 >(
   (
@@ -180,11 +181,12 @@ const Sidebar = React.forwardRef<
       collapsible = "icon", 
       className,
       children,
+      title, // Destructure title prop
       ...props
     },
     ref
   ) => {
-    const { isMobile, open, state, side: contextSide } = useSidebar();
+    const { isMobile, open, state, side: contextSide, setOpen: setContextOpen } = useSidebar();
     const actualSide = propSide || contextSide; 
 
     if (isMobile === undefined) {
@@ -196,13 +198,14 @@ const Sidebar = React.forwardRef<
     if (open) {
       currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width, 16rem)';
     } else {
-      currentSidebarWidth = (collapsible === "icon") ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
+      currentSidebarWidth = (collapsible === "icon") ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
     }
     if (collapsible === "none" && !open) {
         currentSidebarWidth = '0px';
     }
     
-    const topPosition = 'var(--current-sticky-header-height)';
+    const initialTopValue = isMobile ? 'var(--total-mobile-header-height)' : 'var(--header-height)';
+    const topPosition = `var(--current-sticky-header-height, ${initialTopValue})`;
     const sidebarContainerPadding = "p-2 sm:p-4"; 
     const sideClasses = actualSide === "left" ? "left-0 justify-start" : "right-0 justify-end";
 
@@ -224,7 +227,8 @@ const Sidebar = React.forwardRef<
         )}
         style={{
           top: topPosition,
-          height: `calc(100svh - var(--current-sticky-header-height))`, 
+          height: `auto`, // Let the inner panel determine height based on content or max-height
+          maxHeight: `calc(100svh - ${topPosition} - ${sidebarContainerPadding.split(" ")[1] || '1rem'})`, // Account for padding
           width: currentSidebarWidth, 
         }}
         {...props}
@@ -305,10 +309,14 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { side, collapsible } = useSidebar(); 
+  const { isMobile, side: actualSide, collapsible, open } = useSidebar(); 
   
-  const paddingProp = side === "left" ? "paddingLeft" : "paddingRight";
-  const paddingValue = collapsible === "icon" ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
+  const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight";
+  // Sidebar is now an overlay, so page content doesn't need to reserve space for the open sidebar.
+  // It only needs a gutter for the collapsed icon bar.
+  const paddingValue = collapsible === "icon" ? 'var(--sidebar-width-icon)' : '0px';
+  const initialTopValue = isMobile ? 'var(--total-mobile-header-height)' : 'var(--header-height)';
+
 
   return (
     <div
@@ -318,7 +326,7 @@ const SidebarInset = React.forwardRef<
         className
       )}
       style={{
-        paddingTop: `var(--current-sticky-header-height, var(--header-height))`, 
+        paddingTop: `var(--current-sticky-header-height, ${initialTopValue})`, 
         [paddingProp]: paddingValue, 
         ...style,
       }}
