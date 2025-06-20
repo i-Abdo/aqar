@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Sheet, SheetContent, SheetHeader as UiSheetHeader, SheetTitle as UiSheetTitle } from "@/components/ui/sheet"
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -73,7 +74,7 @@ const SidebarProvider = React.forwardRef<
     const [_open, _setOpen] = React.useState(() => {
       if (openProp !== undefined) return openProp; 
       if (hydrated) { 
-        if (!isMobile) { // Only check cookie for desktop
+        if (!isMobile) {
             const cookieValue = document.cookie
             .split("; ")
             .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
@@ -81,8 +82,8 @@ const SidebarProvider = React.forwardRef<
             if (cookieValue) {
             return cookieValue === "true"
             }
-        } else { // For mobile, respect defaultOpen
-            return defaultOpen;
+        } else { 
+            return defaultOpen; 
         }
       }
       return defaultOpen 
@@ -105,7 +106,7 @@ const SidebarProvider = React.forwardRef<
       [setOpenProp, open, isMobile, hydrated] 
     )
     
-    React.useEffect(() => {
+     React.useEffect(() => {
       if (isMobile && openProp === undefined && hydrated && defaultOpen) {
         setOpen(true); 
       }
@@ -171,67 +172,86 @@ const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
-    collapsible?: "icon" | "none" | "offcanvas" 
-    title?: string; 
+    collapsible?: "icon" | "none"
+    title?: string;
   }
 >(
   (
     {
-      side = "right", 
+      side: propSide, 
       collapsible = "icon", 
+      title,
       className,
       children,
-      title, 
       ...props
     },
     ref
   ) => {
-    const { isMobile, open, state } = useSidebar()
+    const { isMobile, open, state, side: contextSide, setOpen: setContextOpen } = useSidebar();
+    const actualSide = propSide || contextSide; 
 
     if (isMobile === undefined) {
       const skeletonWidth = 'var(--sidebar-width-mobile, 16rem)';
-      return <div ref={ref} className={cn("group fixed z-40", side === "left" ? "left-0" : "right-0", className)} {...props}><Skeleton className={`h-full w-[${skeletonWidth}]`} /></div>; 
+      const skeletonSideClass = actualSide === "left" ? "left-0" : "right-0";
+      return <div ref={ref} className={cn("group fixed z-40", skeletonSideClass, className)} {...props}><Skeleton className={`h-full w-[${skeletonWidth}]`} /></div>; 
     }
     
-    const currentSidebarWidth = open 
-      ? (isMobile ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width, 16rem)')
-      : 'var(--sidebar-width-icon, 3.5rem)';
+    const currentSidebarWidth = open
+      ? isMobile
+        ? 'var(--sidebar-width-mobile, 16rem)'
+        : 'var(--sidebar-width, 16rem)'
+      : collapsible === "icon"
+        ? 'var(--sidebar-width-icon, 3.5rem)'
+        : 'var(--sidebar-width-icon, 3.5rem)'; 
     
-    const justifyContentClass = side === "left" ? "justify-start" : "justify-end";
+    const justifyContentClass = actualSide === "left" ? "justify-start" : "justify-end";
+    
+    // Vertical positioning:
+    // Desktop: 1rem below main header
+    // Mobile: Directly below main header (mobile search bar might be between them if header is expanded)
+    const topPosition = isMobile 
+        ? 'var(--current-sticky-header-height, var(--total-mobile-header-height, 0px))' // Below full sticky header on mobile
+        : 'calc(var(--header-height, 4rem) + 1rem)'; // 1rem gap on desktop
+
+    const sidebarMaxHeight = isMobile
+        ? `calc(100svh - var(--current-sticky-header-height, var(--total-mobile-header-height, 0px)))`
+        : `calc(100svh - var(--header-height, 4rem) - 2rem)`; // 1rem top and 1rem bottom gap
 
     return (
-        // This is the fixed "Centering Zone / Sizing Container"
+      <div
+        ref={ref}
+        data-sidebar="sidebar" 
+        data-state={state}
+        data-collapsible={collapsible}
+        data-side={actualSide} 
+        data-mobile={isMobile.toString()}
+        className={cn(
+          "group fixed z-40 flex", // Outer container is flex for centering
+          justifyContentClass,    
+          "items-center",         // Vertically center the inner panel
+          actualSide === "left" ? "left-0" : "right-0",
+          "pointer-events-none", // Outer container doesn't block interactions
+          "p-2 sm:p-4", // Padding around the inner panel
+          className
+        )}
+        style={{
+          width: currentSidebarWidth, 
+          top: topPosition,
+          height: sidebarMaxHeight, // Use height for the centering container
+        }}
+        {...props}
+      >
+        {/* Inner container: The actual visible sidebar panel */}
         <div
-            data-sidebar="sidebar"
-            data-state={state}
-            data-collapsible={collapsible}
-            data-side={side}
-            data-mobile={isMobile.toString()}
-            className={cn(
-            "group fixed flex items-center z-40 transition-[width] duration-200 ease-linear pointer-events-none", // pointer-events-none on parent
-            "p-2 sm:p-4", 
-            justifyContentClass, 
-            side === "left" ? "left-0" : "right-0",
-            className
-            )}
-            style={{
-            width: currentSidebarWidth,
-            top: `var(--current-sticky-header-height, var(--header-height, 0px))`,
-            height: `calc(100svh - var(--current-sticky-header-height, var(--header-height, 0px)))`,
-            }}
-            ref={ref}
-            {...props}
+          className={cn(
+            "flex flex-col h-full w-full overflow-hidden transition-all duration-200 ease-linear",
+            "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg",
+            "pointer-events-auto" // Inner panel is interactive
+          )}
         >
-            {/* This is the "Actual Sidebar Panel" card */}
-            <div
-                className={cn(
-                    "flex flex-col w-full h-auto max-h-full overflow-hidden pointer-events-auto", // pointer-events-auto here
-                    "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg" 
-                )}
-            >
-             {children}
-            </div>
+          {children} 
         </div>
+      </div>
     );
   }
 )
@@ -295,7 +315,11 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { side } = useSidebar(); 
+  const { side, collapsible } = useSidebar(); 
+  
+  // The inset padding should only account for the collapsed icon bar if collapsible is icon,
+  // as the expanded sidebar is an overlay.
+  const paddingValue = collapsible === "icon" ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
   const paddingProp = side === "left" ? "paddingLeft" : "paddingRight";
 
   return (
@@ -307,7 +331,7 @@ const SidebarInset = React.forwardRef<
       )}
       style={{
         paddingTop: `var(--current-sticky-header-height, var(--header-height))`,
-        [paddingProp]: `var(--sidebar-width-icon, 3.5rem)`,
+        [paddingProp]: paddingValue, 
         ...style,
       }}
       {...props}
@@ -341,7 +365,7 @@ const SidebarHeader = React.forwardRef<
   return (
     <div
       ref={ref}
-      data-sidebar="header"
+      data-sidebar="header" 
       className={cn("flex flex-col gap-2 p-3 border-b border-sidebar-border", className)}
       {...props}
     />
@@ -374,7 +398,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex flex-col gap-2 flex-grow overflow-y-auto overflow-x-hidden", 
+        "flex flex-col gap-2 flex-grow overflow-y-auto overflow-x-hidden p-0", 
         "group-data-[collapsible=icon]:group-data-[state=collapsed]:overflow-hidden",
         className
       )}
@@ -462,7 +486,7 @@ const SidebarMenu = React.forwardRef<
   <ul
     ref={ref}
     data-sidebar="menu"
-    className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+    className={cn("flex w-full min-w-0 flex-col gap-1 p-2", className)} 
     {...props}
   />
 ))
@@ -547,7 +571,7 @@ const SidebarMenuButton = React.forwardRef<
       }
     }
     
-    const tooltipDisabled = state !== "collapsed"; 
+    const tooltipDisabled = state !== "collapsed" || isMobile; // Disable tooltip if expanded or on mobile
 
     return (
       <Tooltip>
@@ -712,7 +736,7 @@ export {
   SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
+  SidebarHeader, 
   SidebarInput,
   SidebarInset,
   SidebarMenu,

@@ -15,12 +15,12 @@ export function SiteHeader() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(0);
+  // headerHeight state is no longer needed here as CSS var is set directly
 
   const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
   const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
   const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = `calc(${HEADER_HEIGHT_MAIN_VALUE} + ${MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE})`; 
-  const SCROLL_THRESHOLD = 5; 
+  const SCROLL_THRESHOLD = 5; // Keep it sensitive for mobile
 
 
   useEffect(() => {
@@ -38,7 +38,8 @@ export function SiteHeader() {
           if (isScrolled) setIsScrolled(false);
         }
       } else {
-        if (isScrolled) setIsScrolled(false); // Ensure not scrolled on desktop
+        // On desktop, ensure the header is not considered "scrolled" for styling purposes
+        if (isScrolled) setIsScrolled(false); 
       }
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     };
@@ -51,34 +52,23 @@ export function SiteHeader() {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (isMobile === undefined) return;
+    if (isMobile === undefined) return; // Wait for isMobile to be determined
 
     let currentHeightStyle: string;
 
     if (!isMobile) { 
+      // Desktop: always the main header height
       currentHeightStyle = HEADER_HEIGHT_MAIN_VALUE;
     } else { 
+      // Mobile: height changes based on scroll
       if (isScrolled) { 
-        currentHeightStyle = MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE;
+        currentHeightStyle = MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE; // Only search bar visible
       } else {
-        currentHeightStyle = TOTAL_MOBILE_HEADER_HEIGHT_VALUE;
+        currentHeightStyle = TOTAL_MOBILE_HEADER_HEIGHT_VALUE; // Full header visible
       }
     }
     root.style.setProperty('--current-sticky-header-height', currentHeightStyle);
     
-    // Helper to convert CSS calc/rem to pixels for JS
-    const computePixelValue = (cssValue: string) => {
-        const tempElem = document.createElement('div');
-        tempElem.style.position = 'absolute';
-        tempElem.style.visibility = 'hidden';
-        tempElem.style.height = cssValue;
-        document.body.appendChild(tempElem);
-        const pixelHeight = tempElem.offsetHeight;
-        document.body.removeChild(tempElem);
-        return pixelHeight;
-    };
-    setHeaderHeight(computePixelValue(currentHeightStyle));
-
   }, [isScrolled, isMobile, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
 
 
@@ -88,11 +78,13 @@ export function SiteHeader() {
         "sticky top-0 z-50 w-full border-b border-border/40",
         "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg"
       )}
+      // data-scrolled attribute is now only relevant for mobile styling
       data-scrolled={isMobile ? isScrolled : false} 
     >
+      {/* Main Header Bar (Logo, Nav, Desktop Search, User Nav) */}
       <div className={cn(
         "container flex h-16 items-center justify-between", // h-16 is 4rem
-        "main-header-bar" // This class is targeted by globals.css for hide/show animation
+        "main-header-bar" // This class is targeted by globals.css for hide/show animation on mobile
         )}
       > 
         <div className="md:order-1"> 
@@ -115,15 +107,16 @@ export function SiteHeader() {
       </div>
 
       {/* Mobile Search Bar Container - always part of sticky header on mobile */}
-      <div className={cn(
-        "md:hidden container mx-auto px-4 pt-1 pb-2", 
-        "mobile-search-bar-container" 
-        )}
-        style={{height: isMobile ? 'var(--mobile-search-height)' : '0px'}} // Ensure it has height on mobile
-      >
-        <GlobalSearchInput />
-      </div>
+      {isMobile !== undefined && ( // Ensure isMobile is determined before rendering
+        <div className={cn(
+          "md:hidden container mx-auto px-4 pt-1 pb-2", // Reduced top padding 
+          "mobile-search-bar-container" 
+          )}
+          style={{height: isMobile ? 'var(--mobile-search-height)' : '0px'}} 
+        >
+          <GlobalSearchInput />
+        </div>
+      )}
     </header>
   );
 }
-
