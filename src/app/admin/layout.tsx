@@ -1,23 +1,25 @@
-
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, LayoutDashboard, ChevronsRight, ChevronsLeft } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { SidebarProvider, Sidebar, SidebarHeader as LayoutSidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; // Removed SidebarHeader
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
-import { useIsMobile } from "@/hooks/use-mobile";
+// useIsMobile, ChevronsRight, ChevronsLeft, cn not directly used here for header construction
+
+// AdminSidebarNav is defined below for clarity
+import { LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react";
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator as UiSidebarSeparator } from "@/components/ui/sidebar";
+
 
 const adminNavItems = [
   { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard, countKey: "properties" },
   { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag, countKey: "reports" },
   { title: "مشاكل المستخدمين", href: "/admin/issues", icon: MessageCircleWarning, countKey: "issues" },
-  // Separator will be added after this item
   { title: "عقارات قيد المراجعة", href: "/admin/pending", icon: ListChecks, countKey: "pending" },
   { title: "إدارة الطعون", href: "/admin/appeals", icon: ShieldQuestion, countKey: "appeals" },
 ];
@@ -27,7 +29,7 @@ interface AdminCounts {
   reports: number;
   issues: number;
   appeals: number;
-  properties?: number;
+  properties?: number; // This count is not displayed as a badge
 }
 
 function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
@@ -42,6 +44,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
     <SidebarMenu className="p-2">
       {adminNavItems.map((item, index) => {
         const count = getCountForItem(item.countKey);
+        const isSeparatorNext = item.title === "مشاكل المستخدمين"; // Place separator after this item
         return (
           <React.Fragment key={item.href + index}>
             <SidebarMenuItem>
@@ -53,20 +56,20 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
               >
                 <Link href={item.href} className="flex items-center justify-between w-full">
                   <div className="flex items-center flex-1 min-w-0">
-                    <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
-                    <span className="truncate group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                    <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0" />
+                    <span className="truncate"> {/* Text span, will be hidden when collapsed by SidebarMenuButton style */}
                       {item.title}
                     </span>
                   </div>
                   {item.countKey !== "properties" && count > 0 && (
-                    <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                    <Badge variant="destructive" className="rtl:mr-auto"> {/* Badge, will be hidden when collapsed by SidebarMenuButton style */}
                       {count > 9 ? '9+' : count}
                     </Badge>
                   )}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {item.title === "مشاكل المستخدمين" && <SidebarSeparator />}
+            {isSeparatorNext && <UiSidebarSeparator />}
           </React.Fragment>
         );
       })}
@@ -74,71 +77,30 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
   );
 }
 
-function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadingCounts }: { children: React.ReactNode; counts: AdminCounts; adminNotificationCount: number; isLoadingCounts: boolean; }) {
-  const { open, toggleSidebar, isMobile, side } = useSidebar(); 
-  const [hydrated, setHydrated] = React.useState(false);
-  
+
+function AdminInternalLayout({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
+  const { hydrated } = useSidebar();
+  const { adminNotificationCount } = useAuth(); // Get overall admin notification count for the title
+
+  const [layoutHydrated, setLayoutHydrated] = React.useState(false);
   React.useEffect(() => {
-    setHydrated(true);
+    setLayoutHydrated(true);
   }, []);
 
-  const ChevronIconToRender = () => {
-    if (side === 'right') { // RTL default
-      return open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />;
-    } else { // LTR
-      return open ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />;
-    }
-  };
-
-  if (!hydrated) {
+  if (!layoutHydrated || hydrated === undefined) {
     return (
         <div className="flex items-center justify-center min-h-screen">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     );
   }
-
-
   return (
     <>
-      <Sidebar
-        side="right"
-        collapsible="icon"
-        title="لوحة الإدارة"
+      <Sidebar 
+        title="لوحة الإدارة" 
+        notificationCount={adminNotificationCount}
       >
-        <LayoutSidebarHeader> 
-          <div className={cn(
-            "flex items-center h-8 w-full",
-             open ? "justify-between" : "justify-center" 
-          )}>
-              {open && ( 
-              <div className="flex items-center gap-2">
-                  <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
-                  {adminNotificationCount > 0 && !isLoadingCounts && (
-                      <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
-                  )}
-              </div>
-              )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleSidebar();
-              }}
-              className={cn(
-                "h-8 w-8",
-                !open && !isMobile && "mx-auto" // Center only on desktop when collapsed
-              )}
-              aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
-            >
-              <ChevronIconToRender />
-            </Button>
-          </div>
-        </LayoutSidebarHeader>
-        <SidebarContent className="p-0">
-             <AdminSidebarNav counts={counts} />
-        </SidebarContent>
+        <AdminSidebarNav counts={counts} />
       </Sidebar>
       <SidebarInset> 
         <div className="flex flex-col h-full bg-background">
@@ -156,7 +118,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAdmin, loading: authLoading, adminNotificationCount } = useAuth();
+  const { user, isAdmin, loading: authLoading, adminNotificationCount: totalAdminNotifications } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -169,7 +131,8 @@ export default function AdminLayout({
   }, []);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isAdmin && !authLoading) { // If not admin and auth check is complete
+        router.push("/dashboard"); // Redirect non-admins
         return;
     };
 
@@ -197,26 +160,32 @@ export default function AdminLayout({
         setCounts(currentCountsData);
       } catch (error) {
         console.error("Error fetching admin counts for sidebar:", error);
+        // Set to zero on error to prevent stale counts
         setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
       } finally {
         setIsLoadingCounts(false);
       }
     };
 
-    fetchAdminCountsForSidebar();
-  }, [isAdmin, pathname, adminNotificationCount]);
+    if (isAdmin) { // Fetch counts only if user is admin
+      fetchAdminCountsForSidebar();
+    } else {
+      setIsLoadingCounts(false); // Not loading counts if not admin
+    }
+  }, [isAdmin, pathname, totalAdminNotifications, authLoading, router]); // Added authLoading and router
 
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
         router.push("/login?redirect=/admin");
       } else if (!isAdmin) {
-        router.push("/dashboard");
+        // Already handled by the effect above, but good for clarity or if order changes
+        router.push("/dashboard"); 
       }
     }
   }, [user, isAdmin, authLoading, router]);
 
-  if (authLoading || !authHydrated) {
+  if (authLoading || !authHydrated || (isAdmin && isLoadingCounts)) { // Show loader if admin and counts are loading
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -247,14 +216,15 @@ export default function AdminLayout({
       style={{
         '--sidebar-width': '18rem', 
         '--sidebar-width-mobile': '16rem', 
-        '--sidebar-width-icon': '4.5rem', // Updated icon width
+        '--sidebar-width-icon': '4.5rem',
         '--header-height': headerHeightValue, 
         '--mobile-search-height': mobileSearchHeightValue, 
         '--total-mobile-header-height': totalMobileHeaderHeightValue, 
         '--sidebar-side': 'right',
+        '--sidebar-collapsible': 'icon',
       } as React.CSSProperties}
     >
-      <AdminInternalLayout counts={counts} adminNotificationCount={adminNotificationCount} isLoadingCounts={isLoadingCounts}>
+      <AdminInternalLayout counts={counts}>
         {children}
       </AdminInternalLayout>
     </SidebarProvider>
