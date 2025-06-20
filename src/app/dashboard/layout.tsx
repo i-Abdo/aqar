@@ -1,10 +1,9 @@
-
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, ChevronsRight, ChevronsLeft, PanelLeftOpen } from "lucide-react";
+import { Loader2, ChevronsRight, ChevronsLeft } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -26,11 +25,10 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
         collapsible="icon"
         title="لوحة التحكم" 
       >
-        {/* SidebarHeader is now part of the main flow, shown based on isMobile and open state */}
         {hydrated && (
             <SidebarHeader>
              <div className={cn("flex items-center justify-between h-8")}>
-               {open && ( 
+               {(open || isMobile) && hydrated && ( 
                  <div className="flex items-center gap-2">
                     <span className={cn("text-xl font-semibold")}>لوحة التحكم</span>
                     {userDashboardNotificationCount > 0 && (
@@ -44,7 +42,6 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                 onClick={toggleSidebar}
                 className={cn(
                   "h-8 w-8",
-                  // Center only on desktop when collapsed
                   !open && !isMobile && "mx-auto w-full justify-center" 
                 )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
@@ -111,7 +108,8 @@ export default function DashboardLayout({
           '--header-height': '4rem', 
           '--mobile-search-height': '3.25rem',
           '--total-mobile-header-height': 'calc(var(--header-height) + var(--mobile-search-height))',
-          '--main-content-top-offset': 'var(--current-sticky-header-height)' 
+          '--main-content-top-offset': 'var(--current-sticky-header-height)',
+          '--sidebar-side': 'right',
         } as React.CSSProperties}
     >
       <DashboardInternalLayout>{children}</DashboardInternalLayout>

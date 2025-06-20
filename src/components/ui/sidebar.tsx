@@ -1,17 +1,15 @@
-
 "use client"
 
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { ChevronsRight, ChevronsLeft } from "lucide-react" // Keep these for the header toggle
+import { ChevronsRight, ChevronsLeft } from "lucide-react" 
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-// Removed Sheet imports as we are not using Sheet for collapsible="icon" on mobile anymore
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -31,6 +29,7 @@ type SidebarContextValue = {
   setOpen: (open: boolean) => void
   isMobile: boolean | undefined;
   toggleSidebar: () => void
+  side: "left" | "right";
 }
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null)
@@ -71,7 +70,7 @@ const SidebarProvider = React.forwardRef<
     }, []);
 
     const [_open, _setOpen] = React.useState(() => {
-      if (isMobile === false && typeof document !== "undefined") { // Only read cookie for desktop
+      if (isMobile === false && typeof document !== "undefined") { 
         const cookieValue = document.cookie
           .split("; ")
           .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
@@ -80,7 +79,7 @@ const SidebarProvider = React.forwardRef<
           return cookieValue === "true"
         }
       }
-      return defaultOpen // For mobile or if no cookie, use defaultOpen
+      return defaultOpen 
     })
     const open = openProp ?? _open
 
@@ -92,7 +91,7 @@ const SidebarProvider = React.forwardRef<
         } else {
           _setOpen(openState)
         }
-        if (typeof document !== "undefined" && !isMobile) { // Only save cookie for desktop
+        if (typeof document !== "undefined" && !isMobile) { 
           document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
         }
       },
@@ -125,6 +124,8 @@ const SidebarProvider = React.forwardRef<
     }, [toggleSidebar])
 
     const state = open ? "expanded" : "collapsed"
+    const sidebarSide = (style as React.CSSProperties & {'--sidebar-side': 'left' | 'right'})?.['--sidebar-side'] || 'right'; // Default to right if not specified
+
 
     const contextValue = React.useMemo<SidebarContextValue>(
       () => ({
@@ -133,8 +134,9 @@ const SidebarProvider = React.forwardRef<
         setOpen,
         isMobile,
         toggleSidebar,
+        side: sidebarSide,
       }),
-      [state, open, setOpen, isMobile, toggleSidebar]
+      [state, open, setOpen, isMobile, toggleSidebar, sidebarSide]
     )
 
     return (
@@ -162,13 +164,13 @@ const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
-    collapsible?: "icon" | "none" // Removed "offcanvas" as it's not currently used this way
+    collapsible?: "icon" | "none" 
     title?: string; 
   }
 >(
   (
     {
-      side = "left", 
+      side = "right", 
       collapsible = "icon",
       className,
       children,
@@ -183,17 +185,16 @@ const Sidebar = React.forwardRef<
       return <div ref={ref} className={cn("group fixed", side === "left" ? "left-0" : "right-0", className)} {...props}><Skeleton className="h-full w-[var(--sidebar-width-mobile,16rem)]" /></div>; 
     }
     
-    // Consistent fixed div for both mobile and desktop when collapsible="icon"
     let currentWidthVar = 'var(--sidebar-width, 16rem)';
     if (isMobile) {
       currentWidthVar = open ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width-icon, 3.5rem)';
     } else {
       currentWidthVar = open ? 'var(--sidebar-width, 16rem)' : 'var(--sidebar-width-icon, 3.5rem)';
     }
-
-    // Fallback for initialTopValue if --current-sticky-header-height is not yet set
-    let initialTopValue = isMobile ? 'var(--total-mobile-header-height, var(--header-height))' : 'var(--header-height)';
-
+    
+    // For overlay, top position is always relative to initial header height
+    const topPosition = 'var(--header-height)';
+    const maxHeightValue = `calc(100svh - ${topPosition})`;
 
     return (
       <div
@@ -204,21 +205,21 @@ const Sidebar = React.forwardRef<
         data-side={side}
         data-mobile={String(isMobile)}
         className={cn(
-          "group bg-sidebar text-sidebar-foreground shadow-lg transition-[width] duration-200 ease-linear",
+          "group bg-sidebar text-sidebar-foreground shadow-xl transition-[width] duration-200 ease-linear", // shadow-xl for more prominence
           "fixed flex flex-col", 
           side === "left" ? "left-0 border-r" : "right-0 border-l",
           className
         )}
         style={{
           width: currentWidthVar,
-          top: `var(--current-sticky-header-height, ${initialTopValue})`,
-          maxHeight: `calc(100svh - var(--current-sticky-header-height, ${initialTopValue}))`,
+          top: topPosition,
+          maxHeight: maxHeightValue,
           borderColor: 'hsl(var(--sidebar-border))',
-          zIndex: 40 
+          zIndex: 40, // Ensure it's above main content, but below modals/dropdowns (typically z-50)
         }}
         {...props}
       >
-        <div className="flex flex-col min-h-0 flex-1"> {/* Allows content to scroll if taller than max-height */}
+        <div className="flex flex-col min-h-0 flex-1"> 
           {children}
         </div>
       </div>
@@ -258,7 +259,7 @@ const SidebarRail = React.forwardRef<
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
   const { toggleSidebar, isMobile } = useSidebar()
-  if (isMobile === undefined || isMobile) return null;
+  if (isMobile === undefined || isMobile) return null; // Rail is desktop-only
 
   return (
     <button
@@ -285,9 +286,9 @@ const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { isMobile, open } = useSidebar();
+  const { isMobile } = useSidebar();
 
-  if (isMobile === undefined) {
+  if (isMobile === undefined) { // Skeleton or placeholder for SSR
     return (
       <div
         ref={ref}
@@ -304,24 +305,19 @@ const SidebarInset = React.forwardRef<
     );
   }
   
-  let marginValue = '0px';
-  if (isMobile) {
-    marginValue = open ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width-icon, 3.5rem)';
-  } else {
-    marginValue = open ? 'var(--sidebar-width, 16rem)' : 'var(--sidebar-width-icon, 3.5rem)';
-  }
-
-
+  // As sidebar is an overlay, SidebarInset doesn't need margin adjustments for it.
+  // Its padding-top will adjust based on the sticky header's current height.
   return (
     <div
       ref={ref}
       className={cn(
-        "flex-1 flex flex-col overflow-hidden transition-[margin] duration-200 ease-linear",
+        "flex-1 flex flex-col overflow-hidden",
         className
       )}
       style={{
         paddingTop: `var(--current-sticky-header-height, ${isMobile ? 'var(--total-mobile-header-height)' : 'var(--header-height)'})`,
-        marginRight: marginValue, // Assuming sidebar is on the right (RTL default)
+        marginRight: "0px", // No margin, sidebar is an overlay
+        marginLeft: "0px",  // No margin, sidebar is an overlay
         ...style,
       }}
       {...props}
@@ -383,7 +379,6 @@ const SidebarContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
-  const { isMobile } = useSidebar();
   return (
     <div
       ref={ref}
@@ -745,6 +740,6 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-  // Removed UiSheetTitle and UiSheetHeader as they are not directly exported for external use
 }
+
 

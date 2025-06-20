@@ -1,4 +1,3 @@
-
 "use client"; 
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -18,47 +17,31 @@ export function SiteHeader() {
 
   const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
   const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
-  const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = "7.25rem"; 
+  const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = "calc(var(--header-height) + var(--mobile-search-height))"; 
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isMobile === undefined) return;
-
-    if (!isMobile) { // Desktop
-      root.style.setProperty('--current-sticky-header-height', HEADER_HEIGHT_MAIN_VALUE);
-    } else { // Mobile
-      if (isScrolled) {
-        root.style.setProperty('--current-sticky-header-height', MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE);
-      } else {
-        root.style.setProperty('--current-sticky-header-height', TOTAL_MOBILE_HEADER_HEIGHT_VALUE);
-      }
-    }
-  }, [isScrolled, isMobile, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
 
   useEffect(() => {
     let lastScrollTop = 0;
-    const scrollThreshold = 10; 
+    const scrollThreshold = 5; // Reduced threshold for more sensitivity
 
     const handleScroll = () => {
-      if (isMobile === undefined) return;
+      if (isMobile === undefined) return; 
 
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-      if (!isMobile) { // On Desktop
-        if (isScrolled) setIsScrolled(false); // Always ensure header is not considered scrolled
-        return;
-      }
-
-      // Mobile scroll logic
-      if (scrollTop > lastScrollTop && scrollTop > scrollThreshold) {
-        if(!isScrolled) setIsScrolled(true); 
-      } else if (scrollTop < lastScrollTop || scrollTop <= scrollThreshold) {
-        if(isScrolled) setIsScrolled(false); 
+      if (isMobile) { // Only apply scroll effect on mobile
+        if (scrollTop > lastScrollTop && scrollTop > scrollThreshold) {
+          if (!isScrolled) setIsScrolled(true);
+        } else if (scrollTop < lastScrollTop || scrollTop <= scrollThreshold) {
+          if (isScrolled) setIsScrolled(false);
+        }
+      } else { // On desktop, always ensure header is not considered scrolled
+        if (isScrolled) setIsScrolled(false);
       }
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     };
     
-    // Ensure correct state on mount/resize for desktop
+    // Initial check for desktop
     if (isMobile === false && isScrolled) {
         setIsScrolled(false);
     }
@@ -68,7 +51,22 @@ export function SiteHeader() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, [isMobile, isScrolled]); // Added isScrolled to dependencies
+  }, [isMobile, isScrolled]); 
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isMobile === undefined) return;
+
+    if (!isMobile) { // Desktop
+      root.style.setProperty('--current-sticky-header-height', HEADER_HEIGHT_MAIN_VALUE);
+    } else { // Mobile
+      if (isScrolled) { 
+        root.style.setProperty('--current-sticky-header-height', MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE);
+      } else {
+        root.style.setProperty('--current-sticky-header-height', TOTAL_MOBILE_HEADER_HEIGHT_VALUE);
+      }
+    }
+  }, [isScrolled, isMobile, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
 
 
   return (
@@ -77,10 +75,10 @@ export function SiteHeader() {
         "sticky top-0 z-50 w-full border-b border-border/40",
         "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg"
       )}
-      data-scrolled={isMobile ? isScrolled : false} // data-scrolled only relevant for mobile
+      data-scrolled={isMobile ? isScrolled : false} 
     >
       <div className={cn(
-        "container flex h-16 items-center justify-between", // h-16 corresponds to 4rem
+        "container flex h-16 items-center justify-between", 
         "main-header-bar" 
         )}
       > 
@@ -104,7 +102,7 @@ export function SiteHeader() {
       </div>
 
       <div className={cn(
-        "md:hidden container mx-auto px-4 pt-1 pb-2", // pt-1, pb-2 -> approx 0.75rem. Input h-10 -> 2.5rem. Total ~3.25rem
+        "md:hidden container mx-auto px-4 pt-1 pb-2", 
         "mobile-search-bar-container"
         )}
       >
@@ -113,3 +111,4 @@ export function SiteHeader() {
     </header>
   );
 }
+

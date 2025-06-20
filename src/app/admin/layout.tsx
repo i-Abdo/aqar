@@ -1,12 +1,10 @@
-
 "use client";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, LayoutDashboard, ChevronsRight, ChevronsLeft, PanelLeftOpen } from "lucide-react";
+import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, LayoutDashboard, ChevronsRight, ChevronsLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
@@ -89,11 +87,10 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
         collapsible="icon"
         title="لوحة الإدارة"
       >
-        {/* SidebarHeader is now part of the main flow, shown based on isMobile and open state */}
         {hydrated && (
-            <SidebarHeader>
+          <SidebarHeader>
              <div className={cn("flex items-center justify-between h-8")}>
-               {open && ( 
+               {(open || isMobile) && hydrated && ( 
                  <div className="flex items-center gap-2">
                     <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
                     {adminNotificationCount > 0 && !isLoadingCounts && (
@@ -107,7 +104,6 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
                 onClick={toggleSidebar}
                 className={cn(
                   "h-8 w-8",
-                  // Center only on desktop when collapsed
                   !open && !isMobile && "mx-auto w-full justify-center" 
                 )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
@@ -228,7 +224,8 @@ export default function AdminLayout({
         '--header-height': '4rem', 
         '--mobile-search-height': '3.25rem', 
         '--total-mobile-header-height': 'calc(var(--header-height) + var(--mobile-search-height))',
-        '--main-content-top-offset': 'var(--current-sticky-header-height)'
+        '--main-content-top-offset': 'var(--current-sticky-header-height)',
+        '--sidebar-side': 'right',
       } as React.CSSProperties}
     >
       <AdminInternalLayout counts={counts} adminNotificationCount={adminNotificationCount} isLoadingCounts={isLoadingCounts}>
@@ -237,3 +234,4 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
+
