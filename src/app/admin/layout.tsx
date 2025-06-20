@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, LayoutDashboard, ChevronsRight, ChevronsLeft } from "lucide-react";
+import { Loader2, ShieldAlert, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, LayoutDashboard, ChevronsRight, ChevronsLeft, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -86,12 +86,13 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
     <>
       <Sidebar
         side="right"
-        collapsible="icon" // Kept as icon for desktop, mobile will use Sheet
-        title="لوحة الإدارة" // Title for the mobile Sheet
+        collapsible="icon"
+        title="لوحة الإدارة"
       >
-         {!isMobile && hydrated && ( // This header is now only for desktop
+        {/* SidebarHeader is now part of the main flow, shown based on isMobile and open state */}
+        {hydrated && (
             <SidebarHeader>
-            <div className={cn("flex items-center justify-between h-8")}>
+             <div className={cn("flex items-center justify-between h-8")}>
                {open && ( 
                  <div className="flex items-center gap-2">
                     <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
@@ -106,7 +107,8 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
                 onClick={toggleSidebar}
                 className={cn(
                   "h-8 w-8",
-                  (!open && !isMobile) && "mx-auto w-full justify-center"
+                  // Center only on desktop when collapsed
+                  !open && !isMobile && "mx-auto w-full justify-center" 
                 )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
@@ -114,7 +116,7 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
               </Button>
             </div>
             </SidebarHeader>
-         )}
+        )}
         <SidebarContent className="p-0">
              <AdminSidebarNav counts={counts} />
         </SidebarContent>
@@ -218,10 +220,10 @@ export default function AdminLayout({
 
   return (
     <SidebarProvider
-      defaultOpen={true} // For mobile sheet to be open by default
+      defaultOpen={true} 
       style={{
         '--sidebar-width': '16rem',
-        '--sidebar-width-mobile': '16rem', // Width for mobile sheet
+        '--sidebar-width-mobile': '16rem', 
         '--sidebar-width-icon': '3.5rem',
         '--header-height': '4rem', 
         '--mobile-search-height': '3.25rem', 

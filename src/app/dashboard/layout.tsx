@@ -4,8 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, ChevronsRight, ChevronsLeft } from "lucide-react";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, useSidebar } from "@/components/ui/sidebar"; // Removed SidebarSeparator as it's used in DashboardNav
+import { Loader2, ChevronsRight, ChevronsLeft, PanelLeftOpen } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -23,11 +23,12 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
     <>
       <Sidebar
         side="right"
-        collapsible="icon" // Kept as icon for desktop, mobile will use Sheet
-        title="لوحة التحكم" // Title for the mobile Sheet
+        collapsible="icon"
+        title="لوحة التحكم" 
       >
-        {!isMobile && hydrated && ( // This header is now only for desktop
-           <SidebarHeader>
+        {/* SidebarHeader is now part of the main flow, shown based on isMobile and open state */}
+        {hydrated && (
+            <SidebarHeader>
              <div className={cn("flex items-center justify-between h-8")}>
                {open && ( 
                  <div className="flex items-center gap-2">
@@ -43,7 +44,8 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
                 onClick={toggleSidebar}
                 className={cn(
                   "h-8 w-8",
-                  (!open && !isMobile) && "mx-auto w-full justify-center" 
+                  // Center only on desktop when collapsed
+                  !open && !isMobile && "mx-auto w-full justify-center" 
                 )}
                 aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
               >
@@ -101,10 +103,10 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider
-        defaultOpen={true} // For mobile sheet to be open by default
+        defaultOpen={true} 
         style={{
           '--sidebar-width': '16rem',
-          '--sidebar-width-mobile': '16rem', // Width for mobile sheet
+          '--sidebar-width-mobile': '16rem',
           '--sidebar-width-icon': '3.5rem',
           '--header-height': '4rem', 
           '--mobile-search-height': '3.25rem',
@@ -116,3 +118,4 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+
