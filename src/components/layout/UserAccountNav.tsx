@@ -28,14 +28,9 @@ export function UserAccountNav() {
   }, []);
 
   if (!hasMounted) {
-    // Render a consistent placeholder for SSR and initial client render
-    // This matches the `authLoading` state to prevent mismatch if auth resolves quickly
-    return (
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-10 w-[90px]" />
-        <Skeleton className="h-10 w-[100px]" />
-      </div>
-    );
+    // Render null on the initial client render to match the server,
+    // preventing hydration mismatch before auth state is known.
+    return null; 
   }
 
   if (authLoading) {

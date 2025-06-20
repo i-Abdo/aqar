@@ -80,7 +80,7 @@ export const SidebarProvider = React.forwardRef<
     React.useEffect(() => {
       if (hydrated && openProp === undefined) {
         if (isMobileHook) {
-          _setOpen(true); // Always open by default on mobile after hydration
+          _setOpen(true); 
         } else {
           const cookieValue = document.cookie
             .split("; ")
@@ -166,7 +166,6 @@ export const SidebarProvider = React.forwardRef<
 SidebarProvider.displayName = "SidebarProvider"
 
 
-// Internal component for the sidebar header
 const SidebarHeaderInternal = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { title?: string; notificationCount?: number }
@@ -183,7 +182,7 @@ const SidebarHeaderInternal = React.forwardRef<
 
   if (!hydrated) {
     return (
-      <div className={cn("h-[var(--sidebar-header-height,3rem)] p-2 border-b border-sidebar-border flex items-center justify-center shrink-0", className)} {...props}>
+      <div className={cn("p-2 border-b border-sidebar-border flex items-center justify-center shrink-0 h-[var(--sidebar-header-height,3rem)]", className)} {...props}>
         <div className="h-8 w-8 animate-pulse bg-muted rounded-md"></div>
       </div>
     );
@@ -213,7 +212,7 @@ const SidebarHeaderInternal = React.forwardRef<
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className={cn("h-8 w-8 shrink-0", !open && "mx-auto")}
+          className={cn("h-8 w-8 shrink-0", (!open || (isMobile && open)) && "mx-auto")}
           aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
         >
           <ChevronIconToRender />
@@ -225,7 +224,6 @@ const SidebarHeaderInternal = React.forwardRef<
 SidebarHeaderInternal.displayName = "SidebarHeaderInternal";
 
 
-// Internal component for the sidebar content (navigation menu)
 const SidebarContentInternal = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -256,7 +254,7 @@ export const Sidebar = React.forwardRef<
   (
     {
       className,
-      children, // This will be the navigation menu (e.g., DashboardNav)
+      children, 
       title,
       notificationCount,
       ...props
@@ -265,9 +263,14 @@ export const Sidebar = React.forwardRef<
   ) => {
     const { isMobile, open, actualSide, collapsibleType, hydrated } = useSidebar();
 
+    const getSkeletonWidth = () => {
+        if (collapsibleType === "icon") return 'var(--sidebar-width-icon, 4.5rem)';
+        return isMobile ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width, 16rem)';
+    }
+
     if (!hydrated) {
         const skeletonSideClass = actualSide === "left" ? "left-0" : "right-0";
-        const skeletonWidth = collapsibleType === "icon" ? 'var(--sidebar-width-icon, 4.5rem)' : 'var(--sidebar-width, 16rem)';
+        const skeletonWidth = getSkeletonWidth();
         return (
             <div
                 ref={ref}
@@ -278,7 +281,7 @@ export const Sidebar = React.forwardRef<
                     width: skeletonWidth,
                     padding: 'var(--sidebar-outer-padding, 0.5rem)',
                     display: 'flex',
-                    alignItems: 'center', 
+                    alignItems: 'flex-start', 
                     justifyContent: actualSide === "left" ? "flex-start" : "flex-end",
                     pointerEvents: "none",
                 }}
@@ -299,13 +302,11 @@ export const Sidebar = React.forwardRef<
         currentSidebarWidth = '0px';
     }
     
-    const topPosition = `var(--current-sticky-header-height, ${isMobile ? 'var(--total-mobile-header-height)' : 'var(--header-height)'})`;
+    const topPosition = `var(--sidebar-stable-top-anchor, ${isMobile ? 'var(--total-mobile-header-height)' : 'var(--header-height)'})`;
     const outerContainerPadding = 'var(--sidebar-outer-padding, 0.5rem)'; 
     const sideClasses = actualSide === "left" ? "left-0" : "right-0";
 
-
     return (
-      // Outermost container: fixed, defines the zone for the panel
       <div 
         ref={ref}
         data-sidebar="sidebar-outer-container" 
@@ -316,24 +317,24 @@ export const Sidebar = React.forwardRef<
         className={cn(
           "group/sidebar fixed z-40 flex", 
           sideClasses,
-          "pointer-events-none" 
+          "pointer-events-none"
         )}
         style={{
           top: topPosition,
           height: `calc(100svh - ${topPosition})`, 
           width: currentSidebarWidth, 
           padding: outerContainerPadding, 
-          alignItems: 'center', 
+          alignItems: 'flex-start', 
           justifyContent: actualSide === "left" ? "flex-start" : (actualSide === "right" ? "flex-end" : "center"),
+          transition: 'width 0.2s ease-in-out' 
         }}
         {...props}
       >
         { (collapsibleType === "none" && !open) ? null : (
-            // Inner visual panel
             <div 
               data-sidebar-panel="true"
               className={cn(
-                "flex flex-col h-auto max-h-full w-full overflow-hidden transition-all duration-200 ease-linear",
+                "flex flex-col h-auto max-h-full w-full overflow-hidden",
                 "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg",
                 "pointer-events-auto" 
               )}
@@ -353,15 +354,16 @@ export const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { isMobile, actualSide, collapsibleType, hydrated } = useSidebar(); 
+  const { isMobile, actualSide, collapsibleType, hydrated, open } = useSidebar(); 
   
+  const getFallbackPadding = () => {
+    if (collapsibleType !== "icon") return '0px';
+    return 'var(--sidebar-width-icon, 4.5rem)';
+  };
+
   if (!hydrated) {
       const fallbackTopOffset = `var(${isMobile ? '--total-mobile-header-height' : '--header-height'})`;
-      let fallbackSidePadding = '0px';
-      if (collapsibleType === "icon") {
-        fallbackSidePadding = 'var(--sidebar-width-icon, 4.5rem)';
-      }
-      
+      const fallbackSidePadding = getFallbackPadding();
       const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight";
 
       return (
@@ -379,19 +381,28 @@ export const SidebarInset = React.forwardRef<
   }
 
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight";
-  const gutterPadding = collapsibleType === "icon" ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
-
+  
+  let insetPaddingValue = '0px';
+  if (collapsibleType === "icon" && !open) {
+    insetPaddingValue = 'var(--sidebar-width-icon, 4.5rem)';
+  } else if (collapsibleType === "icon" && open && !isMobile) {
+    // If sidebar is open and collapsible type is icon on desktop,
+    // still reserve the icon width area so content doesn't jump too drastically.
+    // The open sidebar will float over this.
+    insetPaddingValue = 'var(--sidebar-width-icon, 4.5rem)';
+  }
+  // On mobile, when sidebar is open (full width), inset should have 0 side padding.
 
   return (
     <div
       ref={ref}
       className={cn(
-        "flex-1 flex flex-col overflow-hidden transition-all duration-200 ease-linear", 
+        "flex-1 flex flex-col overflow-hidden transition-all duration-200 ease-in-out", 
         className
       )}
       style={{
         paddingTop: `var(--current-sticky-header-height, var(${isMobile ? '--total-mobile-header-height' : '--header-height'}))`, 
-        [paddingProp]: gutterPadding, 
+        [paddingProp]: insetPaddingValue, 
         ...style,
       }}
       {...props}
@@ -428,7 +439,7 @@ export const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 export const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:group-data-[state=collapsed]:!size-10 group-data-[collapsible=icon]:group-data-[state=collapsed]:!p-0 group-data-[collapsible=icon]:group-data-[state=collapsed]:justify-center [&>a>div>span]:truncate group-data-[collapsible=icon]:group-data-[state=collapsed]:[&>a>div>span]:hidden [&>a>div>svg]:size-5 [&>a>div>svg]:shrink-0 group-data-[collapsible=icon]:group-data-[state=collapsed]:[&>a>div>svg]:mx-auto",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[sidebar=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar=sidebar-outer-container][data-state=collapsed]:!size-10 group-data-[sidebar=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar=sidebar-outer-container][data-state=collapsed]:!p-0 group-data-[sidebar=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar=sidebar-outer-container][data-state=collapsed]:justify-center [&>a>div>span]:truncate group-data-[sidebar=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar=sidebar-outer-container][data-state=collapsed]:[&>a>div>span]:hidden [&>a>div>svg]:size-5 [&>a>div>svg]:shrink-0 group-data-[sidebar=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar=sidebar-outer-container][data-state=collapsed]:[&>a>div>svg]:mx-auto",
   {
     variants: {
       variant: {
