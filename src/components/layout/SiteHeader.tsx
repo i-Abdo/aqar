@@ -1,6 +1,8 @@
+
 "use client"; 
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link"; // Added Link
 import { AppLogo } from "./AppLogo";
 import { MainNav } from "./MainNav";
 import { UserAccountNav } from "./UserAccountNav";
@@ -14,12 +16,12 @@ export function SiteHeader() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [hasMounted, setHasMounted] = useState(false); // For hydration safety
+  const [hasMounted, setHasMounted] = useState(false);
 
   const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
   const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
   const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = `calc(${HEADER_HEIGHT_MAIN_VALUE} + ${MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE})`; 
-  const SCROLL_THRESHOLD = 10; // Increased threshold slightly
+  const SCROLL_THRESHOLD = 5; 
 
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export function SiteHeader() {
   }, []);
 
   useEffect(() => {
-    if (!hasMounted || isMobile === undefined) return; // Wait for mount and mobile state resolution
+    if (!hasMounted || isMobile === undefined) return;
 
     let lastScrollTop = 0;
     
@@ -41,7 +43,6 @@ export function SiteHeader() {
           if (isScrolled) setIsScrolled(false);
         }
       } else {
-        // On desktop, main header bar is always visible
         if (isScrolled) setIsScrolled(false); 
       }
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
@@ -54,7 +55,7 @@ export function SiteHeader() {
   }, [isMobile, isScrolled, hasMounted, SCROLL_THRESHOLD]); 
 
   useEffect(() => {
-    if (!hasMounted || isMobile === undefined) return; // Wait for mount
+    if (!hasMounted || isMobile === undefined) return;
 
     const root = document.documentElement;
     let currentVisibleStickyHeaderHeight: string;
@@ -69,7 +70,6 @@ export function SiteHeader() {
       } else {
         currentVisibleStickyHeaderHeight = TOTAL_MOBILE_HEADER_HEIGHT_VALUE; 
       }
-      // On mobile, the sidebar's top anchor should always be as if the full header is visible.
       sidebarStableTopAnchorHeight = TOTAL_MOBILE_HEADER_HEIGHT_VALUE;
     }
     root.style.setProperty('--current-sticky-header-height', currentVisibleStickyHeaderHeight);
@@ -78,18 +78,18 @@ export function SiteHeader() {
   }, [isScrolled, isMobile, hasMounted, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
 
   if (!hasMounted) {
-    // Render a simplified static header or null during SSR / before hydration
-    // to avoid hydration mismatches related to `isMobile` or `isScrolled`.
     return (
        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg">
         <div className="container flex h-16 items-center justify-between">
-          <div className="md:order-1"><AppLogo /></div>
-          <div className="hidden md:flex flex-1 items-center justify-center md:order-3 mx-2"><MainNav /></div>
-          <div className="hidden md:flex flex-1 items-center justify-center md:order-2 mx-2">
-            <div className="w-full max-w-lg lg:max-w-xl xl:max-w-2xl"><GlobalSearchInput /></div>
+          <div className="flex items-center"> {/* Group Logo and potential mobile nav items */}
+            <AppLogo />
           </div>
-          <div className="flex items-center gap-x-1 md:order-4">
-            <div className="flex items-center"><UserAccountNav /></div>
+          <div className="hidden md:flex flex-1 items-center justify-center gap-x-6 mx-4">
+            <div className="flex-shrink-0"><MainNav /></div>
+            <div className="w-full max-w-sm lg:max-w-md"><GlobalSearchInput /></div>
+          </div>
+          <div className="flex items-center gap-x-1">
+            <UserAccountNav />
           </div>
         </div>
       </header>
@@ -109,26 +109,41 @@ export function SiteHeader() {
         "main-header-bar" 
         )}
       > 
-        <div className="md:order-1"> 
-          <AppLogo />
+        {/* Left group: Logo and Mobile-only Nav Links */}
+        <div className="flex items-center gap-x-2 md:gap-x-4">
+          <div className="shrink-0"> {/* Ensure logo doesn't shrink too much */}
+            <AppLogo />
+          </div>
+          {isMobile && ( /* hasMounted is implicitly true here if this part renders */
+            <div className="flex items-center gap-x-1 sm:gap-x-2">
+              <Link href="/" className="text-xs sm:text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-1 sm:px-2 py-1 rounded-md hover:bg-accent/50">
+                الرئيسية
+              </Link>
+              <Link href="/pricing" className="text-xs sm:text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-1 sm:px-2 py-1 rounded-md hover:bg-accent/50">
+                الأسعار
+              </Link>
+            </div>
+          )}
         </div>
-        <div className="hidden md:flex flex-1 items-center justify-center md:order-3 mx-2"> 
-          <MainNav />
-        </div>
-        <div className="hidden md:flex flex-1 items-center justify-center md:order-2 mx-2"> 
-          <div className="w-full max-w-lg lg:max-w-xl xl:max-w-2xl"> 
+
+        {/* Desktop Centered Content: MainNav and GlobalSearch */}
+        <div className="hidden md:flex flex-1 items-center justify-center gap-x-6 mx-4">
+          <div className="flex-shrink-0"> {/* MainNav should not grow excessively */}
+            <MainNav />
+          </div>
+          <div className="w-full max-w-sm lg:max-w-md"> {/* Constrain search bar width */}
             <GlobalSearchInput />
           </div>
         </div>
-        <div className="flex items-center gap-x-1 md:order-4">
-          <div className="flex items-center">
-            {user && <ThemeToggleButton />}
-            <UserAccountNav /> 
-          </div>
+        
+        {/* Right group: Theme Toggle and User Account Nav / Mobile Menu Trigger */}
+        <div className="flex items-center gap-x-1 shrink-0"> {/* Ensure this group doesn't shrink */}
+          {user && !isMobile && <ThemeToggleButton />}
+          <UserAccountNav />
         </div>
       </div>
 
-      {isMobile && ( 
+      {isMobile && ( /* hasMounted is implicitly true here */
         <div className={cn(
           "md:hidden container mx-auto px-4 pt-1 pb-2", 
           "mobile-search-bar-container" 

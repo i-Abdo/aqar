@@ -1,3 +1,4 @@
+
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -51,18 +52,16 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                 asChild
                 isActive={pathname.startsWith(item.href)}
                 tooltip={item.title}
-                // The 'icon' prop on SidebarMenuButton is for when asChild=false.
-                // When asChild=true, the Link itself renders the icon.
               >
                 <Link href={item.href} className="flex items-center w-full overflow-hidden gap-2">
                   {IconComponent && <IconComponent className="shrink-0" />}
-                  <span className="truncate flex-1">
+                  <span className="truncate flex-1 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
                     {item.title}
                   </span>
                   {item.countKey !== "properties" && count > 0 && (
                     <Badge 
                         variant="destructive" 
-                        className="shrink-0 group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden ml-auto px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
+                        className="shrink-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden ml-auto px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
                     > 
                       {count > 9 ? '9+' : count}
                     </Badge>
