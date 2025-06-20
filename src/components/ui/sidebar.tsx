@@ -1,40 +1,39 @@
+
 "use client"
 
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { ChevronsRight, ChevronsLeft } from "lucide-react" 
+import { ChevronsRight, ChevronsLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-// Input, Separator, Skeleton removed as they are not directly part of the core sidebar structure defined here.
-// They can be used within the children passed to Sidebar.
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"; // For notification badge
+import { Badge } from "@/components/ui/badge";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextValue = {
-  state: "expanded" | "collapsed"
   open: boolean
-  setOpen: (open: boolean) => void
-  isMobile: boolean | undefined;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>
   toggleSidebar: () => void
-  side: "left" | "right";
-  collapsible: "icon" | "none";
+  isMobile: boolean | undefined
+  hydrated: boolean
+  actualSide: 'left' | 'right'
+  collapsibleType: 'icon' | 'none'
 }
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null)
 
-function useSidebar() {
+export function useSidebar() {
   const context = React.useContext(SidebarContext)
   if (!context) {
     throw new Error("useSidebar must be used within a SidebarProvider.")
@@ -42,7 +41,7 @@ function useSidebar() {
   return context
 }
 
-const SidebarProvider = React.forwardRef<
+export const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     defaultOpen?: boolean
@@ -62,51 +61,49 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
-    const [hydrated, setHydrated] = React.useState(false);
+    const isMobileHook = useIsMobile()
+    const [hydrated, setHydrated] = React.useState(false)
+    const [_open, _setOpen] = React.useState(defaultOpen)
 
     React.useEffect(() => {
-      setHydrated(true);
-    }, []);
+      setHydrated(true)
+    }, [])
 
-    const [_open, _setOpen] = React.useState(defaultOpen);
-    
     React.useEffect(() => {
-        if (hydrated && openProp === undefined) { 
-            if (isMobile) {
-                _setOpen(defaultOpen); // Respect defaultOpen on mobile
-            } else {
-                const cookieValue = document.cookie
-                    .split("; ")
-                    .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
-                    ?.split("=")[1];
-                if (cookieValue) {
-                    _setOpen(cookieValue === "true");
-                } else {
-                     _setOpen(defaultOpen); 
-                }
-            }
+      if (hydrated && openProp === undefined) {
+        if (isMobileHook) {
+          _setOpen(defaultOpen) // Respect defaultOpen on mobile after hydration
+        } else {
+          const cookieValue = document.cookie
+            .split("; ")
+            .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+            ?.split("=")[1]
+          if (cookieValue) {
+            _setOpen(cookieValue === "true")
+          } else {
+            _setOpen(defaultOpen) // Fallback to defaultOpen if no cookie
+          }
         }
-    }, [isMobile, openProp, hydrated, defaultOpen]);
-
+      }
+    }, [isMobileHook, openProp, hydrated, defaultOpen])
 
     const open = openProp ?? _open
 
     const setOpen = React.useCallback(
       (value: boolean | ((currentOpen: boolean) => boolean)) => {
-        const newOpenState = typeof value === "function" ? value(open) : value;
+        const newOpenState = typeof value === "function" ? value(open) : value
         if (setOpenProp) {
-          setOpenProp(newOpenState);
+          setOpenProp(newOpenState)
         } else {
-          _setOpen(newOpenState);
+          _setOpen(newOpenState)
         }
-        if (hydrated && !isMobile && openProp === undefined) { 
-          document.cookie = `${SIDEBAR_COOKIE_NAME}=${newOpenState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        if (hydrated && !isMobileHook && openProp === undefined) {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${newOpenState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
         }
       },
-      [setOpenProp, open, hydrated, isMobile, openProp]
-    );
-    
+      [setOpenProp, open, hydrated, isMobileHook, openProp]
+    )
+
     const toggleSidebar = React.useCallback(() => {
       setOpen((prevOpen) => !prevOpen)
     }, [setOpen])
@@ -125,29 +122,32 @@ const SidebarProvider = React.forwardRef<
       return () => window.removeEventListener("keydown", handleKeyDown)
     }, [toggleSidebar])
 
-    const state = open ? "expanded" : "collapsed"
-    const sidebarSide = (style as React.CSSProperties & {'--sidebar-side': 'left' | 'right'})?.['--sidebar-side'] || 'right';
-    const collapsible = (style as React.CSSProperties & {'--sidebar-collapsible': 'icon' | 'none'})?.['--sidebar-collapsible'] || 'icon';
+    const styleAsProps = style as React.CSSProperties & {
+        '--sidebar-side': 'left' | 'right';
+        '--sidebar-collapsible': 'icon' | 'none';
+    };
 
+    const actualSide = (styleAsProps?.['--sidebar-side'] || "right");
+    const collapsibleType = (styleAsProps?.['--sidebar-collapsible'] || "icon");
 
     const contextValue = React.useMemo<SidebarContextValue>(
       () => ({
-        state,
         open,
         setOpen,
-        isMobile,
         toggleSidebar,
-        side: sidebarSide,
-        collapsible,
+        isMobile: isMobileHook,
+        hydrated,
+        actualSide,
+        collapsibleType,
       }),
-      [state, open, setOpen, isMobile, toggleSidebar, sidebarSide, collapsible]
+      [open, setOpen, toggleSidebar, isMobileHook, hydrated, actualSide, collapsibleType]
     )
 
     return (
       <SidebarContext.Provider value={contextValue}>
         <TooltipProvider delayDuration={0}>
           <div
-            style={style as React.CSSProperties}
+            style={style}
             className={cn(
               "group/sidebar-wrapper flex h-full w-full",
               className
@@ -165,43 +165,37 @@ const SidebarProvider = React.forwardRef<
 SidebarProvider.displayName = "SidebarProvider"
 
 
-// Internal SidebarHeader for structure and toggle
 const SidebarHeaderInternal = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { title?: string; notificationCount?: number }
 >(({ className, title, notificationCount, ...props }, ref) => {
-  const { open, toggleSidebar, isMobile, side, collapsible } = useSidebar();
-  const [hydrated, setHydrated] = React.useState(false);
-
-  React.useEffect(() => {
-    setHydrated(true);
-  }, []);
-
+  const { open, toggleSidebar, isMobile, actualSide, hydrated } = useSidebar();
 
   const ChevronIconToRender = () => {
-    if (side === 'right') { 
+    if (actualSide === 'right') {
       return open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />;
-    } else { 
+    } else {
       return open ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />;
     }
   };
 
   if (!hydrated) {
-    return <div className={cn("h-12 p-2 border-b border-sidebar-border", className)} {...props}><div className="h-8 w-8 animate-pulse bg-muted rounded-md mx-auto"></div></div>;
+    return <div className={cn("h-[var(--sidebar-header-height,3rem)] p-2 border-b border-sidebar-border flex items-center justify-center", className)} {...props}>
+             <div className="h-8 w-8 animate-pulse bg-muted rounded-md"></div>
+           </div>;
   }
 
   return (
     <div
       ref={ref}
       className={cn(
-        "flex items-center border-b border-sidebar-border p-2 h-12 shrink-0", // Fixed height for header
-        (collapsible === "icon" && !open && !isMobile) && "justify-center", // Center toggle when collapsed on desktop
-        (open || isMobile) && "justify-between", // Justify between for open desktop or any mobile state
+        "flex items-center border-b border-sidebar-border p-2 h-[var(--sidebar-header-height,3rem)] shrink-0",
+        open ? "justify-between" : "justify-center",
         className
       )}
       {...props}
     >
-      {open && title && ( // Show title and badge only when sidebar is open
+      {open && title && (
         <div className="flex items-center gap-2">
           <span className="text-lg font-semibold truncate">{title}</span>
           {notificationCount !== undefined && notificationCount > 0 && (
@@ -210,23 +204,18 @@ const SidebarHeaderInternal = React.forwardRef<
         </div>
       )}
       
-      {collapsible === "icon" && ( // Toggle button only if collapsible
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleSidebar();
-          }}
-          className={cn(
-            "h-8 w-8",
-            (!open && !isMobile) && "mx-auto" // Ensure centered when collapsed on desktop
-          )}
-          aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
-        >
-          <ChevronIconToRender />
-        </Button>
-      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleSidebar}
+        className={cn(
+          "h-8 w-8",
+          !open && "mx-auto"
+        )}
+        aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
+      >
+        <ChevronIconToRender />
+      </Button>
     </div>
   );
 });
@@ -237,14 +226,11 @@ const SidebarContentInternal = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => {
-  const { open, collapsible, isMobile } = useSidebar();
   return (
     <div
       ref={ref}
       className={cn(
         "flex-grow overflow-y-auto overflow-x-hidden",
-        // When collapsed on desktop, hide text overflow if menu items don't handle it well
-        collapsible === "icon" && !open && !isMobile && "overflow-x-hidden", 
         className
       )}
       {...props}
@@ -256,83 +242,97 @@ const SidebarContentInternal = React.forwardRef<
 SidebarContentInternal.displayName = "SidebarContentInternal";
 
 
-const Sidebar = React.forwardRef<
+export const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-    // Props passed from layout (e.g., dashboard/layout.tsx)
-    title?: string; 
+    title?: string;
     notificationCount?: number;
-    children: React.ReactNode; // This will be the navigation menu (e.g., DashboardNav)
   }
 >(
   (
     {
       className,
-      children,
+      children, // This will be the navigation menu (e.g., DashboardNav)
       title,
       notificationCount,
       ...props
     },
     ref
   ) => {
-    const { isMobile, open, state, side, collapsible, hydrated } = useSidebar();
+    const { isMobile, open, actualSide, collapsibleType, hydrated } = useSidebar();
 
-    if (hydrated === undefined) { // Or !hydrated
-        const skeletonSideClass = side === "left" ? "left-0" : "right-0";
-        const skeletonWidth = collapsible === "icon" ? 'var(--sidebar-width-icon, 4.5rem)' : 'var(--sidebar-width, 16rem)';
-        return <div ref={ref} className={cn("fixed z-40 top-[var(--header-height)] h-[calc(100svh-var(--header-height))] p-2 sm:p-4 pointer-events-none", skeletonSideClass, className)} {...props}>
-                    <div className="h-full animate-pulse bg-muted rounded-lg" style={{width: skeletonWidth}}></div>
-                </div>;
+    if (!hydrated) {
+        const skeletonSideClass = actualSide === "left" ? "left-0" : "right-0";
+        const skeletonWidth = collapsibleType === "icon" ? 'var(--sidebar-width-icon, 4.5rem)' : 'var(--sidebar-width, 16rem)';
+        return (
+            <div
+                ref={ref}
+                className={cn("fixed z-40", skeletonSideClass, className)}
+                style={{
+                    top: `var(--header-height)`, // Fallback simple header height
+                    height: `calc(100svh - var(--header-height))`,
+                    width: skeletonWidth,
+                    padding: 'var(--sidebar-padding, 1rem)',
+                    display: 'flex',
+                    alignItems: 'flex-start', // Align inner card to top
+                    justifyContent: actualSide === "left" ? "flex-start" : "flex-end",
+                    pointerEvents: "none",
+                }}
+                {...props}
+            >
+                <div className="h-full animate-pulse bg-muted rounded-lg" style={{ width: '100%' }}></div>
+            </div>
+        );
     }
     
     let currentSidebarWidth: string;
     if (open) {
       currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width, 16rem)';
     } else {
-      currentSidebarWidth = (collapsible === "icon") ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
+      currentSidebarWidth = (collapsibleType === "icon") ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
     }
-    if (collapsible === "none" && !open) {
-        currentSidebarWidth = '0px'; // Fully hide if not collapsible and closed
+    if (collapsibleType === "none" && !open) {
+        currentSidebarWidth = '0px';
     }
     
-    const initialTopValue = isMobile ? 'var(--total-mobile-header-height)' : 'var(--header-height)';
-    const topPosition = `var(--current-sticky-header-height, ${initialTopValue})`;
-    const outerContainerPadding = "p-2 sm:p-4"; 
-    const sideClasses = side === "left" ? "left-0 justify-start" : "right-0 justify-end";
+    const topPosition = `var(--current-sticky-header-height, ${isMobile ? 'var(--total-mobile-header-height)' : 'var(--header-height)'})`;
+    const outerContainerPadding = 'var(--sidebar-padding, 1rem)'; // Use CSS variable for padding
+    const sideClasses = actualSide === "left" ? "left-0" : "right-0";
 
 
     return (
-      // Outermost container: fixed, defines the zone, handles centering of the panel
+      // Outermost container: fixed, defines the zone for centering the panel
       <div 
         ref={ref}
         data-sidebar="sidebar-outer-container" 
-        data-state={state}
-        data-collapsible={collapsible}
-        data-side={side} 
+        data-state={open ? "expanded" : "collapsed"}
+        data-collapsible={collapsibleType}
+        data-side={actualSide} 
         data-mobile={String(isMobile)}
         className={cn(
           "group/sidebar fixed z-30 flex", // z-30 to be below header (z-50)
           sideClasses,
-          outerContainerPadding,
-          "pointer-events-none", // Allows clicks through empty areas
-          className
+          "pointer-events-none" // Allows clicks through empty areas of this container
         )}
         style={{
           top: topPosition,
-          height: `calc(100svh - ${topPosition} - ${outerContainerPadding.split(" ")[1] || '1rem'})`, // Full height below header minus padding
+          height: `calc(100svh - ${topPosition})`, 
           width: currentSidebarWidth, 
+          padding: outerContainerPadding, // Padding around the inner card
+          alignItems: 'flex-start', // Align inner card to the top of this padded container
+          justifyContent: actualSide === "left" ? "flex-start" : "flex-end",
         }}
         {...props}
       >
-        { (collapsible === "none" && !open) ? null : (
+        { (collapsibleType === "none" && !open) ? null : (
             // Inner visual panel
             <div 
-            data-sidebar-panel="true"
-            className={cn(
-                "flex flex-col h-full w-full overflow-hidden transition-all duration-200 ease-linear",
+              data-sidebar-panel="true"
+              className={cn(
+                "flex flex-col h-auto max-h-full w-full overflow-hidden transition-all duration-200 ease-linear",
                 "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg",
                 "pointer-events-auto" // Enable pointer events for the panel itself
-            )}
+              )}
             >
               <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
               <SidebarContentInternal>{children}</SidebarContentInternal>
@@ -345,24 +345,33 @@ const Sidebar = React.forwardRef<
 Sidebar.displayName = "Sidebar"
 
 
-const SidebarInset = React.forwardRef<
+export const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { isMobile, side, collapsible, hydrated } = useSidebar(); 
+  const { isMobile, actualSide, collapsibleType, hydrated } = useSidebar(); 
   
-  const paddingProp = side === "left" ? "paddingLeft" : "paddingRight";
-  
-  // Gutter is only applied if collapsible is 'icon'
-  // On mobile, the sidebar is a true overlay, so no gutter.
-  const paddingValue = (!isMobile && collapsible === "icon") ? 'var(--sidebar-width-icon)' : '0px';
-
-  const initialTopValue = isMobile ? 'var(--total-mobile-header-height)' : 'var(--header-height)';
-
   if (!hydrated) {
-      // Render a basic div during SSR or before hydration for consistent layout structure
-      return <div ref={ref} className={cn("flex-1 flex flex-col overflow-hidden", className)} style={{paddingTop: initialTopValue, [paddingProp]: 'var(--sidebar-width-icon)', ...style}} {...props} />;
+      const fallbackTopOffset = `var(${isMobile ? '--total-mobile-header-height' : '--header-height'})`;
+      const fallbackSidePadding = collapsibleType === "icon" ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
+      const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight";
+
+      return (
+          <div
+              ref={ref}
+              className={cn("flex-1 flex flex-col overflow-hidden", className)}
+              style={{
+                  paddingTop: fallbackTopOffset,
+                  [paddingProp]: fallbackSidePadding,
+                  ...style,
+              }}
+              {...props}
+          />
+      );
   }
+
+  const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight";
+  const gutterPadding = collapsibleType === "icon" ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
 
   return (
     <div
@@ -372,8 +381,8 @@ const SidebarInset = React.forwardRef<
         className
       )}
       style={{
-        paddingTop: `var(--current-sticky-header-height, ${initialTopValue})`, 
-        [paddingProp]: paddingValue, 
+        paddingTop: `var(--current-sticky-header-height, var(${isMobile ? '--total-mobile-header-height' : '--header-height'}))`, 
+        [paddingProp]: gutterPadding, // Gutter for collapsed icon sidebar
         ...style,
       }}
       {...props}
@@ -383,9 +392,7 @@ const SidebarInset = React.forwardRef<
 SidebarInset.displayName = "SidebarInset"
 
 
-// --- SidebarMenu components (largely unchanged, ensure they respect collapsed state) ---
-
-const SidebarMenu = React.forwardRef<
+export const SidebarMenu = React.forwardRef<
   HTMLUListElement,
   React.ComponentProps<"ul">
 >(({ className, ...props }, ref) => (
@@ -398,7 +405,7 @@ const SidebarMenu = React.forwardRef<
 ))
 SidebarMenu.displayName = "SidebarMenu"
 
-const SidebarMenuItem = React.forwardRef<
+export const SidebarMenuItem = React.forwardRef<
   HTMLLIElement,
   React.ComponentProps<"li">
 >(({ className, ...props }, ref) => (
@@ -411,8 +418,8 @@ const SidebarMenuItem = React.forwardRef<
 ))
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
-const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:group-data-[state=collapsed]:!size-10 group-data-[collapsible=icon]:group-data-[state=collapsed]:!p-0 group-data-[collapsible=icon]:group-data-[state=collapsed]:justify-center [&>span:last-child]:truncate group-data-[collapsible=icon]:group-data-[state=collapsed]:[&>span:last-child]:hidden [&>svg]:size-5 group-data-[collapsible=icon]:group-data-[state=collapsed]:[&>svg]:size-5 [&>svg]:shrink-0 group-data-[collapsible=icon]:group-data-[state=collapsed]:[&>svg]:mx-auto",
+export const sidebarMenuButtonVariants = cva(
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:group-data-[state=collapsed]:not(group-data-[mobile=true]):!size-10 group-data-[collapsible=icon]:group-data-[state=collapsed]:not(group-data-[mobile=true]):!p-0 group-data-[collapsible=icon]:group-data-[state=collapsed]:not(group-data-[mobile=true]):justify-center [&>span:last-child]:truncate group-data-[collapsible=icon]:group-data-[state=collapsed]:not(group-data-[mobile=true]):[&>span:last-child]:hidden [&>svg]:size-5 group-data-[collapsible=icon]:group-data-[state=collapsed]:not(group-data-[mobile=true]):[&>svg]:size-5 [&>svg]:shrink-0 group-data-[collapsible=icon]:group-data-[state=collapsed]:not(group-data-[mobile=true]):[&>svg]:mx-auto",
   {
     variants: {
       variant: {
@@ -420,9 +427,9 @@ const sidebarMenuButtonVariants = cva(
         outline:
           "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
-      size: { // This size variant might be less relevant if collapsed state handles sizing
-        default: "h-10 text-sm", // Adjusted to h-10 to match collapsed size-10
-        sm: "h-8 text-xs", // Collapsed size-8
+      size: { 
+        default: "h-10 text-sm",
+        sm: "h-8 text-xs",
         lg: "h-12 text-sm",
       },
     },
@@ -433,7 +440,7 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-const SidebarMenuButton = React.forwardRef<
+export const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button"> & {
     asChild?: boolean
@@ -454,7 +461,7 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile, state, collapsible } = useSidebar()
+    const { open, isMobile, collapsibleType, actualSide } = useSidebar()
 
     const button = (
       <Comp
@@ -477,13 +484,13 @@ const SidebarMenuButton = React.forwardRef<
       }
     }
     
-    const tooltipDisabled = state !== "collapsed" || isMobile || collapsible !== "icon"; 
+    const tooltipDisabled = open || isMobile || collapsibleType !== "icon"; 
 
     return (
       <Tooltip>
         <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent
-          side={useSidebar().side === "left" ? "right" : "left"} // Adjust tooltip side based on sidebar side
+          side={actualSide === "left" ? "right" : "left"}
           align="center"
           hidden={tooltipDisabled} 
           {...tooltip}
@@ -494,14 +501,15 @@ const SidebarMenuButton = React.forwardRef<
 )
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
-const SidebarSeparator = React.forwardRef<
+export const SidebarSeparator = React.forwardRef<
   HTMLHRElement,
   React.HTMLAttributes<HTMLHRElement>
 >(({ className, ...props }, ref) => {
-  const { open, collapsible, isMobile } = useSidebar();
-  if (collapsible === "icon" && !open && !isMobile) {
-    // Optionally render a smaller separator or nothing when collapsed
-    return null; // Or a more subtle separator
+  const { open, collapsibleType, isMobile } = useSidebar();
+  // Only render separator if sidebar is open, or if it's on mobile (where collapsed state might still show separators meaningfully if design allows)
+  // Or if collapsibleType is 'none' (meaning it doesn't collapse to icons, so separators are always relevant)
+  if ( (collapsibleType === "icon" && !open && !isMobile)) {
+    return null;
   }
   return (
     <hr
@@ -513,24 +521,4 @@ const SidebarSeparator = React.forwardRef<
 });
 SidebarSeparator.displayName = "SidebarSeparator";
 
-
-export {
-  // Context related
-  SidebarProvider,
-  useSidebar,
-  // Main structural components
-  Sidebar,
-  SidebarInset,
-  // Menu components
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarSeparator,
-  // Keep variant exports if they are used externally for styling
-  sidebarMenuButtonVariants,
-}
-
-// Removed exports for SidebarHeader, SidebarContent, SidebarGroup*, SidebarMenuAction, SidebarMenuBadge,
-// SidebarMenuSkeleton, SidebarMenuSub* as these are now primarily internal or less likely to be directly used
-// with the new simplified structure. They can be re-added if specific use cases arise.
-// SidebarTrigger and SidebarRail are also removed as the toggle is now internal.
+    
