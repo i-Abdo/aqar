@@ -1,4 +1,3 @@
-
 "use client"
 
 import Link from "next/link"
@@ -49,7 +48,7 @@ export function DashboardNav() {
   const { userDashboardNotificationCount } = useAuth(); 
 
   return (
-    <SidebarMenu className="p-2">
+    <SidebarMenu>
       {dashboardNavItems.map((item, index) => {
         const showBadge = item.countKey === "dashboard_overview_notifications" && userDashboardNotificationCount > 0;
         const countToDisplay = showBadge ? userDashboardNotificationCount : 0;
@@ -60,18 +59,14 @@ export function DashboardNav() {
               <SidebarMenuButton
                 asChild
                 isActive={pathname === item.href}
-                className="text-base" 
                 tooltip={item.title}
+                icon={item.icon} // Pass the icon component
               >
                 <Link href={item.href} className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2 flex-grow overflow-hidden"> {/* Ensure this div is flex-grow */}
-                    <item.icon className="h-5 w-5 shrink-0" /> {/* Icon styling is now primarily handled by SidebarMenuButton's variant CSS */}
-                    <span className="truncate"> {/* Text span, its visibility is handled by SidebarMenuButton's variant CSS */}
-                      {item.title}
-                    </span>
-                  </div>
+                  {/* Text part of the link - children of SidebarMenuButton handle display */}
+                  {item.title}
                   {showBadge && (
-                    <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed][data-collapsible=icon]]/sidebar:hidden">
+                    <Badge variant="destructive" className="group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
                       {countToDisplay > 9 ? '9+' : countToDisplay}
                     </Badge>
                   )}

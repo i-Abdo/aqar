@@ -1,4 +1,3 @@
-
 "use client"; 
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -15,19 +14,24 @@ export function SiteHeader() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false); // For hydration safety
 
   const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
   const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
   const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = `calc(${HEADER_HEIGHT_MAIN_VALUE} + ${MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE})`; 
-  const SCROLL_THRESHOLD = 5;
+  const SCROLL_THRESHOLD = 10; // Increased threshold slightly
 
 
   useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted || isMobile === undefined) return; // Wait for mount and mobile state resolution
+
     let lastScrollTop = 0;
     
     const handleScroll = () => {
-      if (isMobile === undefined) return;
-
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
       if (isMobile) { 
@@ -37,6 +41,7 @@ export function SiteHeader() {
           if (isScrolled) setIsScrolled(false);
         }
       } else {
+        // On desktop, main header bar is always visible
         if (isScrolled) setIsScrolled(false); 
       }
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
@@ -46,12 +51,12 @@ export function SiteHeader() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, [isMobile, isScrolled]); 
+  }, [isMobile, isScrolled, hasMounted, SCROLL_THRESHOLD]); 
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (isMobile === undefined) return; 
+    if (!hasMounted || isMobile === undefined) return; // Wait for mount
 
+    const root = document.documentElement;
     let currentVisibleStickyHeaderHeight: string;
     let sidebarStableTopAnchorHeight: string;
 
@@ -64,15 +69,32 @@ export function SiteHeader() {
       } else {
         currentVisibleStickyHeaderHeight = TOTAL_MOBILE_HEADER_HEIGHT_VALUE; 
       }
-      // On mobile, the sidebar's top anchor should always be as if the full header is visible,
-      // so it doesn't visually "jump" when the main-header-bar hides/shows.
+      // On mobile, the sidebar's top anchor should always be as if the full header is visible.
       sidebarStableTopAnchorHeight = TOTAL_MOBILE_HEADER_HEIGHT_VALUE;
     }
     root.style.setProperty('--current-sticky-header-height', currentVisibleStickyHeaderHeight);
     root.style.setProperty('--sidebar-stable-top-anchor', sidebarStableTopAnchorHeight);
     
-  }, [isScrolled, isMobile, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
+  }, [isScrolled, isMobile, hasMounted, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
 
+  if (!hasMounted) {
+    // Render a simplified static header or null during SSR / before hydration
+    // to avoid hydration mismatches related to `isMobile` or `isScrolled`.
+    return (
+       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="md:order-1"><AppLogo /></div>
+          <div className="hidden md:flex flex-1 items-center justify-center md:order-3 mx-2"><MainNav /></div>
+          <div className="hidden md:flex flex-1 items-center justify-center md:order-2 mx-2">
+            <div className="w-full max-w-lg lg:max-w-xl xl:max-w-2xl"><GlobalSearchInput /></div>
+          </div>
+          <div className="flex items-center gap-x-1 md:order-4">
+            <div className="flex items-center"><UserAccountNav /></div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header 
@@ -106,12 +128,12 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {isMobile !== undefined && ( 
+      {isMobile && ( 
         <div className={cn(
           "md:hidden container mx-auto px-4 pt-1 pb-2", 
           "mobile-search-bar-container" 
           )}
-          style={{height: isMobile ? 'var(--mobile-search-height)' : '0px'}} 
+          style={{height: 'var(--mobile-search-height)' }} 
         >
           <GlobalSearchInput />
         </div>

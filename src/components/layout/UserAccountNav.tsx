@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -27,17 +26,12 @@ export function UserAccountNav() {
     setHasMounted(true);
   }, []);
 
-  if (!hasMounted) {
-    // Render null on the initial client render to match the server,
-    // preventing hydration mismatch before auth state is known.
-    return null; 
-  }
-
-  if (authLoading) {
+  if (!hasMounted || authLoading) {
+    // Render consistent Skeletons on server and initial client render if loading or not yet mounted
     return (
       <div className="flex items-center gap-2">
-        <Skeleton className="h-10 w-[90px]" />
-        <Skeleton className="h-10 w-[100px]" />
+        <Skeleton className="h-10 w-[90px] rounded-md" /> 
+        <Skeleton className="h-10 w-[100px] rounded-md" />
       </div>
     );
   }

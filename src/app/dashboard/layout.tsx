@@ -1,4 +1,3 @@
-
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -85,10 +84,10 @@ export default function DashboardLayout({
         defaultOpen={true} 
         style={{
           '--sidebar-width': '16rem',
-          '--sidebar-width-mobile': '16rem', 
-          '--sidebar-width-icon': '4.5rem', // Updated width for collapsed icon sidebar
-          '--sidebar-outer-padding': '0.5rem', // Added padding for the outer fixed container
-          '--sidebar-header-height': '3rem', // Height of the sidebar's own header
+          '--sidebar-width-mobile': '15rem', // Slightly reduced for mobile
+          '--sidebar-width-icon': '4.5rem', 
+          '--sidebar-outer-padding': '0.5rem', 
+          '--sidebar-header-height': '3rem',
           '--header-height': headerHeightValue, 
           '--mobile-search-height': mobileSearchHeightValue, 
           '--total-mobile-header-height': totalMobileHeaderHeightValue, 

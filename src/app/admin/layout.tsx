@@ -1,4 +1,3 @@
-
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -40,7 +39,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
   }
 
   return (
-    <SidebarMenu className="p-2">
+    <SidebarMenu>
       {adminNavItems.map((item, index) => {
         const count = getCountForItem(item.countKey);
         const isSeparatorNext = item.title === "مشاكل المستخدمين"; 
@@ -50,18 +49,14 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
               <SidebarMenuButton
                 asChild
                 isActive={pathname.startsWith(item.href)}
-                className="text-base"
                 tooltip={item.title}
+                icon={item.icon} // Pass icon component
               >
                 <Link href={item.href} className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2 flex-grow overflow-hidden"> {/* Ensure this div is flex-grow */}
-                    <item.icon className="h-5 w-5 shrink-0" /> {/* Icon styling handled by SidebarMenuButton */}
-                    <span className="truncate"> {/* Text span visibility handled by SidebarMenuButton */}
-                      {item.title}
-                    </span>
-                  </div>
+                   {/* Text part of the link - children of SidebarMenuButton handle display */}
+                   {item.title}
                   {item.countKey !== "properties" && count > 0 && (
-                    <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed][data-collapsible=icon]]/sidebar:hidden"> 
+                    <Badge variant="destructive" className="group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden"> 
                       {count > 9 ? '9+' : count}
                     </Badge>
                   )}
@@ -117,7 +112,7 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAdmin, loading: authLoading, adminNotificationCount: totalAdminNotifications } = useAuth();
+  const { user, isAdmin, loading: authLoading, adminNotificationCount: totalAdminNotifications, refreshAdminNotifications } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -130,12 +125,11 @@ export default function AdminLayout({
   }, []);
 
   useEffect(() => {
-    if (!isAdmin && !authLoading) { 
-        router.push("/dashboard"); 
-        return;
-    };
-
     const fetchAdminCountsForSidebar = async () => {
+      if (!isAdmin) {
+        setIsLoadingCounts(false);
+        return;
+      }
       setIsLoadingCounts(true);
       try {
         const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
@@ -164,23 +158,32 @@ export default function AdminLayout({
         setIsLoadingCounts(false);
       }
     };
-
-    if (isAdmin) { 
-      fetchAdminCountsForSidebar();
-    } else {
-      setIsLoadingCounts(false); 
+    
+    if (!authLoading && authHydrated) {
+        if (!user) {
+            router.push("/login?redirect=/admin");
+        } else if (!isAdmin) {
+            router.push("/dashboard");
+        } else {
+            // User is admin, fetch counts.
+            // Also, call refreshAdminNotifications which internally calls fetchAdminCountsForSidebar
+            // if this is not redundant with the direct call.
+            // The refreshAdminNotifications in useAuth will update the global count.
+            // This local fetch is for the detailed breakdown.
+            fetchAdminCountsForSidebar(); 
+        }
     }
-  }, [isAdmin, pathname, totalAdminNotifications, authLoading, router]); 
-
+  }, [user, isAdmin, authLoading, router, authHydrated]);
+  
+  // This effect ensures that the global admin notification count (in useAuth)
+  // is up-to-date when the component mounts or totalAdminNotifications changes.
+  // The individual page components also call refreshAdminNotifications after actions.
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push("/login?redirect=/admin");
-      } else if (!isAdmin) {
-        router.push("/dashboard"); 
-      }
+    if (isAdmin) {
+        refreshAdminNotifications();
     }
-  }, [user, isAdmin, authLoading, router]);
+  }, [isAdmin, pathname, totalAdminNotifications, refreshAdminNotifications]);
+
 
   if (authLoading || !authHydrated || (isAdmin && isLoadingCounts)) { 
     return (
@@ -191,6 +194,7 @@ export default function AdminLayout({
   }
 
   if (!user || !isAdmin) {
+    // This will usually be caught by the useEffect above, but as a fallback.
     return (
        <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
         <ShieldAlert className="h-16 w-16 text-destructive mb-4" />
@@ -213,9 +217,9 @@ export default function AdminLayout({
       style={{
         '--sidebar-width': '18rem', 
         '--sidebar-width-mobile': '16rem', 
-        '--sidebar-width-icon': '4.5rem', // Updated width for collapsed icon sidebar
-        '--sidebar-outer-padding': '0.5rem', // Added padding for the outer fixed container
-        '--sidebar-header-height': '3rem', // Height of the sidebar's own header
+        '--sidebar-width-icon': '4.5rem', 
+        '--sidebar-outer-padding': '0.5rem', 
+        '--sidebar-header-height': '3rem',
         '--header-height': headerHeightValue, 
         '--mobile-search-height': mobileSearchHeightValue, 
         '--total-mobile-header-height': totalMobileHeaderHeightValue, 
