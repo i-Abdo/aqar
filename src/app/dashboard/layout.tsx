@@ -12,51 +12,60 @@ import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
-  const { open, toggleSidebar } = useSidebar();
+  const { open, toggleSidebar, isMobile, side } = useSidebar();
   const [hydrated, setHydrated] = React.useState(false);
   const { userDashboardNotificationCount } = useAuth();
-  const isMobile = useIsMobile(); // Get mobile state
-
+  
   React.useEffect(() => {
     setHydrated(true);
   }, []);
+
+  const ChevronIconToRender = () => {
+    if (side === 'right') { // RTL default
+      return open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />;
+    } else { // LTR
+      return open ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />;
+    }
+  };
 
   return (
     <>
       <Sidebar
         side="right"
         collapsible="icon" 
-        title="لوحة التحكم" // Title prop for Sidebar to use for its own header on mobile
+        title="لوحة التحكم" 
       >
-        <LayoutSidebarHeader> {/* This is the one from sidebar.tsx, for DESKTOP header content */}
-          {hydrated && ( 
+        {/* Desktop Sidebar Header Content */}
+        {!isMobile && hydrated && (
+            <LayoutSidebarHeader> 
             <div className={cn(
-              "flex items-center h-8 w-full",
-              open ? "justify-between" : "justify-center"
+                "flex items-center h-8 w-full",
+                open ? "justify-between" : "justify-center"
             )}>
-              {open && ( 
+                {open && ( 
                 <div className="flex items-center gap-2">
-                  <span className={cn("text-xl font-semibold")}>لوحة التحكم</span>
-                  {userDashboardNotificationCount > 0 && (
+                    <span className={cn("text-xl font-semibold")}>لوحة التحكم</span>
+                    {userDashboardNotificationCount > 0 && (
                     <Badge variant="destructive">{userDashboardNotificationCount > 9 ? '9+' : userDashboardNotificationCount}</Badge>
-                  )}
+                    )}
                 </div>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleSidebar}
-                className={cn(
-                  "h-8 w-8",
-                  !open && !isMobile && "mx-auto w-full justify-center" // Center only on desktop collapsed
                 )}
-                aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
-              >
-                {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
-              </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                        console.log('Dashboard Desktop toggle clicked. Current open state:', open); // DEBUG
+                        e.stopPropagation();
+                        toggleSidebar();
+                    }}
+                    className={cn("h-8 w-8", !open && "mx-auto")}
+                    aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
+                >
+                    <ChevronIconToRender />
+                </Button>
             </div>
-          )}
-        </LayoutSidebarHeader>
+            </LayoutSidebarHeader>
+        )}
         <SidebarContent className="p-0">
           <DashboardNav />
         </SidebarContent>
@@ -104,9 +113,6 @@ export default function DashboardLayout({
     return null;
   }
   
-  // Calculate initial top values for CSS variables
-  // These are fallbacks if --current-sticky-header-height isn't immediately available
-  // Though SiteHeader.tsx should set --current-sticky-header-height quickly
   const headerHeightValue = '4rem'; 
   const mobileSearchHeightValue = '3.25rem';
   const totalMobileHeaderHeightValue = `calc(${headerHeightValue} + ${mobileSearchHeightValue})`;
@@ -129,3 +135,4 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+

@@ -114,8 +114,9 @@ const SidebarProvider = React.forwardRef<
 
 
     const toggleSidebar = React.useCallback(() => {
+      console.log('SidebarProvider: toggleSidebar called. Current open state:', open, 'Will be set to:', !open); // DEBUG
       setOpen((prevOpen) => !prevOpen)
-    }, [setOpen])
+    }, [setOpen, open])
 
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
@@ -187,7 +188,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, open, state, side: contextSide, setOpen: setContextOpen } = useSidebar();
+    const { isMobile, open, state, side: contextSide, setOpen, toggleSidebar } = useSidebar();
     const actualSide = propSide || contextSide; 
 
     if (isMobile === undefined) {
@@ -206,17 +207,61 @@ const Sidebar = React.forwardRef<
     
     const justifyContentClass = actualSide === "left" ? "justify-start" : "justify-end";
     
-    // Vertical positioning:
-    // Desktop: 1rem below main header
-    // Mobile: Directly below main header (mobile search bar might be between them if header is expanded)
-    const topPosition = isMobile 
-        ? 'var(--current-sticky-header-height, var(--total-mobile-header-height, 0px))' // Below full sticky header on mobile
-        : 'calc(var(--header-height, 4rem) + 1rem)'; // 1rem gap on desktop
+    const desktopTopPosition = 'calc(var(--header-height, 4rem) + 1rem)';
+    const mobileTopPosition = 'var(--header-height, 4rem)'; // For Sheet, starts below main 4rem header
 
-    const sidebarMaxHeight = isMobile
-        ? `calc(100svh - var(--current-sticky-header-height, var(--total-mobile-header-height, 0px)))`
-        : `calc(100svh - var(--header-height, 4rem) - 2rem)`; // 1rem top and 1rem bottom gap
+    const desktopMaxHeight = 'calc(100svh - var(--header-height, 4rem) - 2rem)'; // 1rem top & 1rem bottom gap
+    const mobileMaxHeight = 'calc(100svh - var(--header-height, 4rem))'; // Full height below main header
 
+    if (isMobile) {
+      const ChevronIcon = () => {
+        if (actualSide === 'right') { // RTL default
+          return open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />;
+        } else { // LTR
+          return open ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />;
+        }
+      };
+
+      return (
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent 
+            side={actualSide} 
+            className="flex flex-col p-0" 
+            style={{ 
+              top: mobileTopPosition, 
+              height: mobileMaxHeight,
+              width: currentSidebarWidth // Use dynamic width for mobile sheet
+            }}
+            // Prevent closing on overlay click if needed for testing, but generally desired
+            // onOverlayClick={(e) => e.preventDefault()} 
+          >
+            <UiSheetHeader className="p-3 border-b flex items-center justify-between">
+              <UiSheetTitle>{title || "القائمة"}</UiSheetTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  console.log('Mobile Sheet Chevron clicked. Current open state:', open); // DEBUG
+                  e.stopPropagation(); // Prevent sheet from closing if button is on edge
+                  toggleSidebar();
+                }}
+                className="h-8 w-8"
+                aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
+              >
+                <ChevronIcon />
+              </Button>
+            </UiSheetHeader>
+            {/*
+              Children for mobile should primarily be the SidebarContent containing the navigation.
+              The original LayoutSidebarHeader (with desktop-specific title/badge) is not needed here.
+            */}
+            {Array.isArray(children) ? children[1] : children}
+          </SheetContent>
+        </Sheet>
+      );
+    }
+    
+    // Desktop rendering (fixed overlay)
     return (
       <div
         ref={ref}
@@ -226,27 +271,27 @@ const Sidebar = React.forwardRef<
         data-side={actualSide} 
         data-mobile={isMobile.toString()}
         className={cn(
-          "group fixed z-40 flex", // Outer container is flex for centering
+          "group fixed z-40 flex", 
           justifyContentClass,    
-          "items-center",         // Vertically center the inner panel
+          "items-center",        
           actualSide === "left" ? "left-0" : "right-0",
-          "pointer-events-none", // Outer container doesn't block interactions
-          "p-2 sm:p-4", // Padding around the inner panel
+          "pointer-events-none", 
+          "p-2 sm:p-4", 
           className
         )}
         style={{
           width: currentSidebarWidth, 
-          top: topPosition,
-          height: sidebarMaxHeight, // Use height for the centering container
+          top: desktopTopPosition,
+          height: desktopMaxHeight, 
         }}
         {...props}
       >
-        {/* Inner container: The actual visible sidebar panel */}
         <div
+          data-sidebar-panel="true"
           className={cn(
             "flex flex-col h-full w-full overflow-hidden transition-all duration-200 ease-linear",
             "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg",
-            "pointer-events-auto" // Inner panel is interactive
+            "pointer-events-auto" 
           )}
         >
           {children} 
@@ -317,8 +362,6 @@ const SidebarInset = React.forwardRef<
 >(({ className, style, ...props }, ref) => {
   const { side, collapsible } = useSidebar(); 
   
-  // The inset padding should only account for the collapsed icon bar if collapsible is icon,
-  // as the expanded sidebar is an overlay.
   const paddingValue = collapsible === "icon" ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
   const paddingProp = side === "left" ? "paddingLeft" : "paddingRight";
 
@@ -362,11 +405,17 @@ const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
+  const { isMobile } = useSidebar();
   return (
     <div
       ref={ref}
       data-sidebar="header" 
-      className={cn("flex flex-col gap-2 p-3 border-b border-sidebar-border", className)}
+      className={cn(
+        "flex items-center", // Common base
+        !isMobile && "p-2 border-b border-sidebar-border", // Desktop specific
+        isMobile && "p-2", // Mobile specific (if rendered outside Sheet's own header)
+        className
+        )}
       {...props}
     />
   )
@@ -398,7 +447,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex flex-col gap-2 flex-grow overflow-y-auto overflow-x-hidden p-0", 
+        "flex flex-col gap-2 flex-grow overflow-y-auto overflow-x-hidden", 
         "group-data-[collapsible=icon]:group-data-[state=collapsed]:overflow-hidden",
         className
       )}
@@ -571,7 +620,7 @@ const SidebarMenuButton = React.forwardRef<
       }
     }
     
-    const tooltipDisabled = state !== "collapsed" || isMobile; // Disable tooltip if expanded or on mobile
+    const tooltipDisabled = state !== "collapsed" || isMobile; 
 
     return (
       <Tooltip>
@@ -754,3 +803,4 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+

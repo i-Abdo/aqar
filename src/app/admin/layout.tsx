@@ -75,50 +75,60 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 }
 
 function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadingCounts }: { children: React.ReactNode; counts: AdminCounts; adminNotificationCount: number; isLoadingCounts: boolean; }) {
-  const { open, toggleSidebar } = useSidebar(); 
+  const { open, toggleSidebar, isMobile, side } = useSidebar(); 
   const [hydrated, setHydrated] = React.useState(false);
-  const isMobile = useIsMobile(); 
-
+  
   React.useEffect(() => {
     setHydrated(true);
   }, []);
+
+  const ChevronIconToRender = () => {
+    if (side === 'right') { // RTL default
+      return open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />;
+    } else { // LTR
+      return open ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />;
+    }
+  };
+
 
   return (
     <>
       <Sidebar
         side="right"
         collapsible="icon"
-        title="لوحة الإدارة" // Title prop for Sidebar to use for its own header on mobile
+        title="لوحة الإدارة" 
       >
-        <LayoutSidebarHeader> 
-          {hydrated && ( 
-             <div className={cn(
-              "flex items-center h-8 w-full",
-              open ? "justify-between" : "justify-center"
-            )}>
-                {open && ( 
-                 <div className="flex items-center gap-2">
-                    <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
-                    {adminNotificationCount > 0 && !isLoadingCounts && (
-                        <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
-                    )}
-                 </div>
-                )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleSidebar}
-                className={cn(
-                  "h-8 w-8",
-                  !open && !isMobile && "mx-auto w-full justify-center" // Center only on desktop collapsed
-                )}
-                aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
-              >
-                {open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />}
-              </Button>
-            </div>
-          )}
-        </LayoutSidebarHeader>
+        {/* Desktop Sidebar Header Content */}
+        {!isMobile && hydrated && (
+            <LayoutSidebarHeader> 
+              <div className={cn(
+                "flex items-center h-8 w-full",
+                open ? "justify-between" : "justify-center"
+              )}>
+                  {open && ( 
+                  <div className="flex items-center gap-2">
+                      <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
+                      {adminNotificationCount > 0 && !isLoadingCounts && (
+                          <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
+                      )}
+                  </div>
+                  )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    console.log('Admin Desktop toggle clicked. Current open state:', open); // DEBUG
+                    e.stopPropagation();
+                    toggleSidebar();
+                  }}
+                  className={cn( "h-8 w-8", !open && "mx-auto" )}
+                  aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
+                >
+                  <ChevronIconToRender />
+                </Button>
+              </div>
+            </LayoutSidebarHeader>
+        )}
         <SidebarContent className="p-0">
              <AdminSidebarNav counts={counts} />
         </SidebarContent>
@@ -243,3 +253,4 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
+
