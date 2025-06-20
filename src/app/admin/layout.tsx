@@ -1,3 +1,4 @@
+
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -5,13 +6,11 @@ import React, { useEffect, useState } from "react";
 import { Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; // Removed SidebarHeader
+import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; 
 import { collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
-// useIsMobile, ChevronsRight, ChevronsLeft, cn not directly used here for header construction
 
-// AdminSidebarNav is defined below for clarity
 import { LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator as UiSidebarSeparator } from "@/components/ui/sidebar";
 
@@ -29,7 +28,7 @@ interface AdminCounts {
   reports: number;
   issues: number;
   appeals: number;
-  properties?: number; // This count is not displayed as a badge
+  properties?: number; 
 }
 
 function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
@@ -44,25 +43,25 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
     <SidebarMenu className="p-2">
       {adminNavItems.map((item, index) => {
         const count = getCountForItem(item.countKey);
-        const isSeparatorNext = item.title === "مشاكل المستخدمين"; // Place separator after this item
+        const isSeparatorNext = item.title === "مشاكل المستخدمين"; 
         return (
           <React.Fragment key={item.href + index}>
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
                 isActive={pathname.startsWith(item.href)}
-                className="justify-start text-base"
+                className="text-base"
                 tooltip={item.title}
               >
                 <Link href={item.href} className="flex items-center justify-between w-full">
-                  <div className="flex items-center flex-1 min-w-0">
-                    <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0" />
-                    <span className="truncate"> {/* Text span, will be hidden when collapsed by SidebarMenuButton style */}
+                  <div className="flex items-center gap-2 flex-grow overflow-hidden"> {/* Ensure this div is flex-grow */}
+                    <item.icon className="h-5 w-5 shrink-0" /> {/* Icon styling handled by SidebarMenuButton */}
+                    <span className="truncate"> {/* Text span visibility handled by SidebarMenuButton */}
                       {item.title}
                     </span>
                   </div>
                   {item.countKey !== "properties" && count > 0 && (
-                    <Badge variant="destructive" className="rtl:mr-auto"> {/* Badge, will be hidden when collapsed by SidebarMenuButton style */}
+                    <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed][data-collapsible=icon]]/sidebar:hidden"> 
                       {count > 9 ? '9+' : count}
                     </Badge>
                   )}
@@ -80,7 +79,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 
 function AdminInternalLayout({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
   const { hydrated } = useSidebar();
-  const { adminNotificationCount } = useAuth(); // Get overall admin notification count for the title
+  const { adminNotificationCount } = useAuth(); 
 
   const [layoutHydrated, setLayoutHydrated] = React.useState(false);
   React.useEffect(() => {
@@ -131,8 +130,8 @@ export default function AdminLayout({
   }, []);
 
   useEffect(() => {
-    if (!isAdmin && !authLoading) { // If not admin and auth check is complete
-        router.push("/dashboard"); // Redirect non-admins
+    if (!isAdmin && !authLoading) { 
+        router.push("/dashboard"); 
         return;
     };
 
@@ -160,32 +159,30 @@ export default function AdminLayout({
         setCounts(currentCountsData);
       } catch (error) {
         console.error("Error fetching admin counts for sidebar:", error);
-        // Set to zero on error to prevent stale counts
         setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
       } finally {
         setIsLoadingCounts(false);
       }
     };
 
-    if (isAdmin) { // Fetch counts only if user is admin
+    if (isAdmin) { 
       fetchAdminCountsForSidebar();
     } else {
-      setIsLoadingCounts(false); // Not loading counts if not admin
+      setIsLoadingCounts(false); 
     }
-  }, [isAdmin, pathname, totalAdminNotifications, authLoading, router]); // Added authLoading and router
+  }, [isAdmin, pathname, totalAdminNotifications, authLoading, router]); 
 
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
         router.push("/login?redirect=/admin");
       } else if (!isAdmin) {
-        // Already handled by the effect above, but good for clarity or if order changes
         router.push("/dashboard"); 
       }
     }
   }, [user, isAdmin, authLoading, router]);
 
-  if (authLoading || !authHydrated || (isAdmin && isLoadingCounts)) { // Show loader if admin and counts are loading
+  if (authLoading || !authHydrated || (isAdmin && isLoadingCounts)) { 
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -216,7 +213,9 @@ export default function AdminLayout({
       style={{
         '--sidebar-width': '18rem', 
         '--sidebar-width-mobile': '16rem', 
-        '--sidebar-width-icon': '4.5rem',
+        '--sidebar-width-icon': '4.5rem', // Updated width for collapsed icon sidebar
+        '--sidebar-outer-padding': '0.5rem', // Added padding for the outer fixed container
+        '--sidebar-header-height': '3rem', // Height of the sidebar's own header
         '--header-height': headerHeightValue, 
         '--mobile-search-height': mobileSearchHeightValue, 
         '--total-mobile-header-height': totalMobileHeaderHeightValue, 

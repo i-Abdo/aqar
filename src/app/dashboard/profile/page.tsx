@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, UserCircle, Edit3, LockKeyhole } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // DefaultUserIcon removed
 import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { auth as firebaseAuth } from "@/lib/firebase/client";
 import { plans } from "@/config/plans";
@@ -225,7 +225,8 @@ export default function ProfilePage() {
     return <p className="text-center text-muted-foreground">الرجاء تسجيل الدخول لعرض ملفك الشخصي.</p>;
   }
   
-  const userInitials = user.displayName ? user.displayName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : "U");
+  const userInitials = user.displayName ? user.displayName.charAt(0).toUpperCase() : 
+                      (user.email ? user.email.charAt(0).toUpperCase() : ""); // Empty string for SVG fallback
   const isPasswordChangeDisabled = !canAttemptPasswordUpdate() || passwordFieldsLockedUntil > Date.now();
   let passwordLockoutMessage = "";
   if (passwordFieldsLockedUntil > Date.now()) {
@@ -243,7 +244,7 @@ export default function ProfilePage() {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader className="text-center">
             <div className="relative mx-auto w-24 h-24 mb-4">
-              <Avatar className="w-24 h-24 text-3xl border-4 border-primary/50 shadow-md">
+              <Avatar className="w-24 h-24 text-3xl border-4 border-primary/50 shadow-md"> {/* bg-primary applied by AvatarFallback */}
                  <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
                 <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>

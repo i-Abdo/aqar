@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { LogOut, User, Settings, LayoutDashboard, ShieldCheck } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; // DefaultUserIcon removed from direct import
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,17 +17,16 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import React from "react";
-// Removed Firestore imports as notification count is handled elsewhere now
+
 
 export function UserAccountNav() {
   const { user, signOut, isAdmin, loading: authLoading } = useAuth();
-  // Removed notificationCount and isLoadingNotifications states
 
   if (authLoading) {
     return (
       <div className="flex items-center gap-2">
-        <Skeleton className="h-10 w-[90px]" /> {/* Approx width for "تسجيل الدخول" */}
-        <Skeleton className="h-10 w-[100px]" /> {/* Approx width for "إنشاء حساب" */}
+        <Skeleton className="h-10 w-[90px]" /> 
+        <Skeleton className="h-10 w-[100px]" /> 
       </div>
     );
   }
@@ -45,16 +44,17 @@ export function UserAccountNav() {
     );
   }
   
-  const userInitials = user.displayName ? user.displayName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : "U");
+  // User initials or default fallback logic for text if needed, otherwise SVG will render
+  const userInitials = user.displayName ? user.displayName.charAt(0).toUpperCase() : 
+                      (user.email ? user.email.charAt(0).toUpperCase() : ""); // Empty string if no good initials, so SVG shows
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {/* Removed relative wrapper and notification badge span */}
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
+          <Avatar className="h-10 w-10"> {/* bg-primary will be applied by AvatarFallback if it renders */}
             <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
-            <AvatarFallback>{userInitials}</AvatarFallback>
+            <AvatarFallback>{userInitials}</AvatarFallback> {/* Pass initials, SVG will show if initials are empty */}
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -94,7 +94,6 @@ export function UserAccountNav() {
         <DropdownMenuItem onSelect={async (event) => {
           event.preventDefault();
           await signOut();
-          // router.push('/') or handle redirection as needed
         }}>
           <LogOut className="ms-2 h-4 w-4" />
           <span>تسجيل الخروج</span>

@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useAuth } from "@/hooks/use-auth";
 import { AppLogo } from "./AppLogo";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; // DefaultUserIcon removed
 
 export function MobileNav() {
   const [open, setOpen] = React.useState(false);
@@ -33,7 +33,9 @@ export function MobileNav() {
     allLinks.push({ title: "إنشاء حساب", href: "/signup", specialClass: "text-primary" });
   }
 
-  const userInitials = user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : "U");
+  const userInitials = user?.displayName ? user.displayName.charAt(0).toUpperCase() : 
+                      (user?.email ? user.email.charAt(0).toUpperCase() : "");
+
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -44,7 +46,7 @@ export function MobileNav() {
             className="relative h-10 w-10 rounded-full md:hidden"
             aria-label="Open navigation menu"
           >
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-10 w-10"> {/* bg-primary applied by AvatarFallback */}
               <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
               <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
@@ -53,7 +55,7 @@ export function MobileNav() {
         ) : (
           <Button
             variant="ghost"
-            size="icon" // This makes it h-10 w-10
+            size="icon" 
             className="text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
           >
             <Menu className="h-6 w-6" />

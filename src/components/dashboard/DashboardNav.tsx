@@ -3,11 +3,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator } from "@/components/ui/sidebar" // Added SidebarSeparator
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator } from "@/components/ui/sidebar" 
 import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings, Home } from "lucide-react" 
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth"; 
-import React from "react"; // Added React import
+import React from "react"; 
 
 const dashboardNavItems = [
   {
@@ -60,18 +60,18 @@ export function DashboardNav() {
               <SidebarMenuButton
                 asChild
                 isActive={pathname === item.href}
-                className="justify-start text-base" 
+                className="text-base" 
                 tooltip={item.title}
               >
                 <Link href={item.href} className="flex items-center justify-between w-full">
-                  <div className="flex items-center flex-1 min-w-0">
-                    <item.icon className="h-5 w-5 shrink-0 rtl:ml-2 mr-2 rtl:mr-0 group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:mx-auto" />
-                    <span className="truncate group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                  <div className="flex items-center gap-2 flex-grow overflow-hidden"> {/* Ensure this div is flex-grow */}
+                    <item.icon className="h-5 w-5 shrink-0" /> {/* Icon styling is now primarily handled by SidebarMenuButton's variant CSS */}
+                    <span className="truncate"> {/* Text span, its visibility is handled by SidebarMenuButton's variant CSS */}
                       {item.title}
                     </span>
                   </div>
                   {showBadge && (
-                    <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed]]/sidebar:hidden group-[[data-sidebar=sidebar][data-collapsible=icon]]/sidebar:hidden">
+                    <Badge variant="destructive" className="group-[[data-sidebar=sidebar][data-state=collapsed][data-collapsible=icon]]/sidebar:hidden">
                       {countToDisplay > 9 ? '9+' : countToDisplay}
                     </Badge>
                   )}
