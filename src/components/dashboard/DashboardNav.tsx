@@ -52,6 +52,7 @@ export function DashboardNav() {
       {dashboardNavItems.map((item, index) => {
         const showBadge = item.countKey === "dashboard_overview_notifications" && userDashboardNotificationCount > 0;
         const countToDisplay = showBadge ? userDashboardNotificationCount : 0;
+        const IconComponent = item.icon; // Get the icon component
         
         return (
           <React.Fragment key={item.href + index}>
@@ -60,13 +61,19 @@ export function DashboardNav() {
                 asChild
                 isActive={pathname === item.href}
                 tooltip={item.title}
-                icon={item.icon} // Pass the icon component
+                // The 'icon' prop on SidebarMenuButton is for when asChild=false.
+                // When asChild=true, the Link itself renders the icon.
               >
-                <Link href={item.href} className="flex items-center justify-between w-full">
-                  {/* Text part of the link - children of SidebarMenuButton handle display */}
-                  {item.title}
+                <Link href={item.href} className="flex items-center w-full overflow-hidden gap-2">
+                  {IconComponent && <IconComponent className="shrink-0" />}
+                  <span className="truncate flex-1">
+                    {item.title}
+                  </span>
                   {showBadge && (
-                    <Badge variant="destructive" className="group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
+                    <Badge 
+                      variant="destructive" 
+                      className="shrink-0 group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden ml-auto px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
+                    >
                       {countToDisplay > 9 ? '9+' : countToDisplay}
                     </Badge>
                   )}

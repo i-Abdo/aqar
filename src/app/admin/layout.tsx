@@ -43,6 +43,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
       {adminNavItems.map((item, index) => {
         const count = getCountForItem(item.countKey);
         const isSeparatorNext = item.title === "مشاكل المستخدمين"; 
+        const IconComponent = item.icon;
         return (
           <React.Fragment key={item.href + index}>
             <SidebarMenuItem>
@@ -50,13 +51,19 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                 asChild
                 isActive={pathname.startsWith(item.href)}
                 tooltip={item.title}
-                icon={item.icon} // Pass icon component
+                // The 'icon' prop on SidebarMenuButton is for when asChild=false.
+                // When asChild=true, the Link itself renders the icon.
               >
-                <Link href={item.href} className="flex items-center justify-between w-full">
-                   {/* Text part of the link - children of SidebarMenuButton handle display */}
-                   {item.title}
+                <Link href={item.href} className="flex items-center w-full overflow-hidden gap-2">
+                  {IconComponent && <IconComponent className="shrink-0" />}
+                  <span className="truncate flex-1">
+                    {item.title}
+                  </span>
                   {item.countKey !== "properties" && count > 0 && (
-                    <Badge variant="destructive" className="group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden"> 
+                    <Badge 
+                        variant="destructive" 
+                        className="shrink-0 group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden ml-auto px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
+                    > 
                       {count > 9 ? '9+' : count}
                     </Badge>
                   )}
@@ -165,19 +172,11 @@ export default function AdminLayout({
         } else if (!isAdmin) {
             router.push("/dashboard");
         } else {
-            // User is admin, fetch counts.
-            // Also, call refreshAdminNotifications which internally calls fetchAdminCountsForSidebar
-            // if this is not redundant with the direct call.
-            // The refreshAdminNotifications in useAuth will update the global count.
-            // This local fetch is for the detailed breakdown.
             fetchAdminCountsForSidebar(); 
         }
     }
   }, [user, isAdmin, authLoading, router, authHydrated]);
   
-  // This effect ensures that the global admin notification count (in useAuth)
-  // is up-to-date when the component mounts or totalAdminNotifications changes.
-  // The individual page components also call refreshAdminNotifications after actions.
   useEffect(() => {
     if (isAdmin) {
         refreshAdminNotifications();
@@ -194,7 +193,6 @@ export default function AdminLayout({
   }
 
   if (!user || !isAdmin) {
-    // This will usually be caught by the useEffect above, but as a fallback.
     return (
        <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
         <ShieldAlert className="h-16 w-16 text-destructive mb-4" />
