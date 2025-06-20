@@ -18,11 +18,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Sheet, SheetContent, SheetHeader as UiSheetHeader, SheetTitle as UiSheetTitle } from "@/components/ui/sheet"
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextValue = {
@@ -72,51 +71,50 @@ const SidebarProvider = React.forwardRef<
     }, []);
 
     const [_open, _setOpen] = React.useState(() => {
-      if (openProp !== undefined) return openProp; 
-      if (hydrated) { 
-        if (!isMobile) {
-            const cookieValue = document.cookie
-            .split("; ")
-            .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
-            ?.split("=")[1]
-            if (cookieValue) {
-            return cookieValue === "true"
-            }
-        } else { 
-            return defaultOpen; 
-        }
-      }
-      return defaultOpen 
-    })
+        if (openProp !== undefined) return openProp;
+        // For SSR, initially respect defaultOpen. Client-side effect will adjust.
+        return defaultOpen;
+    });
     
+    React.useEffect(() => {
+        if (hydrated && openProp === undefined) { // Only run if not controlled and client-side
+            if (isMobile) {
+                _setOpen(defaultOpen); // Mobile always respects defaultOpen prop post-hydration
+            } else {
+                const cookieValue = document.cookie
+                    .split("; ")
+                    .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+                    ?.split("=")[1];
+                if (cookieValue) {
+                    _setOpen(cookieValue === "true");
+                } else {
+                     _setOpen(defaultOpen); // Desktop respects defaultOpen if no cookie
+                }
+            }
+        }
+    }, [isMobile, openProp, hydrated, defaultOpen]);
+
+
     const open = openProp ?? _open
 
     const setOpen = React.useCallback(
-      (value: boolean | ((value: boolean) => boolean)) => {
-        const openState = typeof value === "function" ? value(open) : value
+      (value: boolean | ((currentOpen: boolean) => boolean)) => {
+        const newOpenState = typeof value === "function" ? value(open) : value;
         if (setOpenProp) {
-          setOpenProp(openState)
+          setOpenProp(newOpenState);
         } else {
-          _setOpen(openState)
+          _setOpen(newOpenState);
         }
-        if (hydrated && !isMobile) { 
-          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        if (hydrated && !isMobile && openProp === undefined) { 
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${newOpenState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
         }
       },
-      [setOpenProp, open, isMobile, hydrated] 
-    )
+      [setOpenProp, open, hydrated, isMobile, openProp]
+    );
     
-     React.useEffect(() => {
-      if (isMobile && openProp === undefined && hydrated && defaultOpen) {
-        setOpen(true); 
-      }
-    }, [isMobile, openProp, setOpen, hydrated, defaultOpen]);
-
-
     const toggleSidebar = React.useCallback(() => {
-      console.log('SidebarProvider: toggleSidebar called. Current open state:', open, 'Will be set to:', !open); // DEBUG
       setOpen((prevOpen) => !prevOpen)
-    }, [setOpen, open])
+    }, [setOpen])
 
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
@@ -174,128 +172,75 @@ const Sidebar = React.forwardRef<
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
     collapsible?: "icon" | "none"
-    title?: string;
   }
 >(
   (
     {
       side: propSide, 
       collapsible = "icon", 
-      title,
       className,
       children,
       ...props
     },
     ref
   ) => {
-    const { isMobile, open, state, side: contextSide, setOpen, toggleSidebar } = useSidebar();
+    const { isMobile, open, state, side: contextSide } = useSidebar();
     const actualSide = propSide || contextSide; 
 
     if (isMobile === undefined) {
-      const skeletonWidth = 'var(--sidebar-width-mobile, 16rem)';
       const skeletonSideClass = actualSide === "left" ? "left-0" : "right-0";
-      return <div ref={ref} className={cn("group fixed z-40", skeletonSideClass, className)} {...props}><Skeleton className={`h-full w-[${skeletonWidth}]`} /></div>; 
+      return <div ref={ref} className={cn("group fixed z-40", skeletonSideClass, className)} {...props}><Skeleton className="h-full w-[var(--sidebar-width-icon)]" /></div>; 
     }
     
-    const currentSidebarWidth = open
-      ? isMobile
-        ? 'var(--sidebar-width-mobile, 16rem)'
-        : 'var(--sidebar-width, 16rem)'
-      : collapsible === "icon"
-        ? 'var(--sidebar-width-icon, 3.5rem)'
-        : 'var(--sidebar-width-icon, 3.5rem)'; 
-    
-    const justifyContentClass = actualSide === "left" ? "justify-start" : "justify-end";
-    
-    const desktopTopPosition = 'calc(var(--header-height, 4rem) + 1rem)';
-    const mobileTopPosition = 'var(--header-height, 4rem)'; // For Sheet, starts below main 4rem header
-
-    const desktopMaxHeight = 'calc(100svh - var(--header-height, 4rem) - 2rem)'; // 1rem top & 1rem bottom gap
-    const mobileMaxHeight = 'calc(100svh - var(--header-height, 4rem))'; // Full height below main header
-
-    if (isMobile) {
-      const ChevronIcon = () => {
-        if (actualSide === 'right') { // RTL default
-          return open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />;
-        } else { // LTR
-          return open ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />;
-        }
-      };
-
-      return (
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent 
-            side={actualSide} 
-            className="flex flex-col p-0" 
-            style={{ 
-              top: mobileTopPosition, 
-              height: mobileMaxHeight,
-              width: currentSidebarWidth // Use dynamic width for mobile sheet
-            }}
-            // Prevent closing on overlay click if needed for testing, but generally desired
-            // onOverlayClick={(e) => e.preventDefault()} 
-          >
-            <UiSheetHeader className="p-3 border-b flex items-center justify-between">
-              <UiSheetTitle>{title || "القائمة"}</UiSheetTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  console.log('Mobile Sheet Chevron clicked. Current open state:', open); // DEBUG
-                  e.stopPropagation(); // Prevent sheet from closing if button is on edge
-                  toggleSidebar();
-                }}
-                className="h-8 w-8"
-                aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
-              >
-                <ChevronIcon />
-              </Button>
-            </UiSheetHeader>
-            {/*
-              Children for mobile should primarily be the SidebarContent containing the navigation.
-              The original LayoutSidebarHeader (with desktop-specific title/badge) is not needed here.
-            */}
-            {Array.isArray(children) ? children[1] : children}
-          </SheetContent>
-        </Sheet>
-      );
+    let currentSidebarWidth: string;
+    if (open) {
+      currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width, 16rem)';
+    } else {
+      currentSidebarWidth = (collapsible === "icon") ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
+    }
+    if (collapsible === "none" && !open) {
+        currentSidebarWidth = '0px';
     }
     
-    // Desktop rendering (fixed overlay)
+    const topPosition = 'var(--current-sticky-header-height)';
+    const sidebarContainerPadding = "p-2 sm:p-4"; 
+    const sideClasses = actualSide === "left" ? "left-0 justify-start" : "right-0 justify-end";
+
+
     return (
-      <div
+      <div 
         ref={ref}
-        data-sidebar="sidebar" 
+        data-sidebar="sidebar-outer-container" 
         data-state={state}
         data-collapsible={collapsible}
         data-side={actualSide} 
         data-mobile={isMobile.toString()}
         className={cn(
-          "group fixed z-40 flex", 
-          justifyContentClass,    
-          "items-center",        
-          actualSide === "left" ? "left-0" : "right-0",
+          "group/sidebar fixed z-40 flex", 
+          sideClasses,
+          sidebarContainerPadding,
           "pointer-events-none", 
-          "p-2 sm:p-4", 
           className
         )}
         style={{
+          top: topPosition,
+          height: `calc(100svh - var(--current-sticky-header-height))`, 
           width: currentSidebarWidth, 
-          top: desktopTopPosition,
-          height: desktopMaxHeight, 
         }}
         {...props}
       >
-        <div
-          data-sidebar-panel="true"
-          className={cn(
-            "flex flex-col h-full w-full overflow-hidden transition-all duration-200 ease-linear",
-            "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg",
-            "pointer-events-auto" 
-          )}
-        >
-          {children} 
-        </div>
+        { (collapsible === "none" && !open) ? null : (
+            <div 
+            data-sidebar-panel="true"
+            className={cn(
+                "flex flex-col h-auto max-h-full w-full overflow-hidden transition-all duration-200 ease-linear",
+                "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg",
+                "pointer-events-auto" 
+            )}
+            >
+            {children} 
+            </div>
+        )}
       </div>
     );
   }
@@ -362,8 +307,8 @@ const SidebarInset = React.forwardRef<
 >(({ className, style, ...props }, ref) => {
   const { side, collapsible } = useSidebar(); 
   
-  const paddingValue = collapsible === "icon" ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
   const paddingProp = side === "left" ? "paddingLeft" : "paddingRight";
+  const paddingValue = collapsible === "icon" ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
 
   return (
     <div
@@ -373,7 +318,7 @@ const SidebarInset = React.forwardRef<
         className
       )}
       style={{
-        paddingTop: `var(--current-sticky-header-height, var(--header-height))`,
+        paddingTop: `var(--current-sticky-header-height, var(--header-height))`, 
         [paddingProp]: paddingValue, 
         ...style,
       }}
@@ -401,19 +346,16 @@ const SidebarInput = React.forwardRef<
 })
 SidebarInput.displayName = "SidebarInput"
 
-const SidebarHeader = React.forwardRef<
+const SidebarHeader = React.forwardRef< 
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
-  const { isMobile } = useSidebar();
   return (
     <div
       ref={ref}
       data-sidebar="header" 
       className={cn(
-        "flex items-center", // Common base
-        !isMobile && "p-2 border-b border-sidebar-border", // Desktop specific
-        isMobile && "p-2", // Mobile specific (if rendered outside Sheet's own header)
+        "flex items-center p-2 border-b border-sidebar-border",
         className
         )}
       {...props}
@@ -803,4 +745,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-

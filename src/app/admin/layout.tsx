@@ -90,45 +90,49 @@ function AdminInternalLayout({ children, counts, adminNotificationCount, isLoadi
     }
   };
 
+  if (!hydrated) {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
+
 
   return (
     <>
       <Sidebar
         side="right"
         collapsible="icon"
-        title="لوحة الإدارة" 
       >
-        {/* Desktop Sidebar Header Content */}
-        {!isMobile && hydrated && (
-            <LayoutSidebarHeader> 
-              <div className={cn(
-                "flex items-center h-8 w-full",
-                open ? "justify-between" : "justify-center"
-              )}>
-                  {open && ( 
-                  <div className="flex items-center gap-2">
-                      <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
-                      {adminNotificationCount > 0 && !isLoadingCounts && (
-                          <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
-                      )}
-                  </div>
+        <LayoutSidebarHeader> 
+          <div className={cn(
+            "flex items-center h-8 w-full",
+            open ? "justify-between" : "justify-center" 
+          )}>
+              {open && ( 
+              <div className="flex items-center gap-2">
+                  <span className={cn("text-xl font-semibold")}>لوحة الإدارة</span>
+                  {adminNotificationCount > 0 && !isLoadingCounts && (
+                      <Badge variant="destructive">{adminNotificationCount > 9 ? '9+' : adminNotificationCount}</Badge>
                   )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    console.log('Admin Desktop toggle clicked. Current open state:', open); // DEBUG
-                    e.stopPropagation();
-                    toggleSidebar();
-                  }}
-                  className={cn( "h-8 w-8", !open && "mx-auto" )}
-                  aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
-                >
-                  <ChevronIconToRender />
-                </Button>
               </div>
-            </LayoutSidebarHeader>
-        )}
+              )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                console.log('Admin Layout Toggle clicked. Current open state:', open); 
+                e.stopPropagation();
+                toggleSidebar();
+              }}
+              className={cn("h-8 w-8")}
+              aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
+            >
+              <ChevronIconToRender />
+            </Button>
+          </div>
+        </LayoutSidebarHeader>
         <SidebarContent className="p-0">
              <AdminSidebarNav counts={counts} />
         </SidebarContent>
@@ -238,7 +242,7 @@ export default function AdminLayout({
     <SidebarProvider
       defaultOpen={true} 
       style={{
-        '--sidebar-width': '16rem',
+        '--sidebar-width': '18rem', // Adjusted width for admin
         '--sidebar-width-mobile': '16rem', 
         '--sidebar-width-icon': '3.5rem', 
         '--header-height': headerHeightValue, 
@@ -253,4 +257,3 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
-
