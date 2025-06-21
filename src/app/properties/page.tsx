@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,12 +10,6 @@ import { Loader2, SearchIcon, RotateCcw } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { cn } from '@/lib/utils';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: "تصفح العقارات - عقاري",
-  description: "ابحث عن شقق، بيوت، أراضي، وفلل للبيع أو الكراء في جميع ولايات الجزائر. اعثر على منزلك المثالي اليوم.",
-};
 
 const PROPERTIES_PER_PAGE = 9;
 
