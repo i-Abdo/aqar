@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 // DefaultUserIcon component
 const DefaultUserIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={cn("h-full w-full", className)} xmlns="http://www.w3.org/2000/svg">
+    <title>أيقونة المستخدم الافتراضية</title>
     <circle cx="12" cy="7" r="4" />
     <path d="M12 14C8.13 14 5 15.5 5 17.5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V17.5C19 15.5 15.87 14 12 14Z" />
   </svg>
