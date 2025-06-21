@@ -63,8 +63,8 @@ export function DashboardNav() {
                 isActive={pathname === item.href}
                 tooltip={item.title}
               >
-                <Link href={item.href} className="flex items-center justify-between w-full overflow-hidden">
-                   <div className="flex items-center gap-2 overflow-hidden">
+                <Link href={item.href} className="flex items-center w-full gap-2">
+                   <div className="flex items-center gap-2 flex-grow overflow-hidden">
                     {IconComponent && <IconComponent className="shrink-0" />}
                     <span className="truncate group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
                       {item.title}
