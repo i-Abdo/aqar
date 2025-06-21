@@ -212,11 +212,11 @@ export default function AdminLayout({
       style={{
         '--sidebar-width': '18rem', 
         '--sidebar-width-mobile': '16rem', 
-        '--sidebar-width-icon': '3.5rem', 
-        '--sidebar-outer-padding': '0.5rem', 
+        '--sidebar-width-icon': '4rem', 
+        '--sidebar-outer-padding': '0.25rem',
         '--sidebar-header-height': '3rem',
-        '--header-height': '6.5rem', // Static combined height
-        '--sidebar-stable-top-anchor': 'var(--header-height)', // Simplified
+        '--header-height': '4.5rem', 
+        '--sidebar-stable-top-anchor': 'var(--header-height)', 
         '--sidebar-side': 'right',
         '--sidebar-collapsible': 'icon',
       } as React.CSSProperties}

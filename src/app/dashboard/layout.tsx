@@ -81,12 +81,12 @@ export default function DashboardLayout({
         defaultOpen={true} 
         style={{
           '--sidebar-width': '16rem',
-          '--sidebar-width-mobile': '15rem', // Slightly reduced for mobile
-          '--sidebar-width-icon': '3.5rem', 
-          '--sidebar-outer-padding': '0.5rem', 
+          '--sidebar-width-mobile': '15rem', 
+          '--sidebar-width-icon': '4rem', 
+          '--sidebar-outer-padding': '0.25rem', 
           '--sidebar-header-height': '3rem',
-          '--header-height': '6.5rem', // Static combined height
-          '--sidebar-stable-top-anchor': 'var(--header-height)', // Simplified
+          '--header-height': '4.5rem',
+          '--sidebar-stable-top-anchor': 'var(--header-height)',
           '--sidebar-side': 'right', 
           '--sidebar-collapsible': 'icon',
         } as React.CSSProperties}
