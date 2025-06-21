@@ -73,6 +73,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       if (mode === "signup") {
         const signupValues = values as z.infer<typeof signupSchema>;
         const userCredential = await createUserWithEmailAndPassword(firebaseAuth, signupValues.email, signupValues.password);
+        
+        // Create user document in 'users' collection
         await setDoc(doc(db, "users", userCredential.user.uid), {
           uid: userCredential.user.uid,
           email: signupValues.email,
@@ -82,6 +84,13 @@ export function AuthForm({ mode }: AuthFormProps) {
           newsletter: signupValues.subscribeToNewsletter,
           createdAt: serverTimestamp(),
         });
+        
+        // Create user email document in 'all-emails' collection
+        await setDoc(doc(db, "all-emails", userCredential.user.uid), {
+            email: signupValues.email,
+            createdAt: serverTimestamp(),
+        });
+
         toast({ title: "تم إنشاء الحساب بنجاح!", description: "جاري توجيهك إلى لوحة التحكم..." });
         router.push("/dashboard");
       } else {
@@ -267,3 +276,5 @@ export function AuthForm({ mode }: AuthFormProps) {
     </Card>
   );
 }
+
+    

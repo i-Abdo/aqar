@@ -40,63 +40,6 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatDisplayPrice } from '@/lib/utils';
-import { db as adminDb } from '@/lib/firebase/admin';
-import type { Metadata, ResolvingMetadata } from 'next';
-
-type Props = {
-  params: { id: string }
-}
-
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  const id = params.id;
-
-  try {
-    const propRef = adminDb.collection('properties').doc(id);
-    const docSnap = await propRef.get();
-
-    if (!docSnap.exists) {
-      return {
-        title: 'عقار غير موجود - عقاري',
-        description: 'لم نتمكن من العثور على العقار الذي تبحث عنه.',
-      };
-    }
-
-    const property = docSnap.data() as Property;
-
-    // Create a rich title and description
-    const title = `${property.title} - ${property.wilaya} | عقاري`;
-    const description = property.description.substring(0, 155).trim() + '...';
-    const imageUrl = property.imageUrls?.[0] || 'https://res.cloudinary.com/dgz2rwp09/image/upload/v1750257678/logo-aqari_yb470x.png'; 
-
-    return {
-      title,
-      description,
-      openGraph: {
-        title,
-        description,
-        images: [
-          {
-            url: imageUrl,
-            width: 1200,
-            height: 630,
-            alt: property.title,
-          },
-        ],
-        url: `/properties/${id}`,
-        type: 'article',
-      },
-    };
-  } catch (error) {
-    console.error("Error generating metadata for property:", id, error);
-    return {
-      title: 'خطأ - عقاري',
-      description: 'حدث خطأ أثناء تحميل بيانات العقار.',
-    };
-  }
-}
 
 
 const transactionTypeTranslations: Record<TransactionType, string> = {
