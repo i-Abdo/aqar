@@ -1,11 +1,22 @@
-// src/middleware.ts (ULTRA-DIAGNOSTIC v6 - Basic Function with Matcher)
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-console.log('[Middleware ULTRA-DIAGNOSTIC v6] src/middleware.ts is being loaded/evaluated.');
+// Regular expression to detect mobile user agents.
+const MOBILE_USER_AGENT_REGEX = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
 
 export function middleware(request: NextRequest) {
-  console.log('[Middleware ULTRA-DIAGNOSTIC v6] Middleware function executed for path:', request.nextUrl.pathname);
+  const { pathname } = request.nextUrl;
+  const userAgent = request.headers.get('user-agent') || '';
+  const isMobileDevice = MOBILE_USER_AGENT_REGEX.test(userAgent);
+
+  // If the user is on a mobile device and is accessing the homepage,
+  // redirect them to the signup page.
+  if (isMobileDevice && pathname === '/') {
+    const signupUrl = new URL('/signup', request.url);
+    return NextResponse.redirect(signupUrl);
+  }
+
   return NextResponse.next();
 }
 
@@ -21,5 +32,3 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
-
-console.log('[Middleware ULTRA-DIAGNOSTIC v6] src/middleware.ts finished loading with matcher config.');
