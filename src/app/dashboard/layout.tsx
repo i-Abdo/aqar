@@ -35,7 +35,7 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset> 
         <div className="flex flex-col h-full bg-background">
-          <div className="flex-1 p-4 md:p-6 overflow-y-auto">
+          <div className="flex-1 p-2 md:p-4 overflow-y-auto">
             {children}
           </div>
         </div>
@@ -83,7 +83,7 @@ export default function DashboardLayout({
           '--sidebar-width': '16rem',
           '--sidebar-width-mobile': '15rem', // Slightly reduced for mobile
           '--sidebar-width-icon': '3.5rem', 
-          '--sidebar-outer-padding': '0.125rem', 
+          '--sidebar-outer-padding': '0.1rem', 
           '--sidebar-header-height': '3rem',
           '--header-height': '7.25rem', // Static combined height
           '--sidebar-stable-top-anchor': 'var(--header-height)', // Simplified

@@ -255,14 +255,14 @@ export const Sidebar = React.forwardRef<
     if (open) {
       currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 15rem)' : 'var(--sidebar-width, 16rem)';
     } else {
-       currentSidebarWidth = collapsible === 'icon' ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
+       currentSidebarWidth = collapsible === 'icon' ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
     }
     if (collapsible === "none" && !open) {
         currentSidebarWidth = '0px';
     }
     
     const topPosition = `var(--sidebar-stable-top-anchor, var(--header-height))`;
-    const outerContainerPadding = 'var(--sidebar-outer-padding, 0.5rem)'; 
+    const outerContainerPadding = 'var(--sidebar-outer-padding, 0.1rem)'; 
     const sideClasses = actualSide === "left" ? "left-0" : "right-0";
 
     return (
@@ -318,42 +318,37 @@ export const SidebarInset = React.forwardRef<
       <div
         ref={ref}
         className={cn("flex-1 flex flex-col overflow-hidden", className)}
-        style={{
-          paddingTop: `var(--header-height, 5.25rem)`,
-          ...style,
-        }}
+        style={style}
         {...props}
       />
     )
   }
 
+  const topPadding = isMobile ? 'var(--header-height, 7.25rem)' : '4rem';
+
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight"
   let paddingValue: string;
 
-  const collapsedWidth = "var(--sidebar-width-icon, 4.5rem)";
-  const expandedWidth = "var(--sidebar-width, 16rem)";
-  const collapsedPadding = `calc(${collapsedWidth} + var(--sidebar-outer-padding, 0.5rem) * 2)`;
-
-  if (collapsible === "none") {
-    paddingValue = open ? expandedWidth : "0px";
-  } else if (isMobile) {
-    // On mobile, content always has padding for the collapsed icon bar.
-    // The sidebar opens as an overlay.
-    paddingValue = collapsedPadding;
+  if (isMobile) {
+      paddingValue = 'calc(var(--sidebar-width-icon, 3.5rem) + var(--sidebar-outer-padding, 0.1rem) * 2)'
   } else {
-    // On desktop, padding changes with sidebar state.
-    paddingValue = open ? expandedWidth : collapsedPadding;
+      const collapsedWidth = collapsible === 'icon' ? 'calc(var(--sidebar-width-icon, 3.5rem) + var(--sidebar-outer-padding, 0.1rem) * 2)' : '0px';
+      const expandedWidth = "calc(var(--sidebar-width, 16rem) + var(--sidebar-outer-padding, 0.1rem) * 2)";
+      paddingValue = open ? expandedWidth : collapsedWidth;
   }
-
+  
+  if (collapsible === 'none' && !open) {
+    paddingValue = '0px';
+  }
 
   return (
     <div
       ref={ref}
       className={cn("flex-1 flex flex-col overflow-hidden", className)}
       style={{
-        paddingTop: `var(--header-height, 5.25rem)`,
+        paddingTop: topPadding,
         [paddingProp]: paddingValue,
-        transition: `${paddingProp} 0.2s ease-in-out`,
+        transition: `${paddingProp} 0.2s ease-in-out, paddingTop 0.2s ease-in-out`,
         ...style,
       }}
       {...props}
