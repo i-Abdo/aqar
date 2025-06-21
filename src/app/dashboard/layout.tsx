@@ -82,10 +82,10 @@ export default function DashboardLayout({
         style={{
           '--sidebar-width': '16rem',
           '--sidebar-width-mobile': '15rem', // Slightly reduced for mobile
-          '--sidebar-width-icon': '3.5rem', 
+          '--sidebar-width-icon': '4.5rem', 
           '--sidebar-outer-padding': '0.1rem', 
           '--sidebar-header-height': '3rem',
-          '--header-height': '7.25rem', // Static combined height
+          '--header-height': '6.5rem', // Static combined height
           '--sidebar-stable-top-anchor': 'var(--header-height)', // Simplified
           '--sidebar-side': 'right', 
           '--sidebar-collapsible': 'icon',

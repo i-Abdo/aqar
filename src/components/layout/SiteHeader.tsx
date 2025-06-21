@@ -8,6 +8,7 @@ import { UserAccountNav } from "./UserAccountNav";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 import { GlobalSearchInput } from "./GlobalSearchInput";
 import { cn } from "@/lib/utils";
+import Link from 'next/link';
 
 export function SiteHeader() {
 
@@ -18,7 +19,7 @@ export function SiteHeader() {
         "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-sm"
       )}
     >
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-14 items-center justify-between">
         <div className="flex items-center gap-x-2 md:gap-x-6">
           <AppLogo />
           <nav className="hidden md:flex">
@@ -32,7 +33,8 @@ export function SiteHeader() {
         
         <div className="flex items-center gap-x-1 shrink-0">
            <nav className="flex md:hidden items-center gap-x-4 text-sm font-medium mr-2 rtl:ml-2 rtl:mr-0">
-              {/* Mobile navigation links can be added here if needed */}
+              <Link href="/" className="text-foreground/80 hover:text-primary transition-colors">الرئيسية</Link>
+              <Link href="/pricing" className="text-foreground/80 hover:text-primary transition-colors">الأسعار</Link>
            </nav>
            <div className="hidden md:block">
               <ThemeToggleButton />
@@ -41,7 +43,7 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <div className="md:hidden container mx-auto px-4 pt-1 pb-2 flex items-center gap-4">
+      <div className="md:hidden container mx-auto px-4 pb-2 flex items-center gap-4">
         <GlobalSearchInput />
         <ThemeToggleButton />
       </div>

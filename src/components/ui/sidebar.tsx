@@ -255,7 +255,7 @@ export const Sidebar = React.forwardRef<
     if (open) {
       currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 15rem)' : 'var(--sidebar-width, 16rem)';
     } else {
-       currentSidebarWidth = collapsible === 'icon' ? 'var(--sidebar-width-icon, 3.5rem)' : '0px';
+       currentSidebarWidth = collapsible === 'icon' ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
     }
     if (collapsible === "none" && !open) {
         currentSidebarWidth = '0px';
@@ -323,16 +323,16 @@ export const SidebarInset = React.forwardRef<
       />
     )
   }
-
-  const topPadding = isMobile ? 'var(--header-height, 7.25rem)' : '4rem';
+  
+  const topPadding = isMobile ? 'var(--header-height, 6.5rem)' : '3.5rem';
 
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight"
   let paddingValue: string;
 
   if (isMobile) {
-      paddingValue = 'calc(var(--sidebar-width-icon, 3.5rem) + var(--sidebar-outer-padding, 0.1rem) * 2)'
+      paddingValue = 'calc(var(--sidebar-width-icon, 4.5rem) + var(--sidebar-outer-padding, 0.1rem) * 2)';
   } else {
-      const collapsedWidth = collapsible === 'icon' ? 'calc(var(--sidebar-width-icon, 3.5rem) + var(--sidebar-outer-padding, 0.1rem) * 2)' : '0px';
+      const collapsedWidth = collapsible === 'icon' ? 'calc(var(--sidebar-width-icon, 4.5rem) + var(--sidebar-outer-padding, 0.1rem) * 2)' : '0px';
       const expandedWidth = "calc(var(--sidebar-width, 16rem) + var(--sidebar-outer-padding, 0.1rem) * 2)";
       paddingValue = open ? expandedWidth : collapsedWidth;
   }
