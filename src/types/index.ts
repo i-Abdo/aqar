@@ -7,6 +7,7 @@ export interface CustomUser extends FirebaseUser {
   planId?: PlanId;
   isAdmin?: boolean;
   trustLevel?: UserTrustLevel;
+  newsletter?: boolean;
   createdAt?: any; // To store Firestore Timestamp
 }
 
@@ -121,4 +122,5 @@ export interface PropertyAppeal {
   dismissedByOwner?: boolean; // Added
   updatedAt?: Date; // Added
 }
+
 

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as firebaseAuth, db } from '@/lib/firebase/client';
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -26,6 +26,7 @@ const baseSchema = z.object({
 
 const signupSchema = baseSchema.extend({
   confirmPassword: z.string().min(6, { message: "يجب أن تكون كلمة المرور 6 أحرف على الأقل." }),
+  subscribeToNewsletter: z.boolean().default(true),
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "يجب الموافقة على الشروط والأحكام لإكمال التسجيل.",
   }),
@@ -47,6 +48,9 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+
+  const togglePasswordVisibility = () => setShowPassword(prev => !prev);
 
   const currentSchema = mode === 'signup' ? signupSchema : loginSchema;
 
@@ -57,6 +61,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       password: "",
       ...(mode === 'signup' && {
         confirmPassword: "",
+        subscribeToNewsletter: true,
         agreeToTerms: false,
       }),
     },
@@ -73,7 +78,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           email: signupValues.email,
           planId: "free",
           isAdmin: false,
-          trustLevel: 'normal' as UserTrustLevel, // Default trust level
+          trustLevel: 'normal' as UserTrustLevel,
+          newsletter: signupValues.subscribeToNewsletter,
           createdAt: serverTimestamp(),
         });
         toast({ title: "تم إنشاء الحساب بنجاح!", description: "جاري توجيهك إلى لوحة التحكم..." });
@@ -130,14 +136,26 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">كلمة المرور</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="********"
-              {...form.register("password")}
-              className="text-right"
-              aria-invalid={form.formState.errors.password ? "true" : "false"}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="********"
+                {...form.register("password")}
+                className="text-right pl-10"
+                aria-invalid={form.formState.errors.password ? "true" : "false"}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={togglePasswordVisibility}
+                className="absolute inset-y-0 left-0 h-full px-3 text-muted-foreground"
+                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
             )}
@@ -147,17 +165,50 @@ export function AuthForm({ mode }: AuthFormProps) {
             <>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="********"
-                  {...form.register("confirmPassword")}
-                  className="text-right"
-                  aria-invalid={form.formState.errors.confirmPassword ? "true" : "false"}
-                />
+                 <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="********"
+                      {...form.register("confirmPassword")}
+                      className="text-right pl-10"
+                      aria-invalid={form.formState.errors.confirmPassword ? "true" : "false"}
+                    />
+                     <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={togglePasswordVisibility}
+                        className="absolute inset-y-0 left-0 h-full px-3 text-muted-foreground"
+                        aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                 </div>
                 {form.formState.errors.confirmPassword && (
                   <p className="text-sm text-destructive">{form.formState.errors.confirmPassword?.message}</p>
                 )}
+              </div>
+              <div className="items-top flex space-x-2 rtl:space-x-reverse">
+                <Controller
+                  name="subscribeToNewsletter"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="subscribeToNewsletter"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label
+                    htmlFor="subscribeToNewsletter"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    أوافق على استلام رسائل بريد إلكتروني حول التحديثات والعروض.
+                  </Label>
+                </div>
               </div>
               <div className="items-top flex space-x-2 rtl:space-x-reverse">
                 <Controller
