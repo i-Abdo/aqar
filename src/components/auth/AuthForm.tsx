@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 const baseSchema = z.object({
   email: z.string().email({ message: "البريد الإلكتروني غير صالح." }),
@@ -107,6 +108,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   
   const passwordValue = form.watch("password");
   const passwordStrength = React.useMemo(() => calculatePasswordStrength(passwordValue), [passwordValue]);
+  const agreeToTermsValue = form.watch("agreeToTerms");
 
   const performSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
@@ -332,7 +334,10 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <div className="grid gap-1.5 leading-none">
                   <Label
                     htmlFor="agreeToTerms"
-                    className="text-sm font-normal cursor-pointer"
+                    className={cn(
+                      "text-sm font-normal cursor-pointer",
+                      !agreeToTermsValue && "text-muted-foreground"
+                    )}
                   >
                     أوافق على{" "}
                     <Link
