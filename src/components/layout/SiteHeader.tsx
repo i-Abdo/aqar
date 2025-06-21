@@ -10,7 +10,6 @@ import { GlobalSearchInput } from "./GlobalSearchInput";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile"; 
 import Link from "next/link";
-import { Skeleton } from "../ui/skeleton";
 
 export function SiteHeader() {
   const isMobile = useIsMobile();
@@ -20,7 +19,7 @@ export function SiteHeader() {
   const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
   const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
   const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = `calc(${HEADER_HEIGHT_MAIN_VALUE} + ${MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE})`; 
-  const SCROLL_THRESHOLD = 10; // Increased sensitivity threshold
+  const SCROLL_THRESHOLD = 5; // Reduced sensitivity threshold for faster reaction
 
 
   useEffect(() => {
@@ -76,17 +75,6 @@ export function SiteHeader() {
     
   }, [isScrolled, isMobile, hasMounted]);
 
-  if (!hasMounted) {
-    return (
-       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg">
-        <div className="container flex h-16 items-center justify-between">
-            <AppLogo />
-            <Skeleton className="h-10 w-10 rounded-full" />
-        </div>
-      </header>
-    );
-  }
-
   return (
     <header 
       className={cn(
@@ -97,14 +85,14 @@ export function SiteHeader() {
     >
       <div className={cn(
         "container flex h-16 items-center justify-between", 
-        "main-header-bar" 
+        "main-header-bar transition-all duration-200 ease-in-out" // Reduced animation duration
         )}
       > 
         <div className="flex items-center gap-x-2 md:gap-x-6">
             <AppLogo />
-            <div className="hidden md:flex">
+             <nav className="hidden md:flex">
                  <MainNav />
-            </div>
+            </nav>
         </div>
 
         <div className="hidden md:flex flex-1 items-center justify-center max-w-sm lg:max-w-md mx-4">
