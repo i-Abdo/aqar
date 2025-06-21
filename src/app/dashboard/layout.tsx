@@ -85,8 +85,8 @@ export default function DashboardLayout({
           '--sidebar-width-icon': '4rem', 
           '--sidebar-outer-padding': '0.25rem', 
           '--sidebar-header-height': '3rem',
-          '--header-height': '4.5rem',
-          '--sidebar-stable-top-anchor': 'var(--header-height)',
+          '--header-height': '6.5rem',
+          '--sidebar-inset-top': '3rem', 
           '--sidebar-side': 'right', 
           '--sidebar-collapsible': 'icon',
         } as React.CSSProperties}

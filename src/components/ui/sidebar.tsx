@@ -261,7 +261,6 @@ export const Sidebar = React.forwardRef<
         currentSidebarWidth = '0px';
     }
     
-    const topPosition = `var(--sidebar-stable-top-anchor, var(--header-height))`;
     const outerContainerPadding = 'var(--sidebar-outer-padding, 0.1rem)'; 
     const sideClasses = actualSide === "left" ? "left-0" : "right-0";
 
@@ -277,8 +276,8 @@ export const Sidebar = React.forwardRef<
           sideClasses
         )}
         style={{
-          top: topPosition,
-          maxHeight: `calc(100svh - ${topPosition} - (${outerContainerPadding} * 2))`, 
+          top: 'var(--header-height)',
+          maxHeight: `calc(100svh - var(--header-height) - (${outerContainerPadding} * 2))`, 
           width: currentSidebarWidth, 
           padding: outerContainerPadding, 
           alignItems: 'flex-start', 
@@ -324,16 +323,14 @@ export const SidebarInset = React.forwardRef<
     )
   }
   
-  const topPadding = isMobile ? 'var(--header-height, 6.5rem)' : '3.5rem';
-
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight"
   let paddingValue: string;
 
   if (isMobile) {
-      paddingValue = 'calc(var(--sidebar-width-icon, 4.5rem) + var(--sidebar-outer-padding, 0.1rem) * 2)';
+      paddingValue = 'calc(var(--sidebar-width-icon, 3.5rem) + var(--sidebar-outer-padding, 0.25rem) * 2)';
   } else {
-      const collapsedWidth = collapsible === 'icon' ? 'calc(var(--sidebar-width-icon, 4.5rem) + var(--sidebar-outer-padding, 0.1rem) * 2)' : '0px';
-      const expandedWidth = "calc(var(--sidebar-width, 16rem) + var(--sidebar-outer-padding, 0.1rem) * 2)";
+      const collapsedWidth = collapsible === 'icon' ? 'calc(var(--sidebar-width-icon, 4rem) + var(--sidebar-outer-padding, 0.25rem) * 2)' : '0px';
+      const expandedWidth = "calc(var(--sidebar-width, 16rem) + var(--sidebar-outer-padding, 0.25rem) * 2)";
       paddingValue = open ? expandedWidth : collapsedWidth;
   }
   
@@ -346,7 +343,7 @@ export const SidebarInset = React.forwardRef<
       ref={ref}
       className={cn("flex-1 flex flex-col overflow-hidden", className)}
       style={{
-        paddingTop: topPadding,
+        paddingTop: 'var(--sidebar-inset-top, 3rem)',
         [paddingProp]: paddingValue,
         transition: `${paddingProp} 0.2s ease-in-out, paddingTop 0.2s ease-in-out`,
         ...style,
