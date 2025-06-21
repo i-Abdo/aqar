@@ -4,6 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle, MapPin } from "lucide-react";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'عقاري - بوابتك العقارية الشاملة في الجزائر',
+  description: 'ابحث عن شقق، بيوت، أراضي، وفلل للبيع أو الكراء في جميع ولايات الجزائر. اعرض عقارك بسهولة مع عقاري.',
+};
 
 const popularCities = [
   { name: "الجزائر", hint: "Algiers cityscape" , image: "https://placehold.co/400x300.png" },

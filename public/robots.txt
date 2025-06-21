@@ -1,7 +1,15 @@
-
-# https://www.robotstxt.org/robotstxt.html
+# See https://www.robotstxt.org/robotstxt.html for syntax
 User-agent: *
-Disallow: /admin/
-Disallow: /dashboard/
+Allow: /
+Allow: /properties
+Allow: /properties/*
+Allow: /pricing
+Allow: /terms
+Allow: /privacy
+
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /dashboard
+Disallow: /dashboard/*
 Disallow: /login
 Disallow: /signup

@@ -1,6 +1,21 @@
 
 import type {NextConfig} from 'next';
 
+const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.googletagmanager.com https://*.firebaseapp.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    img-src 'self' data: https://placehold.co https://res.cloudinary.com;
+    connect-src 'self' wss://*.firebaseio.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://firestore.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    frame-src 'self' https://*.firebaseapp.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    upgrade-insecure-requests;
+`.replace(/\s{2,}/g, ' ').trim();
+
+
 const securityHeaders = [
   {
     key: 'X-Content-Type-Options',
@@ -26,6 +41,10 @@ const securityHeaders = [
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=()',
   },
+  {
+    key: 'Content-Security-Policy',
+    value: cspHeader,
+  }
 ];
 
 const nextConfig: NextConfig = {
