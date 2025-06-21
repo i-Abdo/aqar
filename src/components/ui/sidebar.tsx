@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -379,7 +380,7 @@ export const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 export const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:!size-10 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:!p-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:justify-center [&_svg]:size-5 [&_svg]:shrink-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:[&_svg]:mx-auto group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:[&>span]:hidden",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:!size-10 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:!p-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:justify-center [&_svg]:size-5 [&_svg]:shrink-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:[&_svg]:mx-auto",
   {
     variants: {
       variant: {
@@ -406,7 +407,6 @@ export const SidebarMenuButton = React.forwardRef<
     asChild?: boolean;
     isActive?: boolean;
     tooltip?: string | React.ComponentProps<typeof TooltipContent>;
-    icon?: LucideIcon; // Icon prop
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(
   (
@@ -418,63 +418,43 @@ export const SidebarMenuButton = React.forwardRef<
       tooltip,
       className,
       children,
-      icon: IconComponent, // Use the passed icon prop
       ...props
     },
     ref
   ) => {
     const Comp = asChild ? Slot : "button";
     const { open, isMobile, collapsible, actualSide } = useSidebar();
-
-    let buttonContentNode;
-
+    
     if (asChild) {
-      if (React.isValidElement(children) && React.Children.count(children) === 1) {
-        // When asChild is true, `children` is the single child element (e.g., Link).
-        // This element is responsible for its own content structure (icon, text, badge).
-        // The CSS classes from sidebarMenuButtonVariants will be applied to this child via Slot.
-        buttonContentNode = children;
-      } else {
-        // This case should ideally not be reached if used correctly.
-        // Fallback to prevent Slot from crashing if children is not a single element.
+      if (!React.isValidElement(children) || React.Children.count(children) > 1) {
         console.error(
           "SidebarMenuButton: `children` prop must be a single valid React element when `asChild` is true. Received:",
           children
         );
-        // Render a simple button with an error message or the raw children if it's text.
+        // Fallback rendering
         return (
           <button
             ref={ref as React.Ref<HTMLButtonElement>}
             className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
             data-sidebar="menu-button-error"
             {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-            type={(props as React.ButtonHTMLAttributes<HTMLButtonElement>).type || 'button'}
           >
-            {IconComponent && <IconComponent />}
-            <span>{typeof children === 'string' ? children : "Error"}</span>
+            Error: Invalid children
           </button>
         );
       }
-    } else {
-      // Not asChild, SidebarMenuButton renders a button with its own icon and text (children).
-      buttonContentNode = (
-        <>
-          {IconComponent && <IconComponent />}
-          {(open || collapsible !== "icon" || isMobile) && <span>{children}</span>}
-        </>
-      );
     }
 
     const buttonElement = (
       <Comp
         ref={ref}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        {...props} // Pass original props like onClick, type etc.
+        {...props}
       >
-        {buttonContentNode}
+        {children}
       </Comp>
     );
 

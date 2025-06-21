@@ -63,15 +63,17 @@ export function DashboardNav() {
                 isActive={pathname === item.href}
                 tooltip={item.title}
               >
-                <Link href={item.href} className="flex items-center w-full overflow-hidden gap-2">
-                  {IconComponent && <IconComponent className="shrink-0" />}
-                  <span className="truncate flex-1 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
-                    {item.title}
-                  </span>
+                <Link href={item.href} className="flex items-center justify-between w-full overflow-hidden">
+                   <div className="flex items-center gap-2 overflow-hidden">
+                    {IconComponent && <IconComponent className="shrink-0" />}
+                    <span className="truncate flex-1 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
+                      {item.title}
+                    </span>
+                  </div>
                   {showBadge && (
                     <Badge 
                       variant="destructive" 
-                      className="shrink-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden ml-auto px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
+                      className="shrink-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
                     >
                       {countToDisplay > 9 ? '9+' : countToDisplay}
                     </Badge>
