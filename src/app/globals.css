@@ -16,14 +16,14 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
 
-    --primary: 205 66% 25%; /* Darkened Blue for AA+ contrast #154A6D */
+    --primary: 205 66% 23%; /* Darkened Blue for AA+ contrast #134463 */
     --primary-foreground: 0 0% 100%; /* White text on primary */
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 224 71% 4%;
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 210 40% 35%; /* Darkened for better contrast */
+    --muted-foreground: 210 40% 30%; /* Darkened for better contrast */
 
     --accent: 34 79% 60%; /* Yellow-orange #E8A54B */
     --accent-foreground: 0 0% 100%; /* White text on accent */

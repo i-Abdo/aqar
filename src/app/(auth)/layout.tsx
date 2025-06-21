@@ -1,4 +1,13 @@
 import { AppLogo } from "@/components/layout/AppLogo";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s - عقاري',
+    default: 'المصادقة - عقاري',
+  },
+  description: 'تسجيل الدخول أو إنشاء حساب جديد للوصول إلى لوحة التحكم الخاصة بك في عقاري.',
+};
 
 export default function AuthLayout({
   children,
