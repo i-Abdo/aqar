@@ -36,7 +36,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <head />
+      <head>
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+      </head>
       <body className={cn(
           "font-body antialiased min-h-screen flex flex-col",
           fontBody.variable,
