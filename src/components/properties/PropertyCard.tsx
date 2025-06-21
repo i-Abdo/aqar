@@ -42,13 +42,14 @@ export function PropertyCard({ property }: PropertyCardProps) {
     <>
       <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
         <CardHeader className="p-0 relative">
-          <Link href={`/properties/${property.id}`} className="block">
+          <Link href={`/properties/${property.id}`} className="block h-48 relative group">
             <Image
               src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
               alt={property.title}
-              width={400}
-              height={250}
-              className="object-cover w-full h-48"
+              fill
+              style={{objectFit: "cover"}}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="transition-transform duration-300 group-hover:scale-105"
               data-ai-hint="house exterior"
             />
           </Link>
@@ -66,7 +67,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
             )}
           </div>
         </CardHeader>
-        <CardContent className="p-4 flex-grow">
+        <CardContent className="p-4 flex-grow flex flex-col">
           <Link href={`/properties/${property.id}`}>
             <CardTitle className="text-xl font-headline mb-1 truncate hover:text-primary transition-colors" title={property.title}>
               {property.title}
@@ -74,50 +75,25 @@ export function PropertyCard({ property }: PropertyCardProps) {
           </Link>
           <p className="text-lg font-semibold text-green-600 mb-2">{formatDisplayPrice(property.price)}</p>
           
-          <div className="text-sm text-muted-foreground space-y-1">
-            {/* Row 1: Location & Area */}
-            <div className="grid grid-cols-2 gap-x-2">
-              <div className="flex items-center gap-1 truncate" title={`${property.wilaya}, ${property.city}`}>
-                <MapPin size={16} className="text-muted-foreground shrink-0" />
-                <span>{property.wilaya}, {property.city}</span>
-              </div>
-              {property.area ? (
-                <div className="flex items-center gap-1">
-                  <Ruler size={16} className="text-muted-foreground shrink-0" />
-                  <span>المساحة: {property.area} م²</span>
-                </div>
-              ) : <div className="min-h-[1.25rem]">&nbsp;</div> /* Placeholder to maintain grid structure and height */}
-            </div>
-
-            {/* Row 2: Rooms & Dimensions */}
-            <div className="grid grid-cols-2 gap-x-2">
-              <div className="flex items-center gap-1">
-                <BedDouble size={16} className="text-muted-foreground shrink-0" />
-                <span>{property.rooms} {property.rooms === 1 ? 'غرفة' : 'غرف'}</span>
-              </div>
-              {(property.length && property.width) ? (
-                <div className="flex items-center gap-1">
-                  <Ruler size={16} className="text-muted-foreground shrink-0" />
-                  <span>الأبعاد: {property.length}م × {property.width}م</span>
-                </div>
-              ) : <div className="min-h-[1.25rem]">&nbsp;</div> /* Placeholder */}
-            </div>
-
-            {/* Row 3: Bathrooms & Phone */}
-            <div className="grid grid-cols-2 gap-x-2">
-              <div className="flex items-center gap-1">
-                <Bath size={16} className="text-muted-foreground shrink-0" />
-                <span>{property.bathrooms} حمامات</span>
-              </div>
-              {property.phoneNumber ? (
-                <div className="flex items-center gap-1">
-                  <Phone size={16} className="text-muted-foreground shrink-0" />
-                  <span>{property.phoneNumber}</span>
-                </div>
-              ) : <div className="min-h-[1.25rem]">&nbsp;</div> /* Placeholder */}
-            </div>
-          </div>
-
+          <ul className="text-sm text-muted-foreground space-y-1 flex-grow">
+            <li className="flex items-center gap-1.5 truncate" title={`${property.wilaya}, ${property.city}`}>
+              <MapPin size={16} className="text-muted-foreground shrink-0" />
+              <span>{property.wilaya}, {property.city}</span>
+            </li>
+             <li className="flex items-center gap-1.5">
+              <BedDouble size={16} className="text-muted-foreground shrink-0" />
+              <span>{property.rooms} غرف</span>
+               <span className="mx-1">·</span>
+              <Bath size={16} className="text-muted-foreground shrink-0" />
+              <span>{property.bathrooms} حمامات</span>
+            </li>
+            {property.area && (
+              <li className="flex items-center gap-1.5">
+                <Ruler size={16} className="text-muted-foreground shrink-0" />
+                <span>{property.area} م²</span>
+              </li>
+            )}
+          </ul>
         </CardContent>
         <CardFooter className="p-4 border-t flex gap-2">
           <Button asChild className="flex-1 transition-smooth hover:shadow-md">
@@ -149,3 +125,4 @@ export function PropertyCard({ property }: PropertyCardProps) {
   );
 }
 
+    
