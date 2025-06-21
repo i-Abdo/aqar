@@ -56,7 +56,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                 <Link href={item.href} className="flex items-center justify-between w-full overflow-hidden">
                   <div className="flex items-center gap-2 overflow-hidden">
                     {IconComponent && <IconComponent className="shrink-0" />}
-                    <span className="truncate flex-1 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
+                    <span className="truncate flex-1 text-left group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
                       {item.title}
                     </span>
                   </div>
@@ -222,6 +222,7 @@ export default function AdminLayout({
         '--header-height': headerHeightValue, 
         '--mobile-search-height': mobileSearchHeightValue, 
         '--total-mobile-header-height': totalMobileHeaderHeightValue, 
+        '--sidebar-stable-top-anchor': totalMobileHeaderHeightValue,
         '--sidebar-side': 'right',
         '--sidebar-collapsible': 'icon',
       } as React.CSSProperties}
