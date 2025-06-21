@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as firebaseAuth, db } from '@/lib/firebase/client';
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, updateDoc, deleteDoc } from "firebase/firestore";
 import type { UserTrustLevel } from "@/types";
 
 const baseSchema = z.object({
@@ -35,7 +35,9 @@ const signupSchema = baseSchema.extend({
   path: ["confirmPassword"],
 });
 
-const loginSchema = baseSchema;
+const loginSchema = baseSchema.extend({
+  subscribeToNewsletter: z.boolean().default(true),
+});
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -64,6 +66,9 @@ export function AuthForm({ mode }: AuthFormProps) {
         subscribeToNewsletter: true,
         agreeToTerms: false,
       }),
+      ...(mode === 'login' && {
+        subscribeToNewsletter: true,
+      }),
     },
   });
 
@@ -74,7 +79,6 @@ export function AuthForm({ mode }: AuthFormProps) {
         const signupValues = values as z.infer<typeof signupSchema>;
         const userCredential = await createUserWithEmailAndPassword(firebaseAuth, signupValues.email, signupValues.password);
         
-        // Create user document in 'users' collection
         await setDoc(doc(db, "users", userCredential.user.uid), {
           uid: userCredential.user.uid,
           email: signupValues.email,
@@ -85,17 +89,35 @@ export function AuthForm({ mode }: AuthFormProps) {
           createdAt: serverTimestamp(),
         });
         
-        // Create user email document in 'all-emails' collection
         await setDoc(doc(db, "all-emails", userCredential.user.uid), {
             email: signupValues.email,
             createdAt: serverTimestamp(),
         });
 
+        if (signupValues.subscribeToNewsletter) {
+            await setDoc(doc(db, "subscribers", userCredential.user.uid), {
+                email: signupValues.email,
+                createdAt: serverTimestamp(),
+            });
+        }
+
         toast({ title: "تم إنشاء الحساب بنجاح!", description: "جاري توجيهك إلى لوحة التحكم..." });
         router.push("/dashboard");
       } else {
         const loginValues = values as z.infer<typeof loginSchema>;
-        await signInWithEmailAndPassword(firebaseAuth, loginValues.email, loginValues.password);
+        const userCredential = await signInWithEmailAndPassword(firebaseAuth, loginValues.email, loginValues.password);
+
+        const userRef = doc(db, "users", userCredential.user.uid);
+        const subscriberRef = doc(db, "subscribers", userCredential.user.uid);
+
+        if (loginValues.subscribeToNewsletter) {
+            await updateDoc(userRef, { newsletter: true });
+            await setDoc(subscriberRef, { email: loginValues.email, createdAt: serverTimestamp() }, { merge: true });
+        } else {
+            await updateDoc(userRef, { newsletter: false });
+            await deleteDoc(subscriberRef);
+        }
+
         toast({ title: "تم تسجيل الدخول بنجاح!" });
         const redirectPath = new URLSearchParams(window.location.search).get('redirect') || "/dashboard";
         router.push(redirectPath);
@@ -257,6 +279,40 @@ export function AuthForm({ mode }: AuthFormProps) {
             </>
           )}
 
+          {mode === "login" && (
+            <div className="items-top flex space-x-2 rtl:space-x-reverse">
+                <Controller
+                    name="subscribeToNewsletter"
+                    control={form.control}
+                    render={({ field }) => (
+                    <Checkbox
+                        id="subscribeToNewsletterLogin"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                    />
+                    )}
+                />
+                <div className="grid gap-1.5 leading-none">
+                    <Label
+                    htmlFor="subscribeToNewsletterLogin"
+                    className="text-sm font-normal cursor-pointer"
+                    >
+                    أوافق على استلام رسائل بريد إلكتروني حول التحديثات والعروض.
+                    </Label>
+                </div>
+            </div>
+          )}
+
+          {mode === 'login' && (
+            <p className="text-center text-xs text-muted-foreground pt-2">
+                بالنقر على "تسجيل الدخول"، فإنك توافق على{" "}
+                <Link href="/terms" className="underline hover:text-primary">
+                    شروط الاستخدام
+                </Link>
+                .
+            </p>
+          )}
+
           <Button type="submit" className="w-full transition-smooth hover:shadow-md" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {mode === "login" ? "تسجيل الدخول" : "إنشاء الحساب"}
@@ -276,5 +332,4 @@ export function AuthForm({ mode }: AuthFormProps) {
     </Card>
   );
 }
-
     
