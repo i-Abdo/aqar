@@ -82,7 +82,7 @@ export const SidebarProvider = React.forwardRef<
     React.useEffect(() => {
       if (hydrated && openProp === undefined) {
         if (isMobileHook) {
-          _setOpen(true); 
+          _setOpen(false); 
         } else {
           const cookieValue = document.cookie
             .split("; ")
@@ -214,8 +214,8 @@ const SidebarHeaderInternal = React.forwardRef<
           className={cn(
             "h-8 w-8 shrink-0",
              (!open && !isMobile && collapsible === 'icon') && "mx-auto", // Center when collapsed on desktop & icon-only
-             (isMobile && actualSide === 'left') && 'ml-auto', // Push to right on mobile LTR
-             (isMobile && actualSide === 'right') && 'mr-auto', // Push to left on mobile RTL
+             (open && actualSide === 'left') && 'ml-auto', // Push to right on mobile LTR
+             (open && actualSide === 'right') && 'mr-auto', // Push to left on mobile RTL
           )}
           aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
         >
@@ -255,7 +255,10 @@ export const Sidebar = React.forwardRef<
     if (open) {
       currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 15rem)' : 'var(--sidebar-width, 16rem)';
     } else {
-      currentSidebarWidth = (collapsible === "icon") ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
+       currentSidebarWidth =
+        collapsible === "icon" && !isMobile // On desktop collapsed
+          ? "var(--sidebar-width-icon, 4.5rem)"
+          : "0px" // Collapsed on mobile, or 'none' collapsible on desktop
     }
     if (collapsible === "none" && !open) {
         currentSidebarWidth = '0px';
@@ -314,45 +317,48 @@ export const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { isMobile, actualSide, collapsible, hydrated, open } = useSidebar(); 
-  
+  const { isMobile, actualSide, collapsible, hydrated, open } = useSidebar()
+
   if (!hydrated) {
-      return (
-          <div
-              ref={ref}
-              className={cn("flex-1 flex flex-col overflow-hidden", className)}
-              style={{
-                  paddingTop: `var(${isMobile ? '--total-mobile-header-height' : '--header-height'})`,
-                  ...style,
-              }}
-              {...props}
-          />
-      );
+    return (
+      <div
+        ref={ref}
+        className={cn("flex-1 flex flex-col overflow-hidden", className)}
+        style={{
+          paddingTop: `var(--header-height)`,
+          ...style,
+        }}
+        {...props}
+      />
+    )
   }
 
-  const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight";
-  let paddingValue = '0px';
+  const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight"
+  let paddingValue = "0px"
 
+  // Only apply horizontal padding on desktop to push content.
+  // On mobile, padding is 0, so the sidebar acts as an overlay.
   if (!isMobile) {
     if (collapsible === "icon") {
-        paddingValue = open ? 'var(--sidebar-width, 16rem)' : 'var(--sidebar-width-icon, 4.5rem)';
-    } else { // collapsible is "none"
-        paddingValue = open ? 'var(--sidebar-width, 16rem)' : '0px';
+      paddingValue = open
+        ? "var(--sidebar-width, 16rem)"
+        : "var(--sidebar-width-icon, 4.5rem)"
+    } else {
+      // collapsible is "none"
+      paddingValue = open ? "var(--sidebar-width, 16rem)" : "0px"
     }
   }
-  
 
   return (
     <div
       ref={ref}
-      className={cn(
-        "flex-1 flex flex-col overflow-hidden", 
-        className
-      )}
+      className={cn("flex-1 flex flex-col overflow-hidden", className)}
       style={{
-        paddingTop: `var(--current-sticky-header-height, var(${isMobile ? '--total-mobile-header-height' : '--header-height'}))`, 
-        [paddingProp]: paddingValue, 
-        transition: `${paddingProp} 0.2s ease-in-out`,
+        paddingTop: `var(--current-sticky-header-height, var(${
+          isMobile ? "--total-mobile-header-height" : "--header-height"
+        }))`,
+        [paddingProp]: paddingValue,
+        transition: isMobile ? undefined : `${paddingProp} 0.2s ease-in-out`,
         ...style,
       }}
       {...props}
@@ -389,7 +395,7 @@ export const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 export const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:!size-10 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:!p-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:justify-center [&_svg]:size-5 [&_svg]:shrink-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:[&_svg]:mx-auto",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[state=collapsed]:justify-center [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -435,23 +441,17 @@ export const SidebarMenuButton = React.forwardRef<
     const { open, isMobile, collapsible, actualSide } = useSidebar();
     
     if (asChild) {
-      if (!React.isValidElement(children) || React.Children.count(children) > 1) {
-        console.error(
-          "SidebarMenuButton: `children` prop must be a single valid React element when `asChild` is true. Received:",
-          children
-        );
-        // Fallback rendering
-        return (
-          <button
-            ref={ref as React.Ref<HTMLButtonElement>}
-            className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-            data-sidebar="menu-button-error"
-            {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-          >
-            Error: Invalid children
-          </button>
-        );
-      }
+        if (!React.isValidElement(children)) {
+            return (
+                <button
+                    ref={ref as React.Ref<HTMLButtonElement>}
+                    className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+                    {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+                >
+                    Error: Invalid `asChild` usage.
+                </button>
+            );
+        }
     }
 
     const buttonElement = (
