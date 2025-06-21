@@ -8,7 +8,6 @@ import { ThemeToggleButton } from "./ThemeToggleButton";
 import { GlobalSearchInput } from "./GlobalSearchInput";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile"; 
-import { MobileNav } from "./MobileNav";
 
 export function SiteHeader() {
   const isMobile = useIsMobile();
@@ -98,23 +97,20 @@ export function SiteHeader() {
         )}
       > 
         <div className="flex items-center gap-x-2">
-            <MobileNav />
             <AppLogo />
+            <div className="hidden md:flex items-center gap-x-6">
+                 <MainNav />
+            </div>
         </div>
 
-        <div className="hidden md:flex flex-1 items-center justify-center gap-x-6 mx-4">
-          <div className="flex-shrink-0">
-            <MainNav />
-          </div>
-          <div className="w-full max-w-sm lg:max-w-md">
-            <GlobalSearchInput />
-          </div>
+        <div className="hidden md:flex flex-1 items-center justify-center max-w-sm lg:max-w-md mx-4">
+             <GlobalSearchInput />
         </div>
         
         <div className="flex items-center gap-x-1 shrink-0">
-            <div className="hidden md:block">
+             <div className="hidden md:block">
                 <ThemeToggleButton />
-            </div>
+             </div>
             <UserAccountNav />
         </div>
       </div>
@@ -122,11 +118,12 @@ export function SiteHeader() {
       {isMobile && (
         <div className={cn(
           "md:hidden container mx-auto px-4 pt-1 pb-2", 
-          "mobile-search-bar-container" 
+          "mobile-search-bar-container flex items-center gap-4" 
           )}
           style={{height: 'var(--mobile-search-height)' }} 
         >
           <GlobalSearchInput />
+          <ThemeToggleButton />
         </div>
       )}
     </header>

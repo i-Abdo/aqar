@@ -152,7 +152,7 @@ export const SidebarProvider = React.forwardRef<
           <div
             style={style}
             className={cn(
-              "group/sidebar-wrapper flex h-full w-full",
+              "group flex h-full w-full",
               className
             )}
             ref={ref}
@@ -198,7 +198,7 @@ const SidebarHeaderInternal = React.forwardRef<
       )}
       {...props}
     >
-      {(open || (isMobile && collapsible !== 'icon') ) && title && ( // Show title if open, or on mobile if not icon-only collapsible (as it might be a drawer then)
+      {open && title && (
         <div className="flex items-center gap-2 overflow-hidden flex-grow">
           <span className="text-lg font-semibold truncate">{title}</span>
           {notificationCount !== undefined && notificationCount > 0 && (
@@ -213,9 +213,9 @@ const SidebarHeaderInternal = React.forwardRef<
           onClick={toggleSidebar}
           className={cn(
             "h-8 w-8 shrink-0",
-             (!open && !isMobile && collapsible === 'icon') && "mx-auto", // Center when collapsed on desktop & icon-only
-             (open && actualSide === 'left') && 'ml-auto', // Push to right on mobile LTR
-             (open && actualSide === 'right') && 'mr-auto', // Push to left on mobile RTL
+             !open && "mx-auto", // Center when collapsed
+             (open && actualSide === 'left') && 'ml-auto',
+             (open && actualSide === 'right') && 'mr-auto',
           )}
           aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
         >
@@ -255,10 +255,14 @@ export const Sidebar = React.forwardRef<
     if (open) {
       currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 15rem)' : 'var(--sidebar-width, 16rem)';
     } else {
-       currentSidebarWidth =
-        collapsible === "icon" && !isMobile // On desktop collapsed
-          ? "var(--sidebar-width-icon, 4.5rem)"
-          : "0px" // Collapsed on mobile, or 'none' collapsible on desktop
+       if (isMobile) {
+         currentSidebarWidth = collapsible === 'icon' ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
+       } else {
+         currentSidebarWidth =
+            collapsible === "icon"
+            ? "var(--sidebar-width-icon, 4.5rem)"
+            : "0px";
+       }
     }
     if (collapsible === "none" && !open) {
         currentSidebarWidth = '0px';
@@ -271,7 +275,6 @@ export const Sidebar = React.forwardRef<
     return (
       <div 
         ref={ref}
-        data-sidebar="sidebar-outer-container" 
         data-state={open ? "expanded" : "collapsed"}
         data-collapsible={collapsible}
         data-side={actualSide} 
@@ -336,15 +339,12 @@ export const SidebarInset = React.forwardRef<
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight"
   let paddingValue = "0px"
 
-  // Only apply horizontal padding on desktop to push content.
-  // On mobile, padding is 0, so the sidebar acts as an overlay.
   if (!isMobile) {
     if (collapsible === "icon") {
       paddingValue = open
         ? "var(--sidebar-width, 16rem)"
         : "var(--sidebar-width-icon, 4.5rem)"
     } else {
-      // collapsible is "none"
       paddingValue = open ? "var(--sidebar-width, 16rem)" : "0px"
     }
   }
@@ -440,18 +440,8 @@ export const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button";
     const { open, isMobile, collapsible, actualSide } = useSidebar();
     
-    if (asChild) {
-        if (!React.isValidElement(children)) {
-            return (
-                <button
-                    ref={ref as React.Ref<HTMLButtonElement>}
-                    className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-                    {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-                >
-                    Error: Invalid `asChild` usage.
-                </button>
-            );
-        }
+    if (asChild && !React.isValidElement(children)) {
+      return null;
     }
 
     const buttonElement = (
@@ -467,7 +457,6 @@ export const SidebarMenuButton = React.forwardRef<
       </Comp>
     );
 
-    // Tooltip logic
     if (!tooltip || isMobile === undefined) {
       return buttonElement;
     }
