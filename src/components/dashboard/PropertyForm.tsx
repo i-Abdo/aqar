@@ -440,8 +440,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       <CardContent>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
           
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold font-headline border-b pb-2">المعلومات الأساسية</h3>
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold font-headline border-b pb-1">المعلومات الأساسية</h3>
             <div>
               <Label htmlFor="title">عنوان الإعلان *</Label>
               <Input id="title" {...form.register("title")} placeholder="مثال: شقة فاخرة مطلة على البحر" />
@@ -562,8 +562,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           </div>
 
           
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold font-headline border-b pb-2 flex items-center gap-1"><MapPin size={18}/>الموقع</h3>
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><MapPin size={18}/>الموقع</h3>
              <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="wilaya">الولاية *</Label>
@@ -600,8 +600,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           </div>
           
           
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold font-headline border-b pb-2">الميزات والخدمات</h3>
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold font-headline border-b pb-1">الميزات والخدمات</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {(Object.keys(form.getValues().filters) as Array<keyof PropertyFormValues['filters']>).map((key) => {
                 const Icon = key === 'water' ? Droplet : key === 'electricity' ? Zap : key === 'internet' ? Wifi : key === 'gas' ? UtilityPole : FileText;
@@ -629,7 +629,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <div>
                 <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageIcon size={18}/>صورة العقار الرئيسية *</h3>
                 <Input id="mainImage" type="file" onChange={handleMainImageChange} accept={ALLOWED_IMAGE_TYPES.join(",")} />
-                <p className="text-xs text-muted-foreground mt-1">الأنواع المسموح بها: JPG, PNG, WEBP. الحجم الأقصى: {MAX_FILE_SIZE_MB}MB.</p>
+                <p className="text-xs text-muted-foreground mt-1">الأنواع المسموح بها: JPG, PNG, WEBP. الحجم الأقصى: ${MAX_FILE_SIZE_MB}MB.</p>
                 {mainImagePreview && (
                     <div className="mt-4 relative group w-48">
                     <Image src={mainImagePreview} alt="معاينة الصورة الرئيسية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" data-ai-hint="property interior room" />
@@ -656,7 +656,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                     accept={ALLOWED_IMAGE_TYPES.join(",")}
                     disabled={additionalImagePreviews.length >= maxAdditionalImages || maxAdditionalImages === 0} 
                 />
-                <p className="text-xs text-muted-foreground mt-1">الأنواع المسموح بها: JPG, PNG, WEBP. الحجم الأقصى لكل صورة: {MAX_FILE_SIZE_MB}MB.</p>
+                <p className="text-xs text-muted-foreground mt-1">الأنواع المسموح بها: JPG, PNG, WEBP. الحجم الأقصى لكل صورة: ${MAX_FILE_SIZE_MB}MB.</p>
                 <p className="text-sm mt-1">
                     {maxAdditionalImages > 0 ?
                         <span className="text-muted-foreground">{`يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية. (${additionalImagePreviews.length}/${maxAdditionalImages} محملة)`}</span> :
@@ -686,8 +686,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
 
           
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold font-headline border-b pb-2">وصف العقار *</h3>
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold font-headline border-b pb-1">وصف العقار *</h3>
             <Controller
                 name="description"
                 control={form.control}
@@ -747,4 +747,3 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     </Card>
   );
 }
-
