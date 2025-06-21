@@ -15,25 +15,24 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [themeSetting, setThemeSettingState] = useState<ThemeSetting>(() => {
-    if (typeof window !== 'undefined') {
-      // If there's a stored setting, use it. Otherwise, default to "light".
-      return (localStorage.getItem("themeSetting") as ThemeSetting) || "light";
-    }
-    // For SSR, default to "light". It will be corrected on client if localStorage has a value.
-    return "light";
-  });
+  // Initialize with a consistent default for SSR.
+  // The actual value will be loaded from localStorage on the client in useEffect.
+  const [themeSetting, setThemeSettingState] = useState<ThemeSetting>("system");
+  const [effectiveTheme, setEffectiveTheme] = useState<EffectiveTheme>("light");
+  const [hydrated, setHydrated] = useState(false);
 
-  const [effectiveTheme, setEffectiveTheme] = useState<EffectiveTheme>("light"); // Default to light for SSR
-  const [hydrated, setHydrated] = React.useState(false);
-
-  React.useEffect(() => {
+  // On client-side mount, determine the correct initial theme from localStorage.
+  useEffect(() => {
     setHydrated(true);
+    const storedSetting = localStorage.getItem("themeSetting") as ThemeSetting | null;
+    if (storedSetting && ["light", "dark", "system"].includes(storedSetting)) {
+      setThemeSettingState(storedSetting);
+    }
   }, []);
 
-
+  // Effect to apply the theme class to the HTML element.
   useEffect(() => {
-    if (!hydrated) return; // Wait for client-side hydration
+    if (!hydrated) return; // Only run on client after hydration
 
     const root = window.document.documentElement;
     let currentEffectiveTheme: EffectiveTheme;
@@ -41,17 +40,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     if (themeSetting === "system") {
       currentEffectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     } else {
-      currentEffectiveTheme = themeSetting; // "light" or "dark"
+      currentEffectiveTheme = themeSetting;
     }
 
     root.classList.remove("light", "dark");
     root.classList.add(currentEffectiveTheme);
     setEffectiveTheme(currentEffectiveTheme);
-    localStorage.setItem("themeSetting", themeSetting); // Save the actual setting ("light", "dark", or "system")
 
   }, [themeSetting, hydrated]);
 
-  // Listener for system theme changes IF themeSetting is "system"
+  // Listener for system theme changes IF the user has selected "system"
   useEffect(() => {
     if (!hydrated || themeSetting !== "system") return;
 
@@ -64,19 +62,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       setEffectiveTheme(newEffectiveTheme);
     };
 
-    handleChange(); 
+    handleChange(); // Apply initial system theme
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [themeSetting, hydrated]);
 
-
+  // The setter function now also persists the new setting to localStorage.
   const setThemeSetting = (newThemeSetting: ThemeSetting) => {
+    localStorage.setItem("themeSetting", newThemeSetting);
     setThemeSettingState(newThemeSetting);
   };
-  
-  if (!hydrated) {
-    // To prevent flash of unstyled content or incorrect theme during SSR->client transition
-  }
 
   return (
     <ThemeContext.Provider value={{ themeSetting, setThemeSetting, effectiveTheme }}>
@@ -92,4 +87,3 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
-
