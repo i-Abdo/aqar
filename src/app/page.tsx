@@ -87,6 +87,7 @@ export default function HomePage() {
             height={400} 
             className="rounded-lg shadow-xl object-cover"
             data-ai-hint="modern apartment building"
+            priority
           />
       </section>
 

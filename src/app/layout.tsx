@@ -6,6 +6,23 @@ import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { AuthProvider } from '@/hooks/use-auth';
 import { ThemeProvider } from '@/hooks/use-theme'; 
+import { Almarai, Cairo } from 'next/font/google';
+import { cn } from '@/lib/utils';
+
+const fontBody = Almarai({
+  subsets: ['arabic'],
+  weight: ['400', '700'],
+  variable: '--font-body',
+  display: 'swap',
+});
+
+const fontHeadline = Cairo({
+  subsets: ['arabic'],
+  weight: ['400', '700'],
+  variable: '--font-headline',
+  display: 'swap',
+});
+
 
 export const metadata: Metadata = {
   title: 'عقاري - بوابتك العقارية الشاملة',
@@ -19,12 +36,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased min-h-screen flex flex-col">
+      <head />
+      <body className={cn(
+          "font-body antialiased min-h-screen flex flex-col",
+          fontBody.variable,
+          fontHeadline.variable
+        )}>
         <ThemeProvider> 
           <AuthProvider>
             <SiteHeader />
