@@ -213,7 +213,7 @@ export default function AdminLayout({
         '--sidebar-width': '18rem', 
         '--sidebar-width-mobile': '16rem', 
         '--sidebar-width-icon': '3.5rem', 
-        '--sidebar-outer-padding': '0.25rem', 
+        '--sidebar-outer-padding': '0.125rem', 
         '--sidebar-header-height': '3rem',
         '--header-height': '7.25rem', // Static combined height
         '--sidebar-stable-top-anchor': 'var(--header-height)', // Simplified
