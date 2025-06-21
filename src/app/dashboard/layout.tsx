@@ -83,7 +83,7 @@ export default function DashboardLayout({
           '--sidebar-width': '16rem',
           '--sidebar-width-mobile': '15rem', // Slightly reduced for mobile
           '--sidebar-width-icon': '3.5rem', 
-          '--sidebar-outer-padding': '0.5rem', 
+          '--sidebar-outer-padding': '0.25rem', 
           '--sidebar-header-height': '3rem',
           '--header-height': '7.25rem', // Static combined height
           '--sidebar-stable-top-anchor': 'var(--header-height)', // Simplified

@@ -53,8 +53,8 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                 isActive={pathname.startsWith(item.href)}
                 tooltip={item.title}
               >
-                <Link href={item.href} className="flex items-center justify-between w-full overflow-hidden">
-                  <div className="flex items-center gap-2 flex-grow overflow-hidden">
+                <Link href={item.href} className="flex items-center w-full overflow-hidden">
+                  <div className="flex items-center gap-2 flex-grow">
                     {IconComponent && <IconComponent className="shrink-0" />}
                     <span className="truncate group-data-[state=collapsed]:hidden">
                       {item.title}
@@ -213,7 +213,7 @@ export default function AdminLayout({
         '--sidebar-width': '18rem', 
         '--sidebar-width-mobile': '16rem', 
         '--sidebar-width-icon': '3.5rem', 
-        '--sidebar-outer-padding': '0.5rem', 
+        '--sidebar-outer-padding': '0.25rem', 
         '--sidebar-header-height': '3rem',
         '--header-height': '7.25rem', // Static combined height
         '--sidebar-stable-top-anchor': 'var(--header-height)', // Simplified
