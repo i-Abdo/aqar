@@ -242,7 +242,7 @@ export default function EditPropertyPage() {
   }
 
   return (
-    <div>
+    <div className="max-w-5xl mx-auto">
       <PropertyForm 
         onSubmit={handleSubmit} 
         initialData={initialPropertyData} 
