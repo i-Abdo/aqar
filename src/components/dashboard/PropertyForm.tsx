@@ -198,7 +198,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       setManualPriceInput(displayValue);
       setSelectedUnit(unitKey);
       form.reset({
-        ...initialData, 
+        ...initialData,
+        filters: initialData.filters || { water: false, electricity: false, internet: false, gas: false, contract: false },
         price: initialData.price || undefined, 
         transactionType: initialData.transactionType || undefined,
         propertyType: initialData.propertyType || undefined,
@@ -233,12 +234,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setImageLimitPerProperty(planDetails.imageLimitPerProperty);
         setMaxAdditionalImages(planDetails.imageLimitPerProperty > 0 ? planDetails.imageLimitPerProperty -1 : 0);
         setAiAssistantAllowed(planDetails.aiAssistantAccess);
-        if (!initialData?.filters && form.getValues('filters') === undefined) { 
-             form.reset({ ...form.getValues(), filters: { water: false, electricity: false, internet: false, gas: false, contract: false }});
-        }
       }
     }
-  }, [user, form, initialData]);
+  }, [user]);
 
   const lengthValue = form.watch("length");
   const widthValue = form.watch("width");
@@ -603,7 +601,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           <div className="space-y-3">
             <h3 className="text-lg font-semibold font-headline border-b pb-1">الميزات والخدمات</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {(Object.keys(form.getValues().filters) as Array<keyof PropertyFormValues['filters']>).map((key) => {
+              {(Object.keys(form.getValues().filters || {}) as Array<keyof PropertyFormValues['filters']>).map((key) => {
                 const Icon = key === 'water' ? Droplet : key === 'electricity' ? Zap : key === 'internet' ? Wifi : key === 'gas' ? UtilityPole : FileText;
                 const label = key === 'water' ? 'ماء' : key === 'electricity' ? 'كهرباء' : key === 'internet' ? 'إنترنت' : key === 'gas' ? 'غاز' : 'عقد موثق';
                 return (
