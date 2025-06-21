@@ -41,9 +41,7 @@ export function SiteHeader() {
               <Link href="/" className="text-foreground/80 hover:text-primary transition-colors">الرئيسية</Link>
               <Link href="/pricing" className="text-foreground/80 hover:text-primary transition-colors">الأسعار</Link>
            </nav>
-           <div className="hidden md:block">
-              <ThemeToggleButton />
-           </div>
+           <ThemeToggleButton />
           <UserAccountNav />
         </div>
       </div>
@@ -51,7 +49,6 @@ export function SiteHeader() {
       {/* Second row on mobile */}
       <div className="md:hidden container mx-auto px-4 pb-2 flex items-center gap-4">
         <GlobalSearchInput />
-        <ThemeToggleButton />
       </div>
     </header>
   );
