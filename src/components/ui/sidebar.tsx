@@ -253,7 +253,7 @@ export const Sidebar = React.forwardRef<
     
     let currentSidebarWidth: string;
     if (open) {
-      currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 16rem)' : 'var(--sidebar-width, 16rem)';
+      currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 15rem)' : 'var(--sidebar-width, 16rem)';
     } else {
       currentSidebarWidth = (collapsible === "icon") ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
     }
@@ -274,7 +274,7 @@ export const Sidebar = React.forwardRef<
         data-side={actualSide} 
         data-mobile={String(isMobile)}
         className={cn(
-          "group/sidebar fixed z-40 flex", 
+          "group fixed z-40 flex", 
           sideClasses,
           "pointer-events-none" 
         )}
@@ -314,7 +314,7 @@ export const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { isMobile, actualSide, collapsible, hydrated } = useSidebar(); 
+  const { isMobile, actualSide, collapsible, hydrated, open } = useSidebar(); 
   
   if (!hydrated) {
       return (
@@ -331,7 +331,16 @@ export const SidebarInset = React.forwardRef<
   }
 
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight";
-  const paddingValue = collapsible === "icon" ? 'var(--sidebar-width-icon)' : '0px'; 
+  let paddingValue = '0px';
+
+  if (!isMobile) {
+    if (collapsible === "icon") {
+        paddingValue = open ? 'var(--sidebar-width, 16rem)' : 'var(--sidebar-width-icon, 4.5rem)';
+    } else { // collapsible is "none"
+        paddingValue = open ? 'var(--sidebar-width, 16rem)' : '0px';
+    }
+  }
+  
 
   return (
     <div

@@ -53,17 +53,17 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                 isActive={pathname.startsWith(item.href)}
                 tooltip={item.title}
               >
-                <Link href={item.href} className="flex items-center w-full gap-2">
+                <Link href={item.href} className="flex items-center justify-between w-full overflow-hidden">
                   <div className="flex items-center gap-2 flex-grow overflow-hidden">
                     {IconComponent && <IconComponent className="shrink-0" />}
-                    <span className="truncate group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden">
+                    <span className="truncate group-data-[state=collapsed]:hidden">
                       {item.title}
                     </span>
                   </div>
                   {item.countKey !== "properties" && count > 0 && (
                     <Badge 
                         variant="destructive" 
-                        className="shrink-0 group-data-[sidebar~=sidebar-outer-container][data-collapsible=icon]:group-data-[sidebar~=sidebar-outer-container][data-state=collapsed]:hidden px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
+                        className="shrink-0 group-data-[state=collapsed]:hidden px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
                     > 
                       {count > 9 ? '9+' : count}
                     </Badge>
@@ -222,7 +222,7 @@ export default function AdminLayout({
         '--header-height': headerHeightValue, 
         '--mobile-search-height': mobileSearchHeightValue, 
         '--total-mobile-header-height': totalMobileHeaderHeightValue, 
-        '--sidebar-stable-top-anchor': totalMobileHeaderHeightValue,
+        '--sidebar-stable-top-anchor': `var(--current-sticky-header-height, ${headerHeightValue})`,
         '--sidebar-side': 'right',
         '--sidebar-collapsible': 'icon',
       } as React.CSSProperties}
