@@ -1,15 +1,10 @@
-# See https://www.robotstxt.org/robotstxt.html for syntax
+# See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
+#
+# Allow all crawlers to access all content
 User-agent: *
-Allow: /
-Allow: /properties
-Allow: /properties/*
-Allow: /pricing
-Allow: /terms
-Allow: /privacy
-
 Disallow: /admin
-Disallow: /admin/*
 Disallow: /dashboard
-Disallow: /dashboard/*
 Disallow: /login
 Disallow: /signup
+
+Sitemap: /sitemap.xml

@@ -11,10 +11,10 @@ import { db } from '@/lib/firebase/client';
 import { useRouter } from 'next/navigation';
 import { Metadata } from 'next';
 
-// export const metadata: Metadata = { // Cannot be used in client component
-//   title: "الأسعار - عقاري",
-//   description: "اختر الخطة التي تناسب احتياجاتك في عقاري.",
-// };
+export const metadata: Metadata = {
+  title: "الأسعار - عقاري",
+  description: "اختر الخطة التي تناسب احتياجاتك في عقاري، من الخطة المجانية إلى خطط VIP المتقدمة.",
+};
 
 
 export default function PricingPage() {
