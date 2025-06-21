@@ -20,17 +20,22 @@ export function SiteHeader() {
       )}
     >
       <div className="container flex h-14 items-center justify-between">
-        <div className="flex items-center gap-x-2 md:gap-x-6">
+        {/* START GROUP (Right in RTL) */}
+        <div className="flex items-center gap-x-6">
           <AppLogo />
           <nav className="hidden md:flex">
             <MainNav />
           </nav>
         </div>
 
-        <div className="hidden md:flex flex-1 items-center justify-center max-w-sm lg:max-w-md mx-4">
-          <GlobalSearchInput />
+        {/* MIDDLE GROUP (Desktop only) */}
+        <div className="hidden md:flex items-center justify-center">
+          <div className="w-full max-w-sm lg:max-w-md">
+            <GlobalSearchInput />
+          </div>
         </div>
         
+        {/* END GROUP (Left in RTL) */}
         <div className="flex items-center gap-x-1 shrink-0">
            <nav className="flex md:hidden items-center gap-x-4 text-sm font-medium mr-2 rtl:ml-2 rtl:mr-0">
               <Link href="/" className="text-foreground/80 hover:text-primary transition-colors">الرئيسية</Link>
@@ -43,6 +48,7 @@ export function SiteHeader() {
         </div>
       </div>
 
+      {/* Second row on mobile */}
       <div className="md:hidden container mx-auto px-4 pb-2 flex items-center gap-4">
         <GlobalSearchInput />
         <ThemeToggleButton />
