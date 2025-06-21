@@ -223,13 +223,14 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
         href={`/properties/${property.id}`} 
         className="flex flex-col flex-grow cursor-pointer group focus:outline-none focus:ring-2 focus:ring-primary focus:rounded-t-lg"
       >
-          <CardHeader className="p-0 group-hover:opacity-90 transition-opacity relative">
+          <CardHeader className="p-0 group-hover:opacity-90 transition-opacity relative h-48">
             <Image
               src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
               alt={property.title}
-              width={400}
-              height={250}
-              className="object-cover w-full h-48 rounded-t-lg"
+              fill
+              style={{objectFit:"cover"}}
+              className="rounded-t-lg"
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               data-ai-hint="house exterior"
             />
              <div className="absolute top-2 right-2 flex gap-1">
