@@ -31,7 +31,7 @@ export function ThemeToggleButton() {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      aria-label={effectiveTheme === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={effectiveTheme === 'dark' ? "التبديل إلى الوضع الفاتح" : "التبديل إلى الوضع الداكن"}
       className="h-10 w-10" // Button size is h-10 w-10
     >
       {effectiveTheme === 'dark' ? (

@@ -639,6 +639,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         size="icon"
                         className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={removeMainImage}
+                        aria-label="إزالة الصورة الرئيسية"
                     >
                         <Trash2 size={16} />
                     </Button>
@@ -674,6 +675,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                                 size="icon"
                                 className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={() => removeAdditionalImage(index)}
+                                aria-label="إزالة الصورة الإضافية"
                             >
                                 <Trash2 size={16} />
                             </Button>
