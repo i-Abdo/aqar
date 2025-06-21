@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
 
-    --primary: 205 66% 62%; /* Soft Blue #5DADE2 */
+    --primary: 205 66% 45%; /* Soft Blue, darkened for contrast */
     --primary-foreground: 0 0% 100%; /* White text on primary */
 
     --secondary: 210 40% 96.1%;
@@ -33,7 +33,7 @@
 
     --border: 210 40% 89.8%;
     --input: 210 40% 89.8%;
-    --ring: 205 66% 62%; /* Primary color for rings */
+    --ring: 205 66% 45%; /* Primary color for rings, darkened */
 
     --radius: 0.5rem;
 
@@ -45,12 +45,12 @@
     
     --sidebar-background: 216 25% 98%; /* Very light cool gray #F5F7FA */
     --sidebar-foreground: 224 71% 4%;
-    --sidebar-primary: 205 66% 62%; /* Primary color for active items */
+    --sidebar-primary: 205 66% 45%; /* Primary color for active items, darkened */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 216 25% 92%; /* Lighter gray for hover */
     --sidebar-accent-foreground: 224 71% 4%;
     --sidebar-border: 210 40% 89.8%;
-    --sidebar-ring: 205 66% 62%;
+    --sidebar-ring: 205 66% 45%; /* Darkened */
   }
 
   .dark {
@@ -65,7 +65,7 @@
     --popover: 223 15% 20%;
     --popover-foreground: 0 0% 92%;
 
-    --primary: 203 60% 44%;    /* #2C80B4 */
+    --primary: 203 60% 55%;    /* Lighter blue for better contrast on dark bg */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 223 15% 17%; /* Darker than card, lighter than bg */
@@ -74,7 +74,7 @@
     --muted: 223 15% 17%;
     --muted-foreground: 0 0% 65%; /* Adjusted for contrast */
 
-    --accent: 34 82% 43%;      /* #C97C14 */
+    --accent: 34 82% 50%;      /* Slightly adjusted for dark mode vibrancy */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%; /* Kept existing dark destructive */
@@ -82,7 +82,7 @@
 
     --border: 223 15% 25%;     /* Slightly lighter than card for visibility */
     --input: 223 15% 25%;
-    --ring: 203 60% 44%;       /* New primary */
+    --ring: 203 60% 55%;       /* New primary for dark */
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -92,12 +92,12 @@
 
     --sidebar-background: 220 15% 18%; /* Darker than main bg #262A33 */
     --sidebar-foreground: 0 0% 92%;
-    --sidebar-primary: 203 60% 44%;
+    --sidebar-primary: 203 60% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 223 15% 22%;      /* Darker than sidebar bg for hover */
     --sidebar-accent-foreground: 0 0% 92%;
     --sidebar-border: 223 15% 25%;
-    --sidebar-ring: 203 60% 44%;
+    --sidebar-ring: 203 60% 55%;
   }
 }
 

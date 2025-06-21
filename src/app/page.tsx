@@ -100,7 +100,7 @@ export default function HomePage() {
                 <div className="relative w-full h-40">
                   <Image
                     src={city.image}
-                    alt={city.name}
+                    alt=""
                     fill
                     style={{objectFit:"cover"}}
                     className="transition-transform duration-300 group-hover:scale-105"
