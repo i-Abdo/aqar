@@ -266,7 +266,7 @@ export const Sidebar = React.forwardRef<
     const sideClasses = actualSide === "left" ? "left-0" : "right-0";
 
     return (
-      <div 
+      <aside 
         ref={ref}
         data-state={open ? "expanded" : "collapsed"}
         data-collapsible={collapsible}
@@ -274,8 +274,7 @@ export const Sidebar = React.forwardRef<
         data-mobile={String(isMobile)}
         className={cn(
           "group fixed z-40 flex", 
-          sideClasses,
-          "pointer-events-none" 
+          sideClasses
         )}
         style={{
           top: topPosition,
@@ -291,9 +290,8 @@ export const Sidebar = React.forwardRef<
         { (collapsible === "none" && !open) ? null : (
             <div 
               className={cn(
-                "flex flex-col w-full overflow-hidden", 
-                "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg",
-                "pointer-events-auto" 
+                "flex flex-col w-full h-fit overflow-hidden", 
+                "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg"
               )}
             >
               <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
@@ -302,7 +300,7 @@ export const Sidebar = React.forwardRef<
               </ScrollArea>
             </div>
         )}
-      </div>
+      </aside>
     );
   }
 )
@@ -321,7 +319,7 @@ export const SidebarInset = React.forwardRef<
         ref={ref}
         className={cn("flex-1 flex flex-col overflow-hidden", className)}
         style={{
-          paddingTop: `var(--header-height)`,
+          paddingTop: `var(--header-height, 5.25rem)`,
           ...style,
         }}
         {...props}
@@ -330,28 +328,32 @@ export const SidebarInset = React.forwardRef<
   }
 
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight"
-  let paddingValue = "0px"
+  let paddingValue: string;
 
-  if (!isMobile) {
-    if (collapsible === "icon") {
-      paddingValue = open
-        ? "var(--sidebar-width, 16rem)"
-        : "var(--sidebar-width-icon, 4.5rem)"
-    } else {
-      paddingValue = open ? "var(--sidebar-width, 16rem)" : "0px"
-    }
+  const collapsedWidth = "var(--sidebar-width-icon, 4.5rem)";
+  const expandedWidth = "var(--sidebar-width, 16rem)";
+  const collapsedPadding = `calc(${collapsedWidth} + var(--sidebar-outer-padding, 0.5rem) * 2)`;
+
+  if (collapsible === "none") {
+    paddingValue = open ? expandedWidth : "0px";
+  } else if (isMobile) {
+    // On mobile, content always has padding for the collapsed icon bar.
+    // The sidebar opens as an overlay.
+    paddingValue = collapsedPadding;
+  } else {
+    // On desktop, padding changes with sidebar state.
+    paddingValue = open ? expandedWidth : collapsedPadding;
   }
+
 
   return (
     <div
       ref={ref}
       className={cn("flex-1 flex flex-col overflow-hidden", className)}
       style={{
-        paddingTop: `var(--current-sticky-header-height, var(${
-          isMobile ? "--total-mobile-header-height" : "--header-height"
-        }))`,
+        paddingTop: `var(--header-height, 5.25rem)`,
         [paddingProp]: paddingValue,
-        transition: isMobile ? undefined : `${paddingProp} 0.2s ease-in-out`,
+        transition: `${paddingProp} 0.2s ease-in-out`,
         ...style,
       }}
       {...props}

@@ -28,7 +28,6 @@ export default function RootLayout({
         <ThemeProvider> 
           <AuthProvider>
             <SiteHeader />
-            {/* Removed top padding (py-8 -> pb-8) from main to allow content to sit directly under sticky header */}
             <main className="flex-grow container mx-auto px-4 pb-8">
               {children}
             </main>

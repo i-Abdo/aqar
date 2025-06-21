@@ -206,10 +206,6 @@ export default function AdminLayout({
     );
   }
 
-  const headerHeightValue = '4rem'; 
-  const mobileSearchHeightValue = '3.25rem';
-  const totalMobileHeaderHeightValue = `calc(${headerHeightValue} + ${mobileSearchHeightValue})`;
-
   return (
     <SidebarProvider
       defaultOpen={true} 
@@ -219,10 +215,8 @@ export default function AdminLayout({
         '--sidebar-width-icon': '4.5rem', 
         '--sidebar-outer-padding': '0.5rem', 
         '--sidebar-header-height': '3rem',
-        '--header-height': headerHeightValue, 
-        '--mobile-search-height': mobileSearchHeightValue, 
-        '--total-mobile-header-height': totalMobileHeaderHeightValue, 
-        '--sidebar-stable-top-anchor': `var(--current-sticky-header-height, ${headerHeightValue})`,
+        '--header-height': '5.25rem', // Static combined height
+        '--sidebar-stable-top-anchor': 'var(--header-height)', // Simplified
         '--sidebar-side': 'right',
         '--sidebar-collapsible': 'icon',
       } as React.CSSProperties}
