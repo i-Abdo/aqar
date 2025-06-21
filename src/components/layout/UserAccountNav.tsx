@@ -1,8 +1,7 @@
-
 "use client";
 
 import Link from "next/link";
-import { LogOut, User, Settings, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { LogOut, LayoutDashboard, ShieldCheck, Settings } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback, DefaultUserIcon } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,48 +14,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { Skeleton } from "@/components/ui/skeleton";
 import React from "react";
-import { MobileNav } from "./MobileNav"; // Import MobileNav
-import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile
-import { ThemeToggleButton } from "./ThemeToggleButton"; // Import ThemeToggleButton
-
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function UserAccountNav() {
   const { user, signOut, isAdmin, loading: authLoading } = useAuth();
   const [hasMounted, setHasMounted] = React.useState(false);
-  const isMobile = useIsMobile();
 
   React.useEffect(() => {
     setHasMounted(true);
   }, []);
 
   if (!hasMounted || authLoading) {
-    // Render null or a consistent placeholder on server and initial client render
-    // if not yet mounted or auth is loading, to prevent hydration mismatch.
-    return null; 
-    // If you prefer skeletons, ensure they are *identical* to any server-rendered equivalent (if any)
-    // return (
-    //   <div className="flex items-center gap-2">
-    //     <Skeleton className="h-10 w-[90px] rounded-md" /> 
-    //     <Skeleton className="h-10 w-[100px] rounded-md" />
-    //   </div>
-    // );
-  }
-  
-  if (isMobile) { // For mobile, show MobileNav trigger and ThemeToggle in its sheet
-    return (
-      <div className="flex items-center">
-        {user && <ThemeToggleButton />} 
-        <MobileNav />
-      </div>
-    );
+    return <Skeleton className="h-10 w-10 rounded-full" />;
   }
 
-
-  if (!user) { // For desktop, if no user, show login/signup buttons
+  if (!user) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="hidden md:flex items-center gap-2">
         <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
           <Link href="/login">تسجيل الدخول</Link>
         </Button>
@@ -70,7 +45,6 @@ export function UserAccountNav() {
   const userInitials = user.displayName ? user.displayName.charAt(0).toUpperCase() : 
                       (user.email ? user.email.charAt(0).toUpperCase() : "");
 
-  // For desktop, if user is logged in, show dropdown
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

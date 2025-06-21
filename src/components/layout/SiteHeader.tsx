@@ -1,19 +1,16 @@
-
 "use client"; 
 
-import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link"; // Added Link
+import React, { useState, useEffect } from "react";
 import { AppLogo } from "./AppLogo";
 import { MainNav } from "./MainNav";
 import { UserAccountNav } from "./UserAccountNav";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 import { GlobalSearchInput } from "./GlobalSearchInput";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile"; 
+import { MobileNav } from "./MobileNav";
 
 export function SiteHeader() {
-  const { user } = useAuth();
   const isMobile = useIsMobile();
   const [isScrolled, setIsScrolled] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
@@ -52,7 +49,7 @@ export function SiteHeader() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, [isMobile, isScrolled, hasMounted, SCROLL_THRESHOLD]); 
+  }, [isMobile, isScrolled, hasMounted]); 
 
   useEffect(() => {
     if (!hasMounted || isMobile === undefined) return;
@@ -75,22 +72,13 @@ export function SiteHeader() {
     root.style.setProperty('--current-sticky-header-height', currentVisibleStickyHeaderHeight);
     root.style.setProperty('--sidebar-stable-top-anchor', sidebarStableTopAnchorHeight);
     
-  }, [isScrolled, isMobile, hasMounted, HEADER_HEIGHT_MAIN_VALUE, MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE, TOTAL_MOBILE_HEADER_HEIGHT_VALUE]);
+  }, [isScrolled, isMobile, hasMounted]);
 
   if (!hasMounted) {
     return (
        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center"> {/* Group Logo and potential mobile nav items */}
             <AppLogo />
-          </div>
-          <div className="hidden md:flex flex-1 items-center justify-center gap-x-6 mx-4">
-            <div className="flex-shrink-0"><MainNav /></div>
-            <div className="w-full max-w-sm lg:max-w-md"><GlobalSearchInput /></div>
-          </div>
-          <div className="flex items-center gap-x-1">
-            <UserAccountNav />
-          </div>
         </div>
       </header>
     );
@@ -109,41 +97,29 @@ export function SiteHeader() {
         "main-header-bar" 
         )}
       > 
-        {/* Left group: Logo and Mobile-only Nav Links */}
-        <div className="flex items-center gap-x-2 md:gap-x-4">
-          <div className="shrink-0"> {/* Ensure logo doesn't shrink too much */}
+        <div className="flex items-center gap-x-2">
+            <MobileNav />
             <AppLogo />
-          </div>
-          {isMobile && ( /* hasMounted is implicitly true here if this part renders */
-            <div className="flex items-center gap-x-1 sm:gap-x-2">
-              <Link href="/" className="text-xs sm:text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-1 sm:px-2 py-1 rounded-md hover:bg-accent/50">
-                الرئيسية
-              </Link>
-              <Link href="/pricing" className="text-xs sm:text-sm font-medium text-foreground/80 hover:text-primary transition-colors px-1 sm:px-2 py-1 rounded-md hover:bg-accent/50">
-                الأسعار
-              </Link>
-            </div>
-          )}
         </div>
 
-        {/* Desktop Centered Content: MainNav and GlobalSearch */}
         <div className="hidden md:flex flex-1 items-center justify-center gap-x-6 mx-4">
-          <div className="flex-shrink-0"> {/* MainNav should not grow excessively */}
+          <div className="flex-shrink-0">
             <MainNav />
           </div>
-          <div className="w-full max-w-sm lg:max-w-md"> {/* Constrain search bar width */}
+          <div className="w-full max-w-sm lg:max-w-md">
             <GlobalSearchInput />
           </div>
         </div>
         
-        {/* Right group: Theme Toggle and User Account Nav / Mobile Menu Trigger */}
-        <div className="flex items-center gap-x-1 shrink-0"> {/* Ensure this group doesn't shrink */}
-          {user && !isMobile && <ThemeToggleButton />}
-          <UserAccountNav />
+        <div className="flex items-center gap-x-1 shrink-0">
+            <div className="hidden md:block">
+                <ThemeToggleButton />
+            </div>
+            <UserAccountNav />
         </div>
       </div>
 
-      {isMobile && ( /* hasMounted is implicitly true here */
+      {isMobile && (
         <div className={cn(
           "md:hidden container mx-auto px-4 pt-1 pb-2", 
           "mobile-search-bar-container" 
