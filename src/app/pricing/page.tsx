@@ -9,13 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase/client';
 import { useRouter } from 'next/navigation';
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: "الأسعار - عقاري",
-  description: "اختر الخطة التي تناسب احتياجاتك في عقاري، من الخطة المجانية إلى خطط VIP المتقدمة.",
-};
-
 
 export default function PricingPage() {
   const { user, loading: authLoading } = useAuth();
