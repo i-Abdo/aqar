@@ -5,6 +5,7 @@ import * as React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ThemeToggleButton() {
   const { themeSetting, setThemeSetting, effectiveTheme } = useTheme();
@@ -21,9 +22,9 @@ export function ThemeToggleButton() {
   };
 
   if (!mounted) {
-    // Render a placeholder or null during SSR to avoid hydration mismatch,
-    // as theme depends on localStorage/system preference.
-    return <Button variant="ghost" size="icon" disabled className="h-10 w-10 opacity-0" aria-hidden="true" />;
+    // Render a placeholder during SSR and initial client render to avoid hydration mismatch,
+    // as the theme depends on client-side state.
+    return <Skeleton className="h-10 w-10 rounded-full" />;
   }
 
   return (
