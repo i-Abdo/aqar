@@ -149,10 +149,10 @@
 .main-header-bar {
   max-height: var(--header-height); /* 4rem */
   opacity: 1;
-  overflow: hidden; /* Added to clip content during transition */
-  transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, border-bottom-width 0.3s ease-in-out;
-  border-bottom-width: 1px; /* Assuming it has a border from the parent header, explicitly manage it */
-  border-color: hsl(var(--border) / 0.4); /* Match parent header's border */
+  overflow: hidden;
+  transition: max-height 0.2s ease-in-out, opacity 0.2s ease-in-out, border-bottom-width 0.2s ease-in-out;
+  border-bottom-width: 1px;
+  border-color: hsl(var(--border) / 0.4);
 }
 
 header[data-scrolled="true"] .main-header-bar {
@@ -164,5 +164,5 @@ header[data-scrolled="true"] .main-header-bar {
 /* Ensure the mobile search bar container is styled correctly if needed,
    but it should naturally stay as part of the sticky header */
 .mobile-search-bar-container {
-  transition: background-color 0.3s ease-in-out; /* If its background needs to change */
+  transition: background-color 0.2s ease-in-out;
 }

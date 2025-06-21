@@ -1,3 +1,4 @@
+
 "use client"; 
 
 import React, { useState, useEffect } from "react";
@@ -8,6 +9,8 @@ import { ThemeToggleButton } from "./ThemeToggleButton";
 import { GlobalSearchInput } from "./GlobalSearchInput";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile"; 
+import Link from "next/link";
+import { Skeleton } from "../ui/skeleton";
 
 export function SiteHeader() {
   const isMobile = useIsMobile();
@@ -17,7 +20,7 @@ export function SiteHeader() {
   const HEADER_HEIGHT_MAIN_VALUE = "4rem"; 
   const MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE = "3.25rem"; 
   const TOTAL_MOBILE_HEADER_HEIGHT_VALUE = `calc(${HEADER_HEIGHT_MAIN_VALUE} + ${MOBILE_SEARCH_CONTAINER_HEIGHT_VALUE})`; 
-  const SCROLL_THRESHOLD = 5; 
+  const SCROLL_THRESHOLD = 10; // Increased sensitivity threshold
 
 
   useEffect(() => {
@@ -78,6 +81,7 @@ export function SiteHeader() {
        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-lg">
         <div className="container flex h-16 items-center justify-between">
             <AppLogo />
+            <Skeleton className="h-10 w-10 rounded-full" />
         </div>
       </header>
     );
@@ -96,9 +100,9 @@ export function SiteHeader() {
         "main-header-bar" 
         )}
       > 
-        <div className="flex items-center gap-x-2">
+        <div className="flex items-center gap-x-2 md:gap-x-6">
             <AppLogo />
-            <div className="hidden md:flex items-center gap-x-6">
+            <div className="hidden md:flex">
                  <MainNav />
             </div>
         </div>
@@ -108,6 +112,10 @@ export function SiteHeader() {
         </div>
         
         <div className="flex items-center gap-x-1 shrink-0">
+             <nav className="flex md:hidden items-center gap-x-4 text-sm font-medium mr-2 rtl:ml-2 rtl:mr-0">
+                <Link href="/" className="text-foreground/80 hover:text-foreground transition-colors">الرئيسية</Link>
+                <Link href="/pricing" className="text-foreground/80 hover:text-foreground transition-colors">الأسعار</Link>
+             </nav>
              <div className="hidden md:block">
                 <ThemeToggleButton />
              </div>
