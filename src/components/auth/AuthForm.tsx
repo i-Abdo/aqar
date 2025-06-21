@@ -16,8 +16,19 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as firebaseAuth, db } from '@/lib/firebase/client';
-import { doc, setDoc, serverTimestamp, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import type { UserTrustLevel } from "@/types";
+import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const baseSchema = z.object({
   email: z.string().email({ message: "البريد الإلكتروني غير صالح." }),
@@ -45,12 +56,34 @@ interface AuthFormProps {
 
 type AuthFormValues = z.infer<typeof signupSchema> | z.infer<typeof loginSchema>;
 
+const calculatePasswordStrength = (password: string) => {
+    let score = 0;
+    if (!password || password.length < 6) return { score: 0, text: "", color: "bg-transparent" };
+    
+    // Award points for different character types
+    if (password.length >= 8) score++;
+    if (/\d/.test(password)) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    
+    if (password.length > 12) score++;
+
+    const percentage = (score / 5) * 100;
+
+    if (score <= 1) return { score: percentage, text: "ضعيفة جداً", color: "bg-red-500" };
+    if (score === 2) return { score: percentage, text: "ضعيفة", color: "bg-red-500" };
+    if (score === 3) return { score: percentage, text: "متوسطة", color: "bg-yellow-500" };
+    if (score === 4) return { score: percentage, text: "قوية", color: "bg-green-500" };
+    return { score: 100, text: "قوية جداً", color: "bg-green-500" };
+};
+
 
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const [isWeakPasswordDialogOpen, setIsWeakPasswordDialogOpen] = React.useState(false);
 
   const togglePasswordVisibility = () => setShowPassword(prev => !prev);
 
@@ -71,73 +104,109 @@ export function AuthForm({ mode }: AuthFormProps) {
       }),
     },
   });
+  
+  const passwordValue = form.watch("password");
+  const passwordStrength = React.useMemo(() => calculatePasswordStrength(passwordValue), [passwordValue]);
 
-  const onSubmit = async (values: AuthFormValues) => {
+  const performSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
     try {
-      if (mode === "signup") {
-        const signupValues = values as z.infer<typeof signupSchema>;
-        const userCredential = await createUserWithEmailAndPassword(firebaseAuth, signupValues.email, signupValues.password);
+        const userCredential = await createUserWithEmailAndPassword(firebaseAuth, values.email, values.password);
         
         await setDoc(doc(db, "users", userCredential.user.uid), {
           uid: userCredential.user.uid,
-          email: signupValues.email,
+          email: values.email,
           planId: "free",
           isAdmin: false,
           trustLevel: 'normal' as UserTrustLevel,
-          newsletter: signupValues.subscribeToNewsletter,
+          newsletter: values.subscribeToNewsletter,
           createdAt: serverTimestamp(),
         });
         
         await setDoc(doc(db, "all-emails", userCredential.user.uid), {
-            email: signupValues.email,
+            email: values.email,
             createdAt: serverTimestamp(),
         });
 
-        if (signupValues.subscribeToNewsletter) {
+        if (values.subscribeToNewsletter) {
             await setDoc(doc(db, "subscribers", userCredential.user.uid), {
-                email: signupValues.email,
+                email: values.email,
                 createdAt: serverTimestamp(),
             });
         }
 
         toast({ title: "تم إنشاء الحساب بنجاح!", description: "جاري توجيهك إلى لوحة التحكم..." });
         router.push("/dashboard");
-      } else {
-        const loginValues = values as z.infer<typeof loginSchema>;
-        const userCredential = await signInWithEmailAndPassword(firebaseAuth, loginValues.email, loginValues.password);
-
-        const userRef = doc(db, "users", userCredential.user.uid);
-        const subscriberRef = doc(db, "subscribers", userCredential.user.uid);
-
-        if (loginValues.subscribeToNewsletter) {
-            await updateDoc(userRef, { newsletter: true });
-            await setDoc(subscriberRef, { email: loginValues.email, createdAt: serverTimestamp() }, { merge: true });
-        } else {
-            await updateDoc(userRef, { newsletter: false });
-            await deleteDoc(subscriberRef);
-        }
-
-        toast({ title: "تم تسجيل الدخول بنجاح!" });
-        const redirectPath = new URLSearchParams(window.location.search).get('redirect') || "/dashboard";
-        router.push(redirectPath);
-      }
     } catch (error: any) {
-      console.error("Authentication error:", error);
-      const errorMessage = error.code === 'auth/email-already-in-use' ? 'هذا البريد الإلكتروني مستخدم بالفعل.'
-                          : error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
-                          : 'حدث خطأ ما. الرجاء المحاولة مرة أخرى.';
-      toast({
-        title: "خطأ في المصادقة",
-        description: errorMessage,
-        variant: "destructive",
-      });
+        handleAuthError(error);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
+        setIsWeakPasswordDialogOpen(false);
     }
   };
 
+  const handleAuthError = (error: any) => {
+    console.error("Authentication error:", error);
+    const errorMessage = error.code === 'auth/email-already-in-use' ? 'هذا البريد الإلكتروني مستخدم بالفعل.'
+                        : error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+                        : 'حدث خطأ ما. الرجاء المحاولة مرة أخرى.';
+    toast({
+      title: "خطأ في المصادقة",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  }
+
+  const onSubmit = async (values: AuthFormValues) => {
+    if (mode === "signup") {
+      const signupValues = values as z.infer<typeof signupSchema>;
+      if (passwordStrength.score < 50) { // Weak password threshold
+        setIsWeakPasswordDialogOpen(true);
+        return;
+      }
+      await performSignup(signupValues);
+    } else { // Login mode
+        setIsLoading(true);
+        try {
+            const loginValues = values as z.infer<typeof loginSchema>;
+            const userCredential = await signInWithEmailAndPassword(firebaseAuth, loginValues.email, loginValues.password);
+            
+            const userRef = doc(db, "users", userCredential.user.uid);
+            const allEmailsRef = doc(db, "all-emails", userCredential.user.uid);
+            const subscriberRef = doc(db, "subscribers", userCredential.user.uid);
+
+            // Add email to all-emails if not present
+            const allEmailsSnap = await getDoc(allEmailsRef);
+            if (!allEmailsSnap.exists()) {
+                await setDoc(allEmailsRef, { email: loginValues.email, createdAt: serverTimestamp() });
+            }
+
+            if (loginValues.subscribeToNewsletter) {
+                await updateDoc(userRef, { newsletter: true });
+                await setDoc(subscriberRef, { email: loginValues.email, createdAt: serverTimestamp() }, { merge: true });
+            } else {
+                await updateDoc(userRef, { newsletter: false });
+                await deleteDoc(subscriberRef);
+            }
+
+            toast({ title: "تم تسجيل الدخول بنجاح!" });
+            const redirectPath = new URLSearchParams(window.location.search).get('redirect') || "/dashboard";
+            router.push(redirectPath);
+        } catch (error: any) {
+            handleAuthError(error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+  };
+  
+  const handleProceedWithWeakPassword = async () => {
+    const values = form.getValues() as z.infer<typeof signupSchema>;
+    await performSignup(values);
+  };
+
   return (
+    <>
     <Card className="w-full shadow-2xl">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-headline">
@@ -189,6 +258,12 @@ export function AuthForm({ mode }: AuthFormProps) {
             </div>
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+            )}
+            {mode === "signup" && passwordValue.length > 0 && (
+                <div className="flex items-center gap-2 pt-1">
+                    <Progress value={passwordStrength.score} className={`h-2 flex-1 [&>div]:${passwordStrength.color}`} />
+                    <span className="text-xs text-muted-foreground w-16 text-center">{passwordStrength.text}</span>
+                </div>
             )}
           </div>
 
@@ -330,6 +405,24 @@ export function AuthForm({ mode }: AuthFormProps) {
         </p>
       </CardFooter>
     </Card>
+
+    <AlertDialog open={isWeakPasswordDialogOpen} onOpenChange={setIsWeakPasswordDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>كلمة المرور ضعيفة</AlertDialogTitle>
+                <AlertDialogDescription>
+                    كلمة المرور التي اخترتها ضعيفة وقد تكون سهلة التخمين. نوصي بشدة باستخدام كلمة مرور أقوى. هل ترغب في المتابعة على أي حال؟
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء (اختيار كلمة أقوى)</AlertDialogCancel>
+                <AlertDialogAction onClick={handleProceedWithWeakPassword} disabled={isLoading}>
+                    {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+                    أنا أعي وأوافق، تسجيل على أية حال
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
-    
