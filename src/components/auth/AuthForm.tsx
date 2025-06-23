@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -119,7 +118,11 @@ const PasswordStrengthIndicator = ({ strength }: { strength: PasswordStrengthRes
   return (
     <div className="space-y-2 pt-2">
       <div className="flex items-center gap-2">
-        <Progress value={(strength.score / 4) * 100} className={`h-2 flex-1 [&>div]:${strength.color}`} />
+        <Progress 
+          value={(strength.score / 4) * 100} 
+          className="h-2 flex-1"
+          indicatorClassName={strength.color}
+        />
         <span className="text-xs text-muted-foreground w-20 text-center font-medium">{strength.text}</span>
       </div>
       {strength.score < 3 && (
