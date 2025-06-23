@@ -121,28 +121,17 @@ const calculatePasswordStrength = (password: string): PasswordStrengthResult => 
 const PasswordStrengthIndicator = ({ strength }: { strength: PasswordStrengthResult }) => {
   if (!strength.text) return null;
 
-  const criteriaMessages = {
-    length: "8 أحرف على الأقل",
-    uppercase: "حرف كبير واحد على الأقل",
-    lowercase: "حرف صغير واحد على الأقل",
-    number: "رقم واحد على الأقل",
-    specialChar: "رمز خاص واحد على الأقل (!@#$)",
-  };
-
   return (
     <div className="space-y-2 pt-2">
       <div className="flex items-center gap-2">
         <Progress value={(strength.score / 4) * 100} className={`h-2 flex-1 [&>div]:${strength.color}`} />
         <span className="text-xs text-muted-foreground w-20 text-center font-medium">{strength.text}</span>
       </div>
-      <ul className="text-xs text-muted-foreground list-none p-0 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-        {Object.entries(criteriaMessages).map(([key, message]) => (
-          <li key={key} className={`flex items-center gap-1.5 transition-colors ${strength.criteria[key as keyof typeof strength.criteria] ? 'text-green-600' : 'text-muted-foreground'}`}>
-            {strength.criteria[key as keyof typeof strength.criteria] ? <Check size={14} /> : <X size={14} />}
-            <span>{message}</span>
-          </li>
-        ))}
-      </ul>
+       {strength.score < 4 && (
+        <p className="text-xs text-muted-foreground">
+          لتقوية كلمة السر، استخدم حروفًا وأرقامًا ورموزًا.
+        </p>
+      )}
     </div>
   );
 };
