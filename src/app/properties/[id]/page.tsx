@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState, useCallback } from 'react'; // Added React
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -383,6 +383,22 @@ export default function PropertyDetailPage() {
                   )
                 )}
               </ul>
+            </div>
+          )}
+
+          {property.googleMapsLocation?.lat && property.googleMapsLocation?.lng && (
+            <div className="mt-8">
+                <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2 flex items-center gap-2"><Map size={18}/>الموقع على الخريطة</h3>
+                <div className="aspect-video w-full rounded-md overflow-hidden border">
+                    <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://maps.google.com/maps?q=${property.googleMapsLocation.lat},${property.googleMapsLocation.lng}&hl=ar&z=15&output=embed`}
+                    ></iframe>
+                </div>
             </div>
           )}
         </CardContent>

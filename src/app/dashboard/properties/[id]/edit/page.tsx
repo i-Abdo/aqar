@@ -179,6 +179,11 @@ export default function EditPropertyPage() {
         updatedAt: serverTimestamp() as Timestamp, 
       };
       
+      // Clean up googleMapsLocation if incomplete, setting to null will remove from firestore
+      if (!propertyUpdateData.googleMapsLocation?.lat || !propertyUpdateData.googleMapsLocation?.lng) {
+        (propertyUpdateData as any).googleMapsLocation = null;
+      }
+
       delete (propertyUpdateData as any).id; 
 
 

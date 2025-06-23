@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
@@ -88,6 +88,30 @@ const propertyFormSchema = z.object({
     gas: z.boolean().default(false),
     contract: z.boolean().default(false),
   }),
+  googleMapsLocation: z.object({
+      lat: z.preprocess(
+          (val) => (val === "" ? undefined : val),
+          z.coerce.number({invalid_type_error: "خط العرض يجب أن يكون رقمًا."})
+              .min(-90, "خط العرض يجب أن يكون بين -90 و 90.")
+              .optional()
+      ),
+      lng: z.preprocess(
+          (val) => (val === "" ? undefined : val),
+          z.coerce.number({invalid_type_error: "خط الطول يجب أن يكون رقمًا."})
+              .min(-180, "خط الطول يجب أن يكون بين -180 و 180.")
+              .optional()
+      ),
+  }).optional()
+  .superRefine((data, ctx) => {
+      if (data) {
+          if (data.lat !== undefined && data.lng === undefined) {
+              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "خط الطول مطلوب.", path: ["lng"] });
+          }
+          if (data.lng !== undefined && data.lat === undefined) {
+              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "خط العرض مطلوب.", path: ["lat"] });
+          }
+      }
+  })
 }).superRefine((data, ctx) => {
   if (data.propertyType === 'other' && (!data.otherPropertyType || data.otherPropertyType.trim().length < 2)) {
     ctx.addIssue({
@@ -183,12 +207,14 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           transactionType: initialData.transactionType || undefined,
           propertyType: initialData.propertyType || undefined,
           otherPropertyType: initialData.otherPropertyType || "",
+          googleMapsLocation: initialData.googleMapsLocation || { lat: undefined, lng: undefined },
         } 
       : {
           title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
           rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
           wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
           filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
+          googleMapsLocation: { lat: undefined, lng: undefined },
         },
   });
   
@@ -204,6 +230,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         transactionType: initialData.transactionType || undefined,
         propertyType: initialData.propertyType || undefined,
         otherPropertyType: initialData.otherPropertyType || "",
+        googleMapsLocation: initialData.googleMapsLocation || { lat: undefined, lng: undefined },
       });
        if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
@@ -221,6 +248,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
             wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
             filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
+            googleMapsLocation: { lat: undefined, lng: undefined },
         });
         setMainImagePreview(null);
         setAdditionalImagePreviews([]);
@@ -241,6 +269,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const lengthValue = form.watch("length");
   const widthValue = form.watch("width");
   const watchedPropertyType = form.watch("propertyType");
+  const watchedLat = form.watch("googleMapsLocation.lat");
+  const watchedLng = form.watch("googleMapsLocation.lng");
 
 
   React.useEffect(() => {
@@ -596,7 +626,40 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 </div>
             </div>
           </div>
-          
+
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><Map size={18}/>الموقع على الخريطة (اختياري)</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="googleMapsLocation.lat">خط العرض (Latitude)</Label>
+                    <Input lang="en" id="googleMapsLocation.lat" type="number" step="any" {...form.register("googleMapsLocation.lat")} placeholder="مثال: 36.77" className="input-latin-numerals" />
+                    {form.formState.errors.googleMapsLocation?.lat && <p className="text-sm text-destructive">{form.formState.errors.googleMapsLocation.lat.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor="googleMapsLocation.lng">خط الطول (Longitude)</Label>
+                    <Input lang="en" id="googleMapsLocation.lng" type="number" step="any" {...form.register("googleMapsLocation.lng")} placeholder="مثال: 3.05" className="input-latin-numerals" />
+                    {form.formState.errors.googleMapsLocation?.lng && <p className="text-sm text-destructive">{form.formState.errors.googleMapsLocation.lng.message}</p>}
+                </div>
+            </div>
+             <Button type="button" variant="outline_secondary" asChild className="transition-smooth hover:shadow-md">
+                <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
+                    <MapPin size={16} className="ml-2 rtl:mr-2 rtl:ml-0"/>
+                    جلب الإحداثيات من خرائط جوجل
+                </a>
+            </Button>
+            {watchedLat && watchedLng && !form.formState.errors.googleMapsLocation?.lat && !form.formState.errors.googleMapsLocation?.lng && (
+                <div className="mt-4 aspect-video w-full rounded-md overflow-hidden border">
+                    <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://maps.google.com/maps?q=${watchedLat},${watchedLng}&hl=ar&z=15&output=embed`}
+                    ></iframe>
+                </div>
+            )}
+          </div>
           
           <div className="space-y-3">
             <h3 className="text-lg font-semibold font-headline border-b pb-1">الميزات والخدمات</h3>

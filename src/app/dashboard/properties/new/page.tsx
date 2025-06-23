@@ -133,6 +133,11 @@ export default function NewPropertyPage() {
         deletionReason: "",
       };
       
+      // Clean up googleMapsLocation if incomplete
+      if (!propertyData.googleMapsLocation?.lat || !propertyData.googleMapsLocation?.lng) {
+        delete (propertyData as Partial<Property>).googleMapsLocation;
+      }
+
       const propertyDataWithTimestamps = {
         ...propertyData,
         createdAt: serverTimestamp(),
