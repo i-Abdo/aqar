@@ -89,29 +89,9 @@ const propertyFormSchema = z.object({
     contract: z.boolean().default(false),
   }),
   googleMapsLocation: z.object({
-      lat: z.preprocess(
-          (val) => (val === "" ? undefined : val),
-          z.coerce.number({invalid_type_error: "خط العرض يجب أن يكون رقمًا."})
-              .min(-90, "خط العرض يجب أن يكون بين -90 و 90.")
-              .optional()
-      ),
-      lng: z.preprocess(
-          (val) => (val === "" ? undefined : val),
-          z.coerce.number({invalid_type_error: "خط الطول يجب أن يكون رقمًا."})
-              .min(-180, "خط الطول يجب أن يكون بين -180 و 180.")
-              .optional()
-      ),
+      lat: z.coerce.number().min(-90).max(90),
+      lng: z.coerce.number().min(-180).max(180),
   }).optional()
-  .superRefine((data, ctx) => {
-      if (data) {
-          if (data.lat !== undefined && data.lng === undefined) {
-              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "خط الطول مطلوب.", path: ["lng"] });
-          }
-          if (data.lng !== undefined && data.lat === undefined) {
-              ctx.addIssue({ code: z.ZodIssueCode.custom, message: "خط العرض مطلوب.", path: ["lat"] });
-          }
-      }
-  })
 }).superRefine((data, ctx) => {
   if (data.propertyType === 'other' && (!data.otherPropertyType || data.otherPropertyType.trim().length < 2)) {
     ctx.addIssue({
@@ -196,6 +176,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const initialPriceFormat = React.useMemo(() => formatPriceForInputUIDisplay(initialData?.price), [initialData?.price]);
   const [manualPriceInput, setManualPriceInput] = React.useState<string>(initialPriceFormat.displayValue);
   const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey || "THOUSAND_DA");
+  
+  const [locationInput, setLocationInput] = React.useState('');
 
 
   const form = useForm<PropertyFormValues>({
@@ -207,14 +189,14 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           transactionType: initialData.transactionType || undefined,
           propertyType: initialData.propertyType || undefined,
           otherPropertyType: initialData.otherPropertyType || "",
-          googleMapsLocation: initialData.googleMapsLocation || { lat: undefined, lng: undefined },
+          googleMapsLocation: initialData.googleMapsLocation || undefined,
         } 
       : {
           title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
           rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
           wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
           filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
-          googleMapsLocation: { lat: undefined, lng: undefined },
+          googleMapsLocation: undefined,
         },
   });
   
@@ -223,6 +205,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       const { displayValue, unitKey } = formatPriceForInputUIDisplay(initialData.price);
       setManualPriceInput(displayValue);
       setSelectedUnit(unitKey);
+      if (initialData.googleMapsLocation?.lat && initialData.googleMapsLocation?.lng) {
+        setLocationInput(`${initialData.googleMapsLocation.lat}, ${initialData.googleMapsLocation.lng}`);
+      }
       form.reset({
         ...initialData,
         filters: initialData.filters || { water: false, electricity: false, internet: false, gas: false, contract: false },
@@ -230,7 +215,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         transactionType: initialData.transactionType || undefined,
         propertyType: initialData.propertyType || undefined,
         otherPropertyType: initialData.otherPropertyType || "",
-        googleMapsLocation: initialData.googleMapsLocation || { lat: undefined, lng: undefined },
+        googleMapsLocation: initialData.googleMapsLocation || undefined,
       });
        if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
@@ -248,7 +233,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
             wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
             filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
-            googleMapsLocation: { lat: undefined, lng: undefined },
+            googleMapsLocation: undefined,
         });
         setMainImagePreview(null);
         setAdditionalImagePreviews([]);
@@ -269,8 +254,43 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const lengthValue = form.watch("length");
   const widthValue = form.watch("width");
   const watchedPropertyType = form.watch("propertyType");
-  const watchedLat = form.watch("googleMapsLocation.lat");
-  const watchedLng = form.watch("googleMapsLocation.lng");
+  const watchedLocation = form.watch("googleMapsLocation");
+  
+   React.useEffect(() => {
+    const parseAndSetLocation = (input: string) => {
+      if (!input.trim()) {
+        form.setValue("googleMapsLocation", undefined, { shouldValidate: true, shouldDirty: true });
+        return;
+      }
+
+      // Regex for lat,lng format e.g., "36.77, 3.05"
+      let match = input.match(/^(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)$/);
+      if (match) {
+        const lat = parseFloat(match[1]);
+        const lng = parseFloat(match[2]);
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          form.setValue("googleMapsLocation", { lat, lng }, { shouldValidate: true, shouldDirty: true });
+          return;
+        }
+      }
+
+      // Regex for Google Maps URL format e.g., ".../@36.77,3.05,15z..."
+      match = input.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (match) {
+        const lat = parseFloat(match[1]);
+        const lng = parseFloat(match[2]);
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          form.setValue("googleMapsLocation", { lat, lng }, { shouldValidate: true, shouldDirty: true });
+          return;
+        }
+      }
+      
+      // If no valid format is found, clear the location
+      form.setValue("googleMapsLocation", undefined, { shouldValidate: true, shouldDirty: true });
+    };
+
+    parseAndSetLocation(locationInput);
+  }, [locationInput, form]);
 
 
   React.useEffect(() => {
@@ -629,25 +649,29 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
           <div className="space-y-3">
             <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><Map size={18}/>الموقع على الخريطة (اختياري)</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                    <Label htmlFor="googleMapsLocation.lat">خط العرض (Latitude)</Label>
-                    <Input lang="en" id="googleMapsLocation.lat" type="number" step="any" {...form.register("googleMapsLocation.lat")} placeholder="مثال: 36.77" className="input-latin-numerals" />
-                    {form.formState.errors.googleMapsLocation?.lat && <p className="text-sm text-destructive">{form.formState.errors.googleMapsLocation.lat.message}</p>}
-                </div>
-                <div>
-                    <Label htmlFor="googleMapsLocation.lng">خط الطول (Longitude)</Label>
-                    <Input lang="en" id="googleMapsLocation.lng" type="number" step="any" {...form.register("googleMapsLocation.lng")} placeholder="مثال: 3.05" className="input-latin-numerals" />
-                    {form.formState.errors.googleMapsLocation?.lng && <p className="text-sm text-destructive">{form.formState.errors.googleMapsLocation.lng.message}</p>}
-                </div>
+            <div>
+                <Label htmlFor="locationInput">رابط أو إحداثيات الموقع</Label>
+                 <Input 
+                    id="locationInput" 
+                    value={locationInput}
+                    onChange={(e) => setLocationInput(e.target.value)}
+                    placeholder="الصق رابط خرائط جوجل أو الإحداثيات هنا"
+                    dir="ltr" 
+                    className="text-left"
+                />
+                <p className="text-xs text-muted-foreground mt-1">مثال: 36.77, 3.05 أو رابط خرائط جوجل الكامل.</p>
+                {form.formState.errors.googleMapsLocation && (
+                     <p className="text-sm text-destructive mt-1">الرجاء إدخال إحداثيات أو رابط صحيح.</p>
+                )}
             </div>
+            
              <Button type="button" variant="outline_secondary" asChild className="transition-smooth hover:shadow-md">
                 <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
                     <MapPin size={16} className="ml-2 rtl:mr-2 rtl:ml-0"/>
                     جلب الإحداثيات من خرائط جوجل
                 </a>
             </Button>
-            {watchedLat && watchedLng && !form.formState.errors.googleMapsLocation?.lat && !form.formState.errors.googleMapsLocation?.lng && (
+            {watchedLocation?.lat && watchedLocation?.lng && (
                 <div className="mt-4 aspect-video w-full rounded-md overflow-hidden border">
                     <iframe
                         width="100%"
@@ -655,7 +679,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         style={{ border: 0 }}
                         loading="lazy"
                         allowFullScreen
-                        src={`https://maps.google.com/maps?q=${watchedLat},${watchedLng}&hl=ar&z=15&output=embed`}
+                        src={`https://maps.google.com/maps?q=${watchedLocation.lat},${watchedLocation.lng}&hl=ar&z=15&output=embed`}
                     ></iframe>
                 </div>
             )}
