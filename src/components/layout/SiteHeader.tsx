@@ -16,39 +16,40 @@ export function SiteHeader() {
     <header 
       className={cn(
         "sticky top-0 z-50 w-full border-b border-border/40",
-        "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-sm"
+        "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-sm",
+        "h-auto md:h-14" // Auto height for mobile, fixed for desktop
       )}
     >
-      <div className="container flex h-14 items-center justify-between">
-        {/* START GROUP (Right in RTL) */}
-        <div className="flex items-center gap-x-6">
-          <AppLogo />
-          <nav className="hidden md:flex">
-            <MainNav />
-          </nav>
-        </div>
+      <div className="container flex h-full flex-col justify-center gap-2 py-2 md:flex-row md:items-center md:py-0">
+        {/* Top row content for mobile, becomes the full row for desktop */}
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-x-6">
+            <AppLogo />
+            <nav className="hidden md:flex">
+              <MainNav />
+            </nav>
+          </div>
 
-        {/* MIDDLE GROUP (Desktop only) */}
-        <div className="hidden md:flex items-center justify-center">
-          <div className="w-full max-w-sm lg:max-w-md">
-            <GlobalSearchInput />
+          <div className="hidden flex-1 items-center justify-center px-6 md:flex">
+            <div className="w-full max-w-sm lg:max-w-md">
+              <GlobalSearchInput />
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-x-1 shrink-0">
+             <nav className="flex md:hidden items-center gap-x-2 text-sm font-medium mr-2 rtl:ml-2 rtl:mr-0">
+                <Link href="/" className="text-foreground/80 hover:text-primary transition-colors p-2 rounded-md">الرئيسية</Link>
+                <Link href="/pricing" className="text-foreground/80 hover:text-primary transition-colors p-2 rounded-md">الأسعار</Link>
+             </nav>
+             <ThemeToggleButton />
+            <UserAccountNav />
           </div>
         </div>
-        
-        {/* END GROUP (Left in RTL) */}
-        <div className="flex items-center gap-x-1 shrink-0">
-           <nav className="flex md:hidden items-center gap-x-4 text-sm font-medium mr-2 rtl:ml-2 rtl:mr-0">
-              <Link href="/" className="text-foreground/80 hover:text-primary transition-colors">الرئيسية</Link>
-              <Link href="/pricing" className="text-foreground/80 hover:text-primary transition-colors">الأسعار</Link>
-           </nav>
-           <ThemeToggleButton />
-          <UserAccountNav />
-        </div>
-      </div>
 
-      {/* Second row on mobile */}
-      <div className="md:hidden container mx-auto px-4 pb-2 flex items-center gap-4">
-        <GlobalSearchInput />
+        {/* Bottom row content for mobile */}
+        <div className="flex w-full items-center gap-4 md:hidden">
+          <GlobalSearchInput />
+        </div>
       </div>
     </header>
   );

@@ -1,5 +1,6 @@
 
 "use client";
+
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,51 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatDisplayPrice } from '@/lib/utils';
+import { Metadata } from 'next';
+import { db as adminDb } from '@/lib/firebase/admin';
+
+
+type Props = {
+  params: { id: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const id = params.id;
+  try {
+    const propRef = adminDb.collection("properties").doc(id);
+    const docSnap = await propRef.get();
+
+    if (!docSnap.exists) {
+      return {
+        title: 'عقار غير موجود - عقاري',
+        description: 'لم نتمكن من العثور على العقار الذي تبحث عنه. قد يكون تم حذفه أو أن الرابط غير صحيح.',
+      };
+    }
+
+    const property = docSnap.data() as Property;
+    
+    const description = `${property.transactionType === 'sale' ? 'للبيع' : 'للكراء'}: ${property.title} في ${property.city}, ${property.wilaya}. ${property.description.substring(0, 120)}...`;
+
+    return {
+      title: `${property.title} - عقاري`,
+      description: description,
+      openGraph: {
+        title: `${property.title} - عقاري`,
+        description: description,
+        images: property.imageUrls && property.imageUrls.length > 0 ? [property.imageUrls[0]] : [],
+        url: `/properties/${id}`,
+        type: 'article',
+      },
+    };
+  } catch (error) {
+    console.error('Error generating metadata for property:', error);
+    return {
+      title: 'خطأ - عقاري',
+      description: 'حدث خطأ أثناء تحميل بيانات العقار.',
+    };
+  }
+}
 
 
 const transactionTypeTranslations: Record<TransactionType, string> = {
@@ -600,4 +646,3 @@ export default function PropertyDetailPage() {
     </div>
   );
 }
-    
