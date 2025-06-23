@@ -343,7 +343,7 @@ export const SidebarInset = React.forwardRef<
       ref={ref}
       className={cn("flex-1 flex flex-col overflow-hidden", className)}
       style={{
-        paddingTop: 'var(--sidebar-inset-top, 3rem)',
+        paddingTop: 'var(--sidebar-inset-top, 0px)',
         [paddingProp]: paddingValue,
         transition: `${paddingProp} 0.2s ease-in-out, paddingTop 0.2s ease-in-out`,
         ...style,

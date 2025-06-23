@@ -17,7 +17,7 @@ export function SiteHeader() {
       className={cn(
         "sticky top-0 z-50 w-full border-b border-border/40",
         "bg-header-background/95 backdrop-blur supports-[backdrop-filter]:bg-header-background/80 shadow-sm",
-        "h-auto md:h-14" // Auto height for mobile, fixed for desktop
+        "h-[var(--header-height)]" // Use fixed height to prevent CLS
       )}
     >
       <div className="container flex h-full flex-col justify-center gap-2 py-2 md:flex-row md:items-center md:py-0">

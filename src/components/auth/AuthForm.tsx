@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -397,7 +398,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     htmlFor="agreeToTerms"
                     className={cn(
                       "text-sm font-normal cursor-pointer",
-                      !agreeToTermsValue && "text-muted-foreground"
+                      !!form.formState.errors.agreeToTerms && "text-destructive"
                     )}
                   >
                     أوافق على{" "}

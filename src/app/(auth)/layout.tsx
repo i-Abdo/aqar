@@ -1,3 +1,4 @@
+
 import { AppLogo } from "@/components/layout/AppLogo";
 import type { Metadata } from 'next';
 

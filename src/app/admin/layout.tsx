@@ -215,8 +215,7 @@ export default function AdminLayout({
         '--sidebar-width-icon': '4rem', 
         '--sidebar-outer-padding': '0.25rem',
         '--sidebar-header-height': '3rem',
-        '--header-height': '6.5rem',
-        '--sidebar-inset-top': '3rem', 
+        '--sidebar-inset-top': 'var(--header-height)', 
         '--sidebar-side': 'right',
         '--sidebar-collapsible': 'icon',
       } as React.CSSProperties}

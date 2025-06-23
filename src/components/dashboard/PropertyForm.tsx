@@ -304,22 +304,22 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
     if (!isNaN(lengthNum) && lengthNum > 0 && !isNaN(widthNum) && widthNum > 0) {
       const calculatedArea = lengthNum * widthNum;
-      form.setValue("area", parseFloat(calculatedArea.toFixed(2)), { shouldValidate: true });
+      form.setValue("area", parseFloat(calculatedArea.toFixed(2)), { shouldValidate: true, shouldDirty: true });
     } else if (form.getValues("area") !== undefined && (isNaN(lengthNum) || isNaN(widthNum))) { 
-      form.setValue("area", undefined as any, { shouldValidate: true }); 
+      form.setValue("area", undefined as any, { shouldValidate: true, shouldDirty: true }); 
     }
   }, [lengthValue, widthValue, form]);
 
   React.useEffect(() => {
     const numericInput = parseFloat(manualPriceInput);
     if (!isNaN(numericInput) && numericInput > 0) {
-      form.setValue('price', numericInput * (unitMultipliers[selectedUnit] || 1000), { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
+      form.setValue('price', numericInput * (unitMultipliers[selectedUnit] || 1000), { shouldValidate: true, shouldDirty: true });
     } else if (manualPriceInput === "" && form.getValues("price") !== undefined) {
-        form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
+        form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: true });
     } else if (isNaN(numericInput) && manualPriceInput !== "" && form.getValues("price") !== undefined) {
-        form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: form.formState.isDirty || isEditMode });
+        form.setValue('price', undefined as any, { shouldValidate: true, shouldDirty: true });
     }
-  }, [manualPriceInput, selectedUnit, form, isEditMode]);
+  }, [manualPriceInput, selectedUnit, form]);
 
 
   const handleMainImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
