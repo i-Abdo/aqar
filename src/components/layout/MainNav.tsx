@@ -12,19 +12,20 @@ export function MainNav() {
   const pathname = usePathname();
   const { user, isAdmin, userDashboardNotificationCount, adminNotificationCount } = useAuth();
 
-  const navItemsToDisplay = siteConfig.mainNav.filter(item => {
-    if (item.authRequired && !user) return false;
-    if (item.adminRequired && !isAdmin) return false;
-    return true;
-  });
-
   return (
     <nav className={cn(
       "flex items-center space-x-4 rtl:space-x-reverse text-sm font-medium",
       "overflow-x-auto whitespace-nowrap py-2 md:py-0", // For mobile: scrollable, some padding
       "md:overflow-visible md:whitespace-normal md:space-x-6" // For desktop: normal flow
     )}>
-      {navItemsToDisplay.map((item) => {
+      {siteConfig.mainNav.map((item) => {
+        // By mapping over all items and not filtering, we keep the number of nav items constant, preventing CLS.
+        // The layouts for /dashboard and /admin will handle redirecting unauthorized users.
+        // We only hide the admin link from non-admin users for better UX, this doesn't affect initial load CLS.
+        if (item.adminRequired && user && !isAdmin) {
+          return null;
+        }
+
         let showBadge = false;
         let countToShow = 0;
 
