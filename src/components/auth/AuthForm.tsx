@@ -85,28 +85,22 @@ const calculatePasswordStrength = (password: string): PasswordStrengthResult => 
   if (criteria.number) score++;
   if (criteria.specialChar) score++;
 
-  let text = "ضعيفة جداً";
-  let color = "bg-destructive"; // Red
+  let text = "ضعيفة";
+  let color = "bg-destructive"; // Red for weak
 
-  if (score === 1) {
-    text = "ضعيفة";
-    color = "bg-destructive";
-  } else if (score === 2) {
+  if (score === 2) {
     text = "متوسطة";
-    color = "bg-yellow-500";
-  } else if (score === 3) {
+    color = "bg-orange-500"; // Orange for medium
+  } else if (score >= 3) {
     text = "قوية";
-    color = "bg-green-500";
-  } else if (score >= 4) {
-    text = "قوية جداً";
-    color = "bg-green-500";
+    color = "bg-green-500"; // Green for strong
   }
   
   if (password.length > 0 && password.length < 6) {
     return {
       score: 0,
       text: "قصيرة جداً",
-      color: "bg-destructive",
+      color: "bg-destructive", // Red
       criteria: { ...criteria, length: false },
     };
   }
@@ -118,6 +112,7 @@ const calculatePasswordStrength = (password: string): PasswordStrengthResult => 
   return { score, text, color, criteria };
 };
 
+
 const PasswordStrengthIndicator = ({ strength }: { strength: PasswordStrengthResult }) => {
   if (!strength.text) return null;
 
@@ -127,7 +122,7 @@ const PasswordStrengthIndicator = ({ strength }: { strength: PasswordStrengthRes
         <Progress value={(strength.score / 4) * 100} className={`h-2 flex-1 [&>div]:${strength.color}`} />
         <span className="text-xs text-muted-foreground w-20 text-center font-medium">{strength.text}</span>
       </div>
-       {strength.score < 4 && (
+      {strength.score < 3 && (
         <p className="text-xs text-muted-foreground">
           لتقوية كلمة السر، استخدم حروفًا وأرقامًا ورموزًا.
         </p>
