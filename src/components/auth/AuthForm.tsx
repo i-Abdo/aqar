@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -206,7 +207,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const handleAuthError = (error: any) => {
     console.error("Authentication error:", error);
     const errorMessage = error.code === 'auth/email-already-in-use' ? 'هذا البريد الإلكتروني مستخدم بالفعل.'
-                        : error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+                        : error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
                         : 'حدث خطأ ما. الرجاء المحاولة مرة أخرى.';
     toast({
       title: "خطأ في المصادقة",
