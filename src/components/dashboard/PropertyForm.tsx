@@ -200,6 +200,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         },
   });
   
+  const { formState: { isDirty: isFormFieldsDirty } } = form;
+
   React.useEffect(() => {
     if (initialData) {
       const { displayValue, unitKey } = formatPriceForInputUIDisplay(initialData.price);
@@ -207,6 +209,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       setSelectedUnit(unitKey);
       if (initialData.googleMapsLocation?.lat && initialData.googleMapsLocation?.lng) {
         setLocationInput(`${initialData.googleMapsLocation.lat}, ${initialData.googleMapsLocation.lng}`);
+      } else {
+        setLocationInput('');
       }
       form.reset({
         ...initialData,
@@ -228,6 +232,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         const defaultFormat = formatPriceForInputUIDisplay(undefined);
         setManualPriceInput(defaultFormat.displayValue);
         setSelectedUnit(defaultFormat.unitKey);
+        setLocationInput('');
         form.reset({
             title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
             rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
@@ -443,36 +448,27 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const onDescriptionChange = (newDescription: string) => {
     form.setValue("description", newDescription, { shouldDirty: true });
   };
+  
+  const imagesChanged = React.useMemo(() => {
+    if (!isEditMode) return false;
 
-  const isFormDirtyForEdit = () => {
-    if (!isEditMode) return false; 
-
-    const rhfDirty = Object.keys(form.formState.dirtyFields).length > 0;
-
-    let imagesChanged = false;
-    if (initialData?.imageUrls) {
-        const initialMain = initialData.imageUrls[0];
-        const initialRest = initialData.imageUrls.slice(1);
-        if (mainImageFile || mainImagePreview !== initialMain) imagesChanged = true;
-        if (additionalImageFiles.length > 0) imagesChanged = true;
-        if (additionalImagePreviews.length !== initialRest.length) imagesChanged = true;
-        else {
-            for(let i=0; i<additionalImagePreviews.length; i++) {
-                 // Only consider existing URLs for comparison, not newly added blob URLs if they match length
-                if(!additionalImagePreviews[i].startsWith("blob:") && additionalImagePreviews[i] !== initialRest[i]) { 
-                    imagesChanged = true;
-                    break;
-                }
-            }
-        }
-    } else if (mainImageFile || additionalImageFiles.length > 0) { 
-        imagesChanged = true;
+    if (mainImageFile || additionalImageFiles.length > 0) {
+      return true;
     }
-    return rhfDirty || imagesChanged;
-  };
 
+    const initialUrls = initialData?.imageUrls || [];
+    const currentUrls = [mainImagePreview, ...additionalImagePreviews].filter(Boolean) as string[];
 
-  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !isFormDirtyForEdit());
+    if (initialUrls.length !== currentUrls.length) {
+      return true;
+    }
+
+    return !initialUrls.every((url, index) => url === currentUrls[index]);
+  }, [isEditMode, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews, initialData]);
+
+  const isAnythingDirty = isFormFieldsDirty || imagesChanged;
+
+  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !isAnythingDirty);
 
 
   return (
