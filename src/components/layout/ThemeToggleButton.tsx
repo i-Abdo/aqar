@@ -23,7 +23,7 @@ export function ThemeToggleButton() {
   if (!mounted) {
     // Render a placeholder during SSR and initial client render to avoid hydration mismatch,
     // as the theme depends on client-side state.
-    return <Skeleton className="h-10 w-10 rounded-full" />;
+    return <Skeleton className="h-12 w-12 rounded-full" />;
   }
 
   return (
@@ -32,7 +32,7 @@ export function ThemeToggleButton() {
       size="icon"
       onClick={toggleTheme}
       aria-label={effectiveTheme === 'dark' ? "التبديل إلى الوضع الفاتح" : "التبديل إلى الوضع الداكن"}
-      className="h-10 w-10" // Button size is h-10 w-10
+      className="h-12 w-12" // Button size is h-12 w-12
     >
       {effectiveTheme === 'dark' ? (
         <Sun className="h-6 w-6" /> // Icon size changed to h-6 w-6
