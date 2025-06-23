@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as firebaseAuth, db } from '@/lib/firebase/client';
 import { doc, setDoc, serverTimestamp, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
@@ -57,25 +57,94 @@ interface AuthFormProps {
 
 type AuthFormValues = z.infer<typeof signupSchema> | z.infer<typeof loginSchema>;
 
-const calculatePasswordStrength = (password: string) => {
-    let score = 0;
-    if (!password || password.length < 6) return { score: 0, text: "", color: "bg-transparent" };
-    
-    // Award points for different character types
-    if (password.length >= 8) score++;
-    if (/\d/.test(password)) score++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-    
-    if (password.length > 12) score++;
+interface PasswordStrengthResult {
+  score: number; // 0-4
+  text: string;
+  color: string;
+  criteria: {
+    length: boolean;
+    lowercase: boolean;
+    uppercase: boolean;
+    number: boolean;
+    specialChar: boolean;
+  };
+}
 
-    const percentage = (score / 5) * 100;
+const calculatePasswordStrength = (password: string): PasswordStrengthResult => {
+  let score = 0;
+  const criteria = {
+    length: password.length >= 8,
+    lowercase: /[a-z]/.test(password),
+    uppercase: /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    specialChar: /[^A-Za-z0-9]/.test(password),
+  };
 
-    if (score <= 1) return { score: percentage, text: "ضعيفة جداً", color: "bg-red-500" };
-    if (score === 2) return { score: percentage, text: "ضعيفة", color: "bg-red-500" };
-    if (score === 3) return { score: percentage, text: "متوسطة", color: "bg-yellow-500" };
-    if (score === 4) return { score: percentage, text: "قوية", color: "bg-green-500" };
-    return { score: 100, text: "قوية جداً", color: "bg-green-500" };
+  if (criteria.length) score++;
+  if (criteria.lowercase && criteria.uppercase) score++;
+  if (criteria.number) score++;
+  if (criteria.specialChar) score++;
+
+  let text = "ضعيفة جداً";
+  let color = "bg-destructive"; // Red
+
+  if (score === 1) {
+    text = "ضعيفة";
+    color = "bg-destructive";
+  } else if (score === 2) {
+    text = "متوسطة";
+    color = "bg-yellow-500";
+  } else if (score === 3) {
+    text = "قوية";
+    color = "bg-green-500";
+  } else if (score >= 4) {
+    text = "قوية جداً";
+    color = "bg-green-500";
+  }
+  
+  if (password.length > 0 && password.length < 6) {
+    return {
+      score: 0,
+      text: "قصيرة جداً",
+      color: "bg-destructive",
+      criteria: { ...criteria, length: false },
+    };
+  }
+
+  if (password.length === 0) {
+    return { score: 0, text: "", color: "bg-transparent", criteria };
+  }
+
+  return { score, text, color, criteria };
+};
+
+const PasswordStrengthIndicator = ({ strength }: { strength: PasswordStrengthResult }) => {
+  if (!strength.text) return null;
+
+  const criteriaMessages = {
+    length: "8 أحرف على الأقل",
+    uppercase: "حرف كبير واحد على الأقل",
+    lowercase: "حرف صغير واحد على الأقل",
+    number: "رقم واحد على الأقل",
+    specialChar: "رمز خاص واحد على الأقل (!@#$)",
+  };
+
+  return (
+    <div className="space-y-2 pt-2">
+      <div className="flex items-center gap-2">
+        <Progress value={(strength.score / 4) * 100} className={`h-2 flex-1 [&>div]:${strength.color}`} />
+        <span className="text-xs text-muted-foreground w-20 text-center font-medium">{strength.text}</span>
+      </div>
+      <ul className="text-xs text-muted-foreground list-none p-0 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+        {Object.entries(criteriaMessages).map(([key, message]) => (
+          <li key={key} className={`flex items-center gap-1.5 transition-colors ${strength.criteria[key as keyof typeof strength.criteria] ? 'text-green-600' : 'text-muted-foreground'}`}>
+            {strength.criteria[key as keyof typeof strength.criteria] ? <Check size={14} /> : <X size={14} />}
+            <span>{message}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 };
 
 
@@ -162,7 +231,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const onSubmit = async (values: AuthFormValues) => {
     if (mode === "signup") {
       const signupValues = values as z.infer<typeof signupSchema>;
-      if (passwordStrength.score < 50) { // Weak password threshold
+      if (passwordStrength.score < 2) { // Weak password threshold (score 0 or 1)
         setIsWeakPasswordDialogOpen(true);
         return;
       }
@@ -261,11 +330,8 @@ export function AuthForm({ mode }: AuthFormProps) {
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
             )}
-            {mode === "signup" && passwordValue.length > 0 && (
-                <div className="flex items-center gap-2 pt-1">
-                    <Progress value={passwordStrength.score} className={`h-2 flex-1 [&>div]:${passwordStrength.color}`} />
-                    <span className="text-xs text-muted-foreground w-16 text-center">{passwordStrength.text}</span>
-                </div>
+            {mode === "signup" && passwordValue && (
+              <PasswordStrengthIndicator strength={passwordStrength} />
             )}
           </div>
 
