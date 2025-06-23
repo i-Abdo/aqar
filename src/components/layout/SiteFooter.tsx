@@ -17,7 +17,7 @@ export function SiteFooter() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md"
             >
               {item.title}
             </Link>
