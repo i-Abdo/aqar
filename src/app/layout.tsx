@@ -38,12 +38,6 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://res.cloudinary.com" />
-      </head>
-      <body className={cn(
-          "font-body antialiased min-h-screen flex flex-col",
-          fontBody.variable,
-          fontHeadline.variable
-        )}>
         <script
             dangerouslySetInnerHTML={{
               __html: `(function(){
@@ -58,6 +52,12 @@ export default function RootLayout({
               })()`,
             }}
         />
+      </head>
+      <body className={cn(
+          "font-body antialiased min-h-screen flex flex-col",
+          fontBody.variable,
+          fontHeadline.variable
+        )}>
         <ThemeProvider> 
           <AuthProvider>
             <SiteHeader />
