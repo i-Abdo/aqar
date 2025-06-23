@@ -44,6 +44,20 @@ export default function RootLayout({
           fontBody.variable,
           fontHeadline.variable
         )}>
+        <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){
+                function getTheme() {
+                  const theme = window.localStorage.getItem('themeSetting');
+                  if (theme && ['light', 'dark'].includes(theme)) {
+                    return theme;
+                  }
+                  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.classList.add(getTheme());
+              })()`,
+            }}
+        />
         <ThemeProvider> 
           <AuthProvider>
             <SiteHeader />
