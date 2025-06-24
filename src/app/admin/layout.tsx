@@ -98,17 +98,6 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
   }
   return (
     <>
-      {isMobile && (
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleSidebar}
-          className="fixed top-[calc(var(--header-height)+0.5rem)] right-4 z-30 h-10 w-10 md:hidden"
-          aria-label="فتح القائمة"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-      )}
       <Sidebar 
         title="لوحة الإدارة" 
         notificationCount={adminNotificationCount}
@@ -116,6 +105,17 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
         <AdminSidebarNav counts={counts} />
       </Sidebar>
       <SidebarInset> 
+        {isMobile && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleSidebar}
+              className="fixed top-[calc(var(--header-height)+0.5rem)] right-4 z-20 h-10 w-10 bg-background/80 backdrop-blur-sm"
+              aria-label="فتح القائمة"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+        )}
         <div className="flex flex-col h-full bg-background">
           <div className="flex-1 p-2 md:p-4 overflow-y-auto">
             {children}
