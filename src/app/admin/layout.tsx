@@ -92,8 +92,8 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
       >
         <AdminSidebarNav counts={counts} />
       </Sidebar>
-      <SidebarInset> 
-        <div className="relative flex flex-col h-full bg-background">
+      <SidebarInset>
+        <div className="relative flex flex-col h-full bg-background pt-12 md:pt-0">
           <Button
             variant="ghost"
             size="icon"
@@ -103,7 +103,7 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex-1 p-2 pt-14 md:pt-4 md:p-4 overflow-y-auto">
+          <div className="flex-1 p-2 md:p-4 overflow-y-auto">
             {children}
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function AdminLayout({
       </div>
     );
   }
-
+  
   return (
     <SidebarProvider
       defaultOpen={false} 
@@ -210,7 +210,7 @@ export default function AdminLayout({
         '--sidebar-width': '18rem', 
         '--sidebar-width-mobile': '16rem', 
         '--sidebar-width-icon': '4rem', 
-        '--sidebar-outer-padding': '0rem', // Removed outer padding for desktop
+        '--sidebar-outer-padding': '0rem',
         '--sidebar-header-height': '3rem',
         '--sidebar-inset-top': 'var(--header-height)', 
         '--sidebar-side': 'right',
