@@ -147,21 +147,19 @@ export const SidebarProvider = React.forwardRef<
     )
 
     return (
-      <SidebarContext.Provider value={contextValue}>
-        <TooltipProvider delayDuration={0}>
-          <div
-            style={style}
-            className={cn(
-              "group flex h-full w-full",
-              className
-            )}
-            ref={ref}
-            {...props}
-          >
-            {children}
-          </div>
-        </TooltipProvider>
-      </SidebarContext.Provider>
+      <TooltipProvider delayDuration={0}>
+        <div
+          style={style}
+          className={cn(
+            "group flex h-full w-full",
+            className
+          )}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </div>
+      </TooltipProvider>
     )
   }
 )
@@ -247,32 +245,33 @@ export const Sidebar = React.forwardRef<
     if (isMobile) {
       return (
         <>
-        {/* Click-away catcher */}
-        {open && (
-           <div 
-             onClick={() => setOpen(false)}
-             className="fixed inset-0 z-30 bg-black/20 animate-in fade-in-0"
-           />
-        )}
-        <aside 
-          ref={ref as React.Ref<HTMLDivElement>}
-          data-state={open ? "open" : "closed"}
-          className={cn(
-            "fixed z-40 flex flex-col transition-transform duration-300 ease-in-out",
-            "top-[var(--header-height)] h-[calc(100vh-var(--header-height))]",
-            "w-[var(--sidebar-width-mobile,15rem)] rounded-l-lg",
-            "bg-sidebar text-sidebar-foreground shadow-xl border-l border-sidebar-border",
-             actualSide === 'right' ? 'right-0' : 'left-0',
-             open
-              ? "translate-x-0"
-              : (actualSide === 'right' ? "translate-x-full" : "-translate-x-full"),
-            className
+          {/* Click-away catcher to close sidebar */}
+          {open && (
+            <div 
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-30" // No background color
+              aria-hidden="true"
+            />
           )}
-          {...props}
-        >
-            <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
-            <ScrollArea className="flex-grow">{children}</ScrollArea>
-        </aside>
+          <aside 
+            ref={ref as React.Ref<HTMLDivElement>}
+            data-state={open ? "open" : "closed"}
+            className={cn(
+              "fixed z-40 flex flex-col transition-transform duration-300 ease-in-out",
+              "top-[var(--header-height)] h-[calc(100svh-var(--header-height))]",
+              "w-[var(--sidebar-width-mobile,15rem)]",
+              "bg-sidebar text-sidebar-foreground shadow-2xl",
+              actualSide === 'right' ? 'right-0 border-l border-sidebar-border' : 'left-0 border-r border-sidebar-border',
+              open
+                ? "translate-x-0"
+                : (actualSide === 'right' ? "translate-x-full" : "-translate-x-full"),
+              className
+            )}
+            {...props}
+          >
+              <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
+              <ScrollArea className="flex-grow">{children}</ScrollArea>
+          </aside>
         </>
       );
     }

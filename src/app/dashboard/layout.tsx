@@ -10,35 +10,11 @@ import { Button } from "@/components/ui/button";
 
 
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
-  const { isMobile, toggleSidebar } = useSidebar(); 
+  const { toggleSidebar } = useSidebar(); 
   const { userDashboardNotificationCount } = useAuth(); 
   
-  const [layoutHydrated, setLayoutHydrated] = React.useState(false);
-  React.useEffect(() => {
-    setLayoutHydrated(true);
-  }, []);
-
-  if (!layoutHydrated) { 
-    return (
-        <div className="flex items-center justify-center min-h-screen">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   return (
     <>
-       {isMobile && (
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleSidebar}
-          className="fixed top-[calc(var(--header-height)+0.5rem)] right-4 z-30 h-10 w-10 md:hidden bg-background/80 backdrop-blur-sm"
-          aria-label="فتح القائمة"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-      )}
       <Sidebar 
         title="لوحة التحكم" 
         notificationCount={userDashboardNotificationCount}
@@ -46,8 +22,17 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
         <DashboardNav />
       </Sidebar>
       <SidebarInset> 
-        <div className="flex flex-col h-full bg-background">
-          <div className="flex-1 p-2 md:p-4 overflow-y-auto">
+        <div className="relative flex flex-col h-full bg-background">
+           <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="absolute top-2 right-2 z-20 h-10 w-10 md:hidden"
+            aria-label="فتح القائمة"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="flex-1 p-2 pt-14 md:pt-4 md:p-4 overflow-y-auto">
             {children}
           </div>
         </div>
@@ -90,7 +75,7 @@ export default function DashboardLayout({
   
   return (
     <SidebarProvider
-        defaultOpen={true} 
+        defaultOpen={false} 
         style={{
           '--sidebar-width': '16rem',
           '--sidebar-width-mobile': '15rem', 
