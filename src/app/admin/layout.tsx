@@ -110,7 +110,7 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
               variant="outline"
               size="icon"
               onClick={toggleSidebar}
-              className="fixed top-[calc(var(--header-height)+0.5rem)] right-4 z-20 h-10 w-10 bg-background/80 backdrop-blur-sm"
+              className="fixed top-[calc(var(--header-height)+0.5rem)] right-4 z-30 h-10 w-10 md:hidden bg-background/80 backdrop-blur-sm"
               aria-label="فتح القائمة"
             >
               <Menu className="h-5 w-5" />
