@@ -81,7 +81,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 
 
 function AdminInternalLayout({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
-  const { isMobile, toggleSidebar } = useSidebar();
+  const { toggleSidebar } = useSidebar();
   const { adminNotificationCount } = useAuth(); 
 
   const [layoutHydrated, setLayoutHydrated] = React.useState(false);
@@ -98,17 +98,6 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
   }
   return (
     <>
-      {isMobile && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleSidebar}
-              className="fixed top-[calc(var(--header-height)+0.5rem)] right-4 z-30 h-10 w-10 md:hidden bg-background/80 backdrop-blur-sm"
-              aria-label="فتح القائمة"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-      )}
       <Sidebar 
         title="لوحة الإدارة" 
         notificationCount={adminNotificationCount}
@@ -117,7 +106,18 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
       </Sidebar>
       <SidebarInset> 
         <div className="flex flex-col h-full bg-background">
-          <div className="flex-1 p-2 md:p-4 overflow-y-auto">
+           <div className="p-2 md:hidden">
+             <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleSidebar}
+                className="h-10 w-10 bg-background"
+                aria-label="فتح القائمة"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+           </div>
+          <div className="flex-1 p-2 pt-0 md:p-4 md:pt-4 overflow-y-auto">
             {children}
           </div>
         </div>
