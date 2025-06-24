@@ -4,7 +4,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { ChevronsRight, ChevronsLeft, type LucideIcon, Menu } from "lucide-react"
+import { ChevronsRight, ChevronsLeft, type LucideIcon, X } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -28,7 +27,7 @@ type SidebarContextValue = {
   open: boolean
   setOpen: React.Dispatch<React.SetStateAction<boolean>>
   toggleSidebar: () => void
-  isMobile: boolean | undefined
+  isMobile: boolean
   hydrated: boolean
   actualSide: 'left' | 'right'
   collapsible: 'icon' | 'none'
@@ -64,7 +63,7 @@ export const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobileHook = useIsMobile()
+    const isMobile = useIsMobile()
     const [hydrated, setHydrated] = React.useState(false)
     const [_open, _setOpen] = React.useState(defaultOpen) 
 
@@ -82,7 +81,7 @@ export const SidebarProvider = React.forwardRef<
 
     React.useEffect(() => {
       if (hydrated && openProp === undefined) {
-        if (isMobileHook) {
+        if (isMobile) {
           _setOpen(false); 
         } else {
           const cookieValue = document.cookie
@@ -96,7 +95,7 @@ export const SidebarProvider = React.forwardRef<
           }
         }
       }
-    }, [isMobileHook, openProp, hydrated, defaultOpen])
+    }, [isMobile, openProp, hydrated, defaultOpen])
 
     const open = openProp ?? _open
 
@@ -108,11 +107,11 @@ export const SidebarProvider = React.forwardRef<
         } else {
           _setOpen(newOpenState)
         }
-        if (hydrated && !isMobileHook && openProp === undefined) {
+        if (hydrated && !isMobile && openProp === undefined) {
           document.cookie = `${SIDEBAR_COOKIE_NAME}=${newOpenState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
         }
       },
-      [setOpenProp, open, hydrated, isMobileHook, openProp]
+      [setOpenProp, open, hydrated, isMobile, openProp]
     )
 
     const toggleSidebar = React.useCallback(() => {
@@ -139,12 +138,12 @@ export const SidebarProvider = React.forwardRef<
         open,
         setOpen,
         toggleSidebar,
-        isMobile: isMobileHook,
+        isMobile: isMobile,
         hydrated,
         actualSide,
         collapsible,
       }),
-      [open, setOpen, toggleSidebar, isMobileHook, hydrated, actualSide, collapsible]
+      [open, setOpen, toggleSidebar, isMobile, hydrated, actualSide, collapsible]
     )
 
     return (
@@ -168,59 +167,52 @@ export const SidebarProvider = React.forwardRef<
 )
 SidebarProvider.displayName = "SidebarProvider"
 
-
-// Internal component for the sidebar's header content (title, badge, toggle button)
 const SidebarHeaderInternal = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { title?: string; notificationCount?: number }
 >(({ className, title, notificationCount, ...props }, ref) => {
-  const { open, toggleSidebar, isMobile, actualSide, hydrated, collapsible } = useSidebar();
-
-  const ChevronIconToRender = React.useCallback(() => {
-    if (actualSide === 'right') { // RTL default
-      return open ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />;
-    } else { // LTR
-      return open ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />;
-    }
-  }, [actualSide, open]);
+  const { open, toggleSidebar, isMobile, actualSide, collapsible } = useSidebar();
   
-  if (!hydrated) { 
-    return <div className={cn("p-2 border-b border-sidebar-border flex items-center justify-center shrink-0 h-[var(--sidebar-header-height,3rem)]", className)} {...props}>
-             <div className="h-8 w-8 animate-pulse bg-muted rounded-md"></div>
-           </div>;
-  }
-
+  const ChevronIcon = actualSide === 'right' 
+    ? (open ? ChevronsRight : ChevronsLeft) 
+    : (open ? ChevronsLeft : ChevronsRight);
+    
   return (
     <div
       ref={ref}
-      className={cn(
-        "flex items-center border-b border-sidebar-border p-2 h-[var(--sidebar-header-height,3rem)] shrink-0",
-        className
-      )}
+      className={cn("flex h-[var(--sidebar-header-height,3rem)] items-center border-b border-sidebar-border p-2 shrink-0", className)}
       {...props}
     >
       {open && title && (
-        <div className="flex items-center gap-2 overflow-hidden flex-grow">
-          <span className="text-lg font-semibold truncate">{title}</span>
-          {notificationCount !== undefined && notificationCount > 0 && (
+        <div className="flex-grow overflow-hidden flex items-center gap-2">
+          <span className="font-semibold truncate">{title}</span>
+           {notificationCount !== undefined && notificationCount > 0 && (
             <Badge variant="destructive">{notificationCount > 9 ? '9+' : notificationCount}</Badge>
           )}
         </div>
       )}
-      {collapsible !== "none" && !isMobile && (
-        <Button
+      
+      {!isMobile && collapsible !== 'none' && (
+         <Button
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className={cn(
-            "h-8 w-8 shrink-0",
-             !open && "mx-auto", // Center when collapsed
-             (open && actualSide === 'left') && 'ml-auto',
-             (open && actualSide === 'right') && 'mr-auto',
-          )}
-          aria-label={open ? "إغلاق الشريط الجانبي" : "فتح الشريط الجانبي"}
+          className={cn("h-8 w-8", !open && "mx-auto", open && "ml-auto rtl:mr-auto rtl:ml-0")}
+          aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
         >
-          <ChevronIconToRender />
+          <ChevronIcon />
+        </Button>
+      )}
+
+      {isMobile && (
+         <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          className="h-8 w-8 ml-auto rtl:mr-auto rtl:ml-0"
+          aria-label="إغلاق القائمة"
+        >
+          <X />
         </Button>
       )}
     </div>
@@ -246,7 +238,7 @@ export const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, open, setOpen, actualSide, collapsible, hydrated } = useSidebar();
+    const { isMobile, open, setOpen, actualSide, hydrated } = useSidebar();
 
     if (!hydrated) {
       return null; 
@@ -254,80 +246,55 @@ export const Sidebar = React.forwardRef<
     
     if (isMobile) {
       return (
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "fixed z-50",
-                "top-[calc(var(--header-height)/2-1.25rem)]",
-                actualSide === 'left' ? "left-4" : "right-4",
-                "h-10 w-10 md:hidden" 
-              )}
-              aria-label="فتح القائمة"
-            >
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side={actualSide} className="flex flex-col p-0 w-[var(--sidebar-width-mobile,15rem)]">
+        <>
+        {/* Click-away catcher */}
+        {open && (
+           <div 
+             onClick={() => setOpen(false)}
+             className="fixed inset-0 z-30 bg-black/20 animate-in fade-in-0"
+           />
+        )}
+        <aside 
+          ref={ref as React.Ref<HTMLDivElement>}
+          data-state={open ? "open" : "closed"}
+          className={cn(
+            "fixed z-40 flex flex-col transition-transform duration-300 ease-in-out",
+            "top-[var(--header-height)] h-[calc(100vh-var(--header-height))]",
+            "w-[var(--sidebar-width-mobile,15rem)] rounded-l-lg",
+            "bg-sidebar text-sidebar-foreground shadow-xl border-l border-sidebar-border",
+             actualSide === 'right' ? 'right-0' : 'left-0',
+             open
+              ? "translate-x-0"
+              : (actualSide === 'right' ? "translate-x-full" : "-translate-x-full"),
+            className
+          )}
+          {...props}
+        >
             <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
-            <ScrollArea className="flex-grow">
-              {children}
-            </ScrollArea>
-          </SheetContent>
-        </Sheet>
+            <ScrollArea className="flex-grow">{children}</ScrollArea>
+        </aside>
+        </>
       );
     }
     
-    let currentSidebarWidth: string;
-    if (open) {
-      currentSidebarWidth = isMobile ? 'var(--sidebar-width-mobile, 15rem)' : 'var(--sidebar-width, 16rem)';
-    } else {
-       currentSidebarWidth = collapsible === 'icon' ? 'var(--sidebar-width-icon, 4.5rem)' : '0px';
-    }
-    if (collapsible === "none" && !open) {
-        currentSidebarWidth = '0px';
-    }
-    
-    const outerContainerPadding = 'var(--sidebar-outer-padding, 0.1rem)'; 
-    const sideClasses = actualSide === "left" ? "left-0" : "right-0";
-
+    // Desktop view
     return (
-      <aside 
-        ref={ref}
+       <aside 
+        ref={ref as React.Ref<HTMLDivElement>}
         data-state={open ? "expanded" : "collapsed"}
-        data-collapsible={collapsible}
-        data-side={actualSide} 
-        data-mobile={String(isMobile)}
         className={cn(
-          "group fixed z-40 flex", 
-          sideClasses
+          "group fixed z-20 flex-col overflow-y-auto overflow-x-hidden transition-[width] duration-300 ease-in-out",
+          "top-[var(--header-height)] h-[calc(100svh-var(--header-height))]",
+          actualSide === 'right' ? 'right-0' : 'left-0',
+          className
         )}
-        style={{
-          top: 'var(--header-height)',
-          maxHeight: `calc(100svh - var(--header-height) - (${outerContainerPadding} * 2))`, 
-          width: currentSidebarWidth, 
-          padding: outerContainerPadding, 
-          alignItems: 'flex-start', 
-          justifyContent: actualSide === "left" ? "flex-start" : (actualSide === "right" ? "flex-end" : "center"),
-          transition: 'width 0.2s ease-in-out' 
-        }}
+        style={{ width: `var(${open ? '--sidebar-width' : '--sidebar-width-icon'})`}}
         {...props}
       >
-        { (collapsible === "none" && !open) ? null : (
-            <div 
-              className={cn(
-                "flex flex-col w-full h-fit overflow-hidden", 
-                "bg-sidebar text-sidebar-foreground shadow-xl border border-sidebar-border rounded-lg"
-              )}
-            >
-              <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
-              <ScrollArea className="flex-grow">
-                {children}
-              </ScrollArea>
-            </div>
-        )}
+        <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground shadow-lg border-y-0 border-sidebar-border">
+          <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
+          <ScrollArea className="flex-grow">{children}</ScrollArea>
+        </div>
       </aside>
     );
   }
@@ -339,13 +306,13 @@ export const SidebarInset = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, style, ...props }, ref) => {
-  const { isMobile, actualSide, collapsible, hydrated, open } = useSidebar()
+  const { isMobile, actualSide, hydrated, open } = useSidebar()
 
   if (!hydrated) {
     return (
-      <div
+      <main
         ref={ref}
-        className={cn("flex-1 flex flex-col overflow-hidden", className)}
+        className={cn("flex-1", className)}
         style={style}
         {...props}
       />
@@ -354,9 +321,9 @@ export const SidebarInset = React.forwardRef<
   
   if (isMobile) {
     return (
-      <div
+      <main
         ref={ref}
-        className={cn("flex-1 flex flex-col overflow-hidden", className)}
+        className={cn("flex-1", className)}
         style={{
           paddingTop: 'var(--sidebar-inset-top, 0px)',
           ...style,
@@ -367,24 +334,15 @@ export const SidebarInset = React.forwardRef<
   }
 
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight"
-  let paddingValue: string;
-  
-  const collapsedWidth = collapsible === 'icon' ? 'calc(var(--sidebar-width-icon, 4rem) + var(--sidebar-outer-padding, 0.25rem) * 2)' : '0px';
-  const expandedWidth = "calc(var(--sidebar-width, 16rem) + var(--sidebar-outer-padding, 0.25rem) * 2)";
-  paddingValue = open ? expandedWidth : collapsedWidth;
-  
-  if (collapsible === 'none' && !open) {
-    paddingValue = '0px';
-  }
+  const paddingValue = `var(${open ? '--sidebar-width' : '--sidebar-width-icon'})`
 
   return (
-    <div
+    <main
       ref={ref}
-      className={cn("flex-1 flex flex-col overflow-hidden", className)}
+      className={cn("flex-1 transition-[padding] duration-300 ease-in-out", className)}
       style={{
         paddingTop: 'var(--sidebar-inset-top, 0px)',
         [paddingProp]: paddingValue,
-        transition: `${paddingProp} 0.2s ease-in-out, paddingTop 0.2s ease-in-out`,
         ...style,
       }}
       {...props}
@@ -464,7 +422,7 @@ export const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button";
-    const { open, isMobile, collapsible, actualSide } = useSidebar();
+    const { open, isMobile, actualSide } = useSidebar();
     
     if (asChild && !React.isValidElement(children)) {
       return null;
@@ -483,11 +441,11 @@ export const SidebarMenuButton = React.forwardRef<
       </Comp>
     );
 
-    if (!tooltip || isMobile === undefined) {
+    if (!tooltip || isMobile) {
       return buttonElement;
     }
     
-    const tooltipDisabled = open || isMobile || collapsible !== "icon";
+    const tooltipDisabled = open;
 
     return (
       <Tooltip open={tooltipDisabled ? false : undefined}>
@@ -509,8 +467,8 @@ export const SidebarSeparator = React.forwardRef<
   HTMLHRElement,
   React.HTMLAttributes<HTMLHRElement>
 >(({ className, ...props }, ref) => {
-  const { open, collapsible, isMobile } = useSidebar();
-  if ( (collapsible === "icon" && !open && !isMobile)) {
+  const { open, isMobile } = useSidebar();
+  if (!open && !isMobile) {
     return null;
   }
   return (

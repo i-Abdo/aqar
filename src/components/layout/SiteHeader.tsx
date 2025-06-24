@@ -24,10 +24,7 @@ export function SiteHeader() {
         {/* Top row content for mobile, becomes the full row for desktop */}
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-x-2 md:gap-x-6">
-            <div className="md:hidden">
-              {/* Placeholder for mobile sidebar trigger which is rendered by Sidebar component */}
-            </div>
-            <AppLogo />
+             <AppLogo />
             <nav className="hidden md:flex">
               <MainNav />
             </nav>
