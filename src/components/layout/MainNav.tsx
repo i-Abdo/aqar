@@ -42,7 +42,7 @@ export function MainNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "transition-colors hover:text-primary relative flex items-center gap-1.5 p-2 rounded-md", // Increased padding for touch targets
+              "transition-colors hover:text-primary relative flex items-center gap-1.5 px-3 py-2 rounded-md", // Increased padding for touch targets
               pathname === item.href ? "text-primary" : "text-foreground/60"
             )}
           >
