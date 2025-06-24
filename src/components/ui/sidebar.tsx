@@ -4,7 +4,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { ChevronsRight, ChevronsLeft, type LucideIcon } from "lucide-react"
+import { ChevronsRight, ChevronsLeft, type LucideIcon, Menu } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -206,7 +207,7 @@ const SidebarHeaderInternal = React.forwardRef<
           )}
         </div>
       )}
-      {collapsible !== "none" && (
+      {collapsible !== "none" && !isMobile && (
         <Button
           variant="ghost"
           size="icon"
@@ -245,10 +246,38 @@ export const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, open, actualSide, collapsible, hydrated } = useSidebar();
+    const { isMobile, open, setOpen, actualSide, collapsible, hydrated } = useSidebar();
 
     if (!hydrated) {
       return null; 
+    }
+    
+    if (isMobile) {
+      return (
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "fixed z-50",
+                "top-[calc(var(--header-height)/2-1.25rem)]",
+                actualSide === 'left' ? "left-4" : "right-4",
+                "h-10 w-10 md:hidden" 
+              )}
+              aria-label="فتح القائمة"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side={actualSide} className="flex flex-col p-0 w-[var(--sidebar-width-mobile,15rem)]">
+            <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
+            <ScrollArea className="flex-grow">
+              {children}
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
+      );
     }
     
     let currentSidebarWidth: string;
@@ -323,16 +352,26 @@ export const SidebarInset = React.forwardRef<
     )
   }
   
+  if (isMobile) {
+    return (
+      <div
+        ref={ref}
+        className={cn("flex-1 flex flex-col overflow-hidden", className)}
+        style={{
+          paddingTop: 'var(--sidebar-inset-top, 0px)',
+          ...style,
+        }}
+        {...props}
+      />
+    );
+  }
+
   const paddingProp = actualSide === "left" ? "paddingLeft" : "paddingRight"
   let paddingValue: string;
-
-  if (isMobile) {
-      paddingValue = 'calc(var(--sidebar-width-icon, 3.5rem) + var(--sidebar-outer-padding, 0.25rem) * 2)';
-  } else {
-      const collapsedWidth = collapsible === 'icon' ? 'calc(var(--sidebar-width-icon, 4rem) + var(--sidebar-outer-padding, 0.25rem) * 2)' : '0px';
-      const expandedWidth = "calc(var(--sidebar-width, 16rem) + var(--sidebar-outer-padding, 0.25rem) * 2)";
-      paddingValue = open ? expandedWidth : collapsedWidth;
-  }
+  
+  const collapsedWidth = collapsible === 'icon' ? 'calc(var(--sidebar-width-icon, 4rem) + var(--sidebar-outer-padding, 0.25rem) * 2)' : '0px';
+  const expandedWidth = "calc(var(--sidebar-width, 16rem) + var(--sidebar-outer-padding, 0.25rem) * 2)";
+  paddingValue = open ? expandedWidth : collapsedWidth;
   
   if (collapsible === 'none' && !open) {
     paddingValue = '0px';
