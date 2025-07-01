@@ -1,4 +1,3 @@
-
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -112,77 +111,113 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
   );
 }
 
+// This component only renders if the user is a confirmed admin.
+// It handles fetching admin-specific data.
+function AdminLayoutContent({ children }: { children: React.ReactNode; }) {
+    const { adminNotificationCount, refreshAdminNotifications } = useAuth();
+    const pathname = usePathname();
+
+    const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
+    const [isLoadingCounts, setIsLoadingCounts] = useState(true);
+
+    useEffect(() => {
+        const fetchAdminCountsForSidebar = async () => {
+            setIsLoadingCounts(true);
+            try {
+                const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
+                const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
+                const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
+                const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
+
+                const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
+                getCountFromServer(pendingPropsQuery),
+                getCountFromServer(newReportsQuery),
+                getCountFromServer(newUserIssuesQuery),
+                getCountFromServer(newAppealsQuery),
+                ]);
+
+                const currentCountsData = {
+                pending: pendingSnapshot.data().count,
+                reports: reportsSnapshot.data().count,
+                issues: issuesSnapshot.data().count,
+                appeals: appealsSnapshot.data().count,
+                };
+                setCounts(currentCountsData);
+            } catch (error) {
+                console.error("Error fetching admin counts for sidebar:", error);
+                setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
+            } finally {
+                setIsLoadingCounts(false);
+            }
+        };
+        fetchAdminCountsForSidebar();
+    }, []);
+
+    useEffect(() => {
+        refreshAdminNotifications();
+    }, [pathname, adminNotificationCount, refreshAdminNotifications]);
+
+    if (isLoadingCounts) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
+  
+    return (
+        <SidebarProvider
+        defaultOpen={false} 
+        style={{
+            '--sidebar-width': '18rem', 
+            '--sidebar-width-mobile': '16rem', 
+            '--sidebar-width-icon': '4rem', 
+            '--sidebar-outer-padding': '0rem',
+            '--sidebar-header-height': '3rem',
+            '--sidebar-inset-top': 'var(--header-height)', 
+            '--sidebar-side': 'right',
+            '--sidebar-collapsible': 'icon',
+        } as React.CSSProperties}
+        >
+            <AdminInternalLayout counts={counts}>
+                {children}
+            </AdminInternalLayout>
+        </SidebarProvider>
+    );
+}
+
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAdmin, loading: authLoading, adminNotificationCount: totalAdminNotifications, refreshAdminNotifications } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-
-  const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
-  const [isLoadingCounts, setIsLoadingCounts] = useState(true);
   const [authHydrated, setAuthHydrated] = useState(false);
 
   useEffect(() => {
     setAuthHydrated(true);
   }, []);
 
+  // This effect handles the redirection logic for unauthorized users.
   useEffect(() => {
-    const fetchAdminCountsForSidebar = async () => {
-      if (!isAdmin) {
-        setIsLoadingCounts(false);
-        return;
-      }
-      setIsLoadingCounts(true);
-      try {
-        const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
-        const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
-        const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
-        const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
-
-        const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
-          getCountFromServer(pendingPropsQuery),
-          getCountFromServer(newReportsQuery),
-          getCountFromServer(newUserIssuesQuery),
-          getCountFromServer(newAppealsQuery),
-        ]);
-
-        const currentCountsData = {
-          pending: pendingSnapshot.data().count,
-          reports: reportsSnapshot.data().count,
-          issues: issuesSnapshot.data().count,
-          appeals: appealsSnapshot.data().count,
-        };
-        setCounts(currentCountsData);
-      } catch (error) {
-        console.error("Error fetching admin counts for sidebar:", error);
-        setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
-      } finally {
-        setIsLoadingCounts(false);
-      }
-    };
-    
+    // We wait until auth is not loading and the component is hydrated on the client.
     if (!authLoading && authHydrated) {
-        if (!user) {
-            router.push("/login?redirect=/admin");
-        } else if (!isAdmin) {
-            router.push("/dashboard");
-        } else {
-            fetchAdminCountsForSidebar(); 
-        }
+      if (!user) {
+        // If there's no user, redirect to login.
+        router.push("/login?redirect=/admin/properties");
+      } else if (!isAdmin) {
+        // If there's a user but they are not an admin, redirect to their dashboard.
+        router.push("/dashboard");
+      }
     }
   }, [user, isAdmin, authLoading, router, authHydrated]);
   
-  useEffect(() => {
-    if (isAdmin) {
-        refreshAdminNotifications();
-    }
-  }, [isAdmin, pathname, totalAdminNotifications, refreshAdminNotifications]);
-
-
-  if (authLoading || !authHydrated || (isAdmin && isLoadingCounts)) { 
+  // This is the main security guard. 
+  // It shows a loader until we are certain the user is an authenticated admin.
+  // This prevents any "flash" of the admin UI for unauthorized users.
+  if (authLoading || !authHydrated || !isAdmin) { 
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -190,36 +225,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!user || !isAdmin) {
-    return (
-       <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
-        <ShieldAlert className="h-16 w-16 text-destructive mb-4" />
-        <h1 className="text-2xl font-bold text-destructive mb-2">وصول غير مصرح به</h1>
-        <p className="text-muted-foreground mb-6">ليس لديك الصلاحيات اللازمة للوصول إلى هذه الصفحة.</p>
-        <Button asChild>
-          <Link href="/dashboard">العودة إلى لوحة التحكم</Link>
-        </Button>
-      </div>
-    );
-  }
-  
-  return (
-    <SidebarProvider
-      defaultOpen={false} 
-      style={{
-        '--sidebar-width': '18rem', 
-        '--sidebar-width-mobile': '16rem', 
-        '--sidebar-width-icon': '4rem', 
-        '--sidebar-outer-padding': '0rem',
-        '--sidebar-header-height': '3rem',
-        '--sidebar-inset-top': 'var(--header-height)', 
-        '--sidebar-side': 'right',
-        '--sidebar-collapsible': 'icon',
-      } as React.CSSProperties}
-    >
-      <AdminInternalLayout counts={counts}>
-        {children}
-      </AdminInternalLayout>
-    </SidebarProvider>
-  );
+  // If we reach here, the user is a confirmed admin.
+  // We can now safely render the admin content.
+  return <AdminLayoutContent>{children}</AdminLayoutContent>;
 }
