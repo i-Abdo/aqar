@@ -131,6 +131,7 @@ export default function NewPropertyPage() {
         imageUrls,
         status: trustLevel === 'untrusted' ? "pending" : "active", 
         deletionReason: "",
+        googleMapsLocation: data.googleMapsLocation || null,
       };
       
       const propertyDataWithTimestamps = {

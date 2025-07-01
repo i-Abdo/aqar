@@ -90,6 +90,10 @@ const propertyFormSchema = z.object({
     contract: z.boolean().default(false),
   }),
   googleMapsLink: z.string().url({ message: "الرجاء إدخال رابط خرائط جوجل صالح." }).optional().or(z.literal('')),
+  googleMapsLocation: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).nullable().optional(),
 }).superRefine((data, ctx) => {
   if (data.propertyType === 'other' && (!data.otherPropertyType || data.otherPropertyType.trim().length < 2)) {
     ctx.addIssue({
@@ -187,6 +191,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       ? { 
           ...initialData,
           googleMapsLink: initialData.googleMapsLink || "",
+          googleMapsLocation: initialData.googleMapsLocation || null,
           price: initialData.price || undefined,
           transactionType: initialData.transactionType || undefined,
           propertyType: initialData.propertyType || undefined,
@@ -198,6 +203,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
           filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
           googleMapsLink: "",
+          googleMapsLocation: null,
         },
   });
   
@@ -214,6 +220,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         propertyType: initialData.propertyType || undefined,
         otherPropertyType: initialData.otherPropertyType || "",
         googleMapsLink: initialData.googleMapsLink || "",
+        googleMapsLocation: initialData.googleMapsLocation || null,
       });
        if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
@@ -223,7 +230,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setAdditionalImagePreviews([]);
       }
       setGoogleMapsLinkDirty(false); // Reset dirty state on new initial data
-      setUrlVerificationStatus(initialData.googleMapsLink ? 'success' : 'idle');
+      setUrlVerificationStatus(initialData.googleMapsLocation ? 'success' : 'idle');
     }
   }, [initialData, form]);
 
@@ -241,22 +248,15 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const lengthValue = form.watch("length");
   const widthValue = form.watch("width");
   const watchedPropertyType = form.watch("propertyType");
-  const watchedGoogleMapsLink = form.watch("googleMapsLink");
+  const watchedGoogleMapsLocation = form.watch("googleMapsLocation");
 
   const mapEmbedUrl = React.useMemo(() => {
-    if (!watchedGoogleMapsLink || urlVerificationStatus !== 'success') return null;
-
-    const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const match = watchedGoogleMapsLink.match(coordRegex);
-
-    if (match && match[1] && match[2]) {
-      const lat = match[1];
-      const lon = match[2];
-      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
+    if (watchedGoogleMapsLocation && watchedGoogleMapsLocation.lat && watchedGoogleMapsLocation.lng) {
+      const { lat, lng } = watchedGoogleMapsLocation;
+      return `https://www.google.com/maps?q=${lat},${lng}&hl=ar&z=15&output=embed`;
     }
-    
     return null;
-  }, [watchedGoogleMapsLink, urlVerificationStatus]);
+  }, [watchedGoogleMapsLocation]);
 
   const handleVerificationOnBlur = async () => {
     const url = form.getValues("googleMapsLink");
@@ -265,6 +265,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     if (!googleMapsLinkDirty || !url || url.trim() === "") {
       if (!url || url.trim() === "") {
         setUrlVerificationStatus('idle');
+        form.setValue("googleMapsLocation", null);
         form.clearErrors("googleMapsLink");
       }
       return;
@@ -284,10 +285,18 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
     if (result.success && result.finalUrl) {
       form.setValue("googleMapsLink", result.finalUrl, { shouldValidate: true, shouldDirty: true });
-      setUrlVerificationStatus('success');
-      toast({ title: "تم التحقق من الرابط بنجاح" });
+      if (result.coordinates) {
+          form.setValue("googleMapsLocation", result.coordinates, { shouldValidate: true, shouldDirty: true });
+          setUrlVerificationStatus('success');
+          toast({ title: "تم التحقق من الرابط واستخلاص الإحداثيات بنجاح!" });
+      } else {
+          form.setValue("googleMapsLocation", null, { shouldValidate: true, shouldDirty: true });
+          setUrlVerificationStatus('success'); // Still a success because the link is valid
+          toast({ title: "تم التحقق من الرابط", description: "تعذر استخلاص الإحداثيات، سيتم حفظ الرابط فقط.", variant: "default" });
+      }
     } else {
       setUrlVerificationStatus('error');
+      form.setValue("googleMapsLocation", null, { shouldValidate: true, shouldDirty: true });
       form.setError("googleMapsLink", { type: "manual", message: result.error || "فشل التحقق من الرابط." });
       toast({ title: "فشل التحقق", description: result.error || "تعذر حل الرابط. يرجى التأكد من أنه رابط خرائط جوجل صالح.", variant: "destructive" });
     }
@@ -693,10 +702,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         title="معاينة الموقع على الخريطة"
                     ></iframe>
                 </div>
-            ) : watchedGoogleMapsLink && urlVerificationStatus === 'success' ? (
+            ) : form.getValues("googleMapsLink") && urlVerificationStatus === 'success' ? (
                 <div className="mt-4 p-3 border border-dashed border-amber-500 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm text-center">
                     <p>
-                        تم التحقق من الرابط بنجاح، ولكن تعذر استخلاص الإحداثيات لعرض معاينة. سيتم حفظ الرابط كما هو.
+                        تم التحقق من الرابط بنجاح، ولكن تعذر استخلاص الإحداثيات لعرض معاينة. سيتم حفظ الرابط فقط.
                     </p>
                 </div>
             ) : null}

@@ -101,8 +101,14 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   
-  // This hook MUST be called at the top level, before any conditional returns.
   const mapEmbedUrl = useMemo(() => {
+    // Prioritize coordinates if they exist
+    if (property?.googleMapsLocation && property.googleMapsLocation.lat != null && property.googleMapsLocation.lng != null) {
+        const { lat, lng } = property.googleMapsLocation;
+        return `https://www.google.com/maps?q=${lat},${lng}&hl=ar&z=15&output=embed`;
+    }
+
+    // Fallback for old data: try to parse the link
     const googleMapsLink = property?.googleMapsLink;
     if (!googleMapsLink) return null;
 
@@ -112,12 +118,11 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     if (match && match[1] && match[2]) {
       const lat = match[1];
       const lon = match[2];
-      return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d0!2d${lon}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z${lat}°N+${lon}°E!5e0!3m2!1sar!2sdz!4v1`;
+      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
     }
     
-    // Fallback if regex fails but link exists
     return null;
-  }, [property?.googleMapsLink]);
+  }, [property?.googleMapsLocation, property?.googleMapsLink]);
 
   const fetchPropertyAndRefresh = useCallback(async () => {
     if (!propertyId) return;
