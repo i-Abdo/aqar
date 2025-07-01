@@ -28,6 +28,10 @@ export const siteConfig: SiteConfig = {
       href: "/",
     },
     {
+      title: "العقارات",
+      href: "/properties",
+    },
+    {
       title: "الأسعار", // Pricing
       href: "/pricing",
     },
