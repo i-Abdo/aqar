@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -178,11 +179,6 @@ export default function EditPropertyPage() {
         updatedAt: serverTimestamp() as Timestamp, 
       };
       
-      // Clean up googleMapsLocation if incomplete, setting to null will remove from firestore
-      if (typeof propertyUpdateData.googleMapsLocation?.lat !== 'number' || typeof propertyUpdateData.googleMapsLocation?.lng !== 'number') {
-        (propertyUpdateData as any).googleMapsLocation = null;
-      }
-
       delete (propertyUpdateData as any).id; 
 
 

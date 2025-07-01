@@ -266,7 +266,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, googleMapsLink } = property;
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -419,7 +419,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
             </div>
           )}
 
-          {property.googleMapsLocation?.lat && property.googleMapsLocation?.lng && (
+          {googleMapsLink && (
             <div className="mt-8">
                 <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2 flex items-center gap-2"><Map size={18}/>الموقع على Google Map</h3>
                 <div className="aspect-video w-full rounded-md overflow-hidden border">
@@ -429,7 +429,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                         style={{ border: 0 }}
                         loading="lazy"
                         allowFullScreen
-                        src={`https://www.google.com/maps?q=${property.googleMapsLocation.lat},${property.googleMapsLocation.lng}&hl=ar&z=15&output=embed`}
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(googleMapsLink)}&hl=ar&z=15&output=embed`}
                     ></iframe>
                 </div>
             </div>

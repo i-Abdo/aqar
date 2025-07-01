@@ -1,3 +1,4 @@
+
 "use client";
 
 import { PropertyForm, PropertyFormValues } from "@/components/dashboard/PropertyForm";
@@ -132,11 +133,6 @@ export default function NewPropertyPage() {
         deletionReason: "",
       };
       
-      // Clean up googleMapsLocation if incomplete
-      if (typeof propertyData.googleMapsLocation?.lat !== 'number' || typeof propertyData.googleMapsLocation?.lng !== 'number') {
-        delete (propertyData as Partial<Property>).googleMapsLocation;
-      }
-
       const propertyDataWithTimestamps = {
         ...propertyData,
         createdAt: serverTimestamp(),
@@ -240,7 +236,7 @@ export default function NewPropertyPage() {
       <PropertyForm 
         onSubmit={handleSubmit} 
         isLoading={isSubmitting} 
-        initialData={{filters: currentPlan?.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined} as Partial<Property>} 
+        initialData={{filters: currentPlan?.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined}} 
       />
     </div>
   );

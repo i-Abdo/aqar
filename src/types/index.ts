@@ -60,7 +60,7 @@ export interface Property {
   archivalReason?: string; 
   createdAt: Date;
   updatedAt: Date;
-  googleMapsLocation?: { lat: number; lng: number };
+  googleMapsLink?: string;
   firebaseStudioTestField?: string;
 }
 
@@ -124,7 +124,3 @@ export interface PropertyAppeal {
   dismissedByOwner?: boolean; // Added
   updatedAt?: Date; // Added
 }
-
-
-
-
