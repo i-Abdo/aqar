@@ -6,11 +6,12 @@ import { db } from "@/lib/firebase/client";
 import type { Property } from "@/types";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertySearchSidebar, SearchFilters } from "@/components/properties/PropertySearchSidebar";
-import { Loader2, SearchIcon, RotateCcw } from "lucide-react";
+import { Loader2, SearchIcon, RotateCcw, Filter } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { cn } from '@/lib/utils';
 import { PropertyCardSkeleton } from '@/components/properties/PropertyCardSkeleton';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const PROPERTIES_PER_PAGE = 9;
 
@@ -20,6 +21,7 @@ export default function PropertiesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchCriteria, setSearchCriteria] = useState<SearchFilters>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const fetchProperties = async () => {
     setIsLoading(true);
@@ -88,6 +90,7 @@ export default function PropertiesPage() {
 
   const handleSearch = (filters: SearchFilters) => {
     setSearchCriteria(filters);
+    setIsSheetOpen(false); // Close sheet on search/reset
   };
 
   const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
@@ -172,10 +175,28 @@ export default function PropertiesPage() {
         <h1 className="text-4xl font-bold font-headline text-primary">تصفح العقارات</h1>
         <p className="text-lg text-muted-foreground mt-2">جد العقار الذي يناسب احتياجاتك من بين مئات العروض.</p>
       </header>
+
+      {/* Mobile-only Filter Button */}
+      <div className="mb-6 lg:hidden">
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline_primary" className="w-full">
+              <Filter className="ml-2 rtl:mr-2 rtl:ml-0 h-5 w-5" />
+              تصفية البحث
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0">
+            <PropertySearchSidebar onSearch={handleSearch} initialFilters={searchCriteria} />
+          </SheetContent>
+        </Sheet>
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="lg:w-1/3 xl:w-1/4">
+        {/* Desktop-only Sidebar */}
+        <aside className="hidden lg:block lg:w-1/3 xl:w-1/4 sticky top-20 self-start">
           <PropertySearchSidebar onSearch={handleSearch} initialFilters={searchCriteria} />
         </aside>
+
         <main className="lg:w-2/3 xl:w-3/4">
           {isLoading ? (
              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

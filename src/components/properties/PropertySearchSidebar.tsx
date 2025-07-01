@@ -104,14 +104,14 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
   };
 
   return (
-    <Card className="shadow-lg sticky top-20">
+    <Card className="shadow-lg h-full flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl font-headline">
           <Filter size={24} />
           <span>تصفية البحث</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Label htmlFor="searchTerm">بحث بالكلمة المفتاحية</Label>
