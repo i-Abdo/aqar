@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -180,7 +179,7 @@ export default function PropertiesPage() {
       </header>
 
       {/* Mobile-only Filter Button */}
-      <div className="mb-6 lg:hidden">
+      <div className="mb-6 md:hidden">
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
             <Button variant="outline_primary" className="w-full">
@@ -202,9 +201,9 @@ export default function PropertiesPage() {
         </Sheet>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-8">
         {/* Desktop-only Sidebar */}
-        <aside className="hidden lg:block lg:w-1/3 xl:w-1/4 sticky top-20 self-start">
+        <aside className="hidden md:block md:w-1/3 lg:w-1/4 sticky top-20 self-start">
            <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl font-headline">
@@ -218,9 +217,9 @@ export default function PropertiesPage() {
             </Card>
         </aside>
 
-        <main className="lg:w-2/3 xl:w-3/4">
+        <main className="w-full md:w-2/3 lg:w-3/4">
           {isLoading ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {Array.from({ length: 6 }).map((_, index) => (
                 <PropertyCardSkeleton key={index} />
               ))}
@@ -237,7 +236,7 @@ export default function PropertiesPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {paginatedProperties.map(prop => (
                   <PropertyCard key={prop.id} property={prop} />
                 ))}
