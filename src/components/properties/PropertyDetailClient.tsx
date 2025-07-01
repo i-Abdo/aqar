@@ -420,7 +420,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
           {property.googleMapsLocation?.lat && property.googleMapsLocation?.lng && (
             <div className="mt-8">
-                <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2 flex items-center gap-2"><Map size={18}/>الموقع على الخريطة</h3>
+                <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2 flex items-center gap-2"><Map size={18}/>الموقع على Google Map</h3>
                 <div className="aspect-video w-full rounded-md overflow-hidden border">
                     <iframe
                         width="100%"
