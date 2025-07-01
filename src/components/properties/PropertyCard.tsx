@@ -42,7 +42,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
     <>
       <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
         <CardHeader className="p-0 relative">
-          <Link href={`/properties/${property.id}`} className="block h-48 relative group">
+          <Link href={`/properties/${property.id}`} className="block h-36 relative group">
             <Image
               src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
               alt={property.title}
@@ -67,9 +67,9 @@ export function PropertyCard({ property }: PropertyCardProps) {
             )}
           </div>
         </CardHeader>
-        <CardContent className="p-4 flex-grow flex flex-col">
+        <CardContent className="p-3 flex-grow flex flex-col">
           <Link href={`/properties/${property.id}`}>
-            <CardTitle className="text-xl font-headline mb-1 truncate hover:text-primary transition-colors" title={property.title}>
+            <CardTitle className="text-lg font-headline mb-1 truncate hover:text-primary transition-colors" title={property.title}>
               {property.title}
             </CardTitle>
           </Link>
@@ -95,8 +95,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
             )}
           </ul>
         </CardContent>
-        <CardFooter className="p-4 border-t flex gap-2">
-          <Button asChild className="flex-1 transition-smooth hover:shadow-md">
+        <CardFooter className="p-3 border-t flex gap-2">
+          <Button asChild size="sm" className="flex-1 transition-smooth hover:shadow-md">
             <Link href={`/properties/${property.id}`}>عرض التفاصيل</Link>
           </Button>
           {canReport && (

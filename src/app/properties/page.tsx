@@ -220,7 +220,7 @@ export default function PropertiesPage() {
 
         <main className="w-full md:w-2/3 lg:w-3/4">
           {isLoading ? (
-             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, index) => (
                 <PropertyCardSkeleton key={index} />
               ))}
@@ -237,7 +237,7 @@ export default function PropertiesPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {paginatedProperties.map(prop => (
                   <PropertyCard key={prop.id} property={prop} />
                 ))}
