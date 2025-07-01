@@ -258,11 +258,21 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     return null;
   }, [watchedGoogleMapsLink, urlVerificationStatus]);
 
-  const handleVerifyUrl = async () => {
+  const handleVerificationOnBlur = async () => {
     const url = form.getValues("googleMapsLink");
-    if (!url || !url.trim().startsWith('http')) {
-      toast({ title: "رابط غير صالح", description: "الرجاء إدخال رابط خرائط جوجل صالح يبدأ بـ http.", variant: "destructive" });
+    
+    // Only verify if the field is dirty and has a value
+    if (!googleMapsLinkDirty || !url || url.trim() === "") {
+      if (!url || url.trim() === "") {
+        setUrlVerificationStatus('idle');
+        form.clearErrors("googleMapsLink");
+      }
+      return;
+    }
+
+    if (!url.trim().startsWith('http')) {
       setUrlVerificationStatus('error');
+      form.setError("googleMapsLink", { type: "manual", message: "الرابط يجب أن يبدأ بـ http." });
       return;
     }
 
@@ -275,13 +285,14 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     if (result.success && result.finalUrl) {
       form.setValue("googleMapsLink", result.finalUrl, { shouldValidate: true, shouldDirty: true });
       setUrlVerificationStatus('success');
-      toast({ title: "تم التحقق بنجاح", description: "تم العثور على رابط خرائط جوجل صالح." });
+      toast({ title: "تم التحقق من الرابط بنجاح" });
     } else {
       setUrlVerificationStatus('error');
       form.setError("googleMapsLink", { type: "manual", message: result.error || "فشل التحقق من الرابط." });
       toast({ title: "فشل التحقق", description: result.error || "تعذر حل الرابط. يرجى التأكد من أنه رابط خرائط جوجل صالح.", variant: "destructive" });
     }
     setIsVerifyingUrl(false);
+    setGoogleMapsLinkDirty(false); // Mark as verified/clean
   };
 
 
@@ -632,7 +643,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><Map size={18}/>الموقع على الخريطة (اختياري)</h3>
             <div>
                 <Label htmlFor="googleMapsLink">رابط الموقع</Label>
-                <div className="flex items-center gap-2">
+                <div className="relative w-full">
                     <Controller
                       name="googleMapsLink"
                       control={form.control}
@@ -642,20 +653,25 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                           id="googleMapsLink" 
                           placeholder="الصق الرابط هنا [من google map]"
                           dir="ltr" 
-                          className="text-left flex-grow"
+                          className="text-left flex-grow pl-10 rtl:pr-10 rtl:pl-3"
                           onChange={(e) => {
                             field.onChange(e);
                             setUrlVerificationStatus('idle'); // Reset verification on change
                             setGoogleMapsLinkDirty(true);
                           }}
+                          onBlur={handleVerificationOnBlur}
                         />
                       )}
                     />
-                     <Button type="button" onClick={handleVerifyUrl} disabled={isVerifyingUrl} variant="outline" size="icon" aria-label="تحقق من الرابط">
-                        {isVerifyingUrl ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-                     </Button>
-                      {urlVerificationStatus === 'success' && <Check className="text-green-500" />}
-                      {urlVerificationStatus === 'error' && <XCircle className="text-destructive" />}
+                     <div className="absolute inset-y-0 left-0 rtl:right-0 rtl:left-auto flex items-center pl-3 rtl:pr-3">
+                        {isVerifyingUrl ? (
+                            <Loader2 className="animate-spin text-muted-foreground" />
+                        ) : urlVerificationStatus === 'success' ? (
+                            <Check className="text-green-500" />
+                        ) : urlVerificationStatus === 'error' ? (
+                            <XCircle className="text-destructive" />
+                        ) : null}
+                    </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                     افتح خرائط جوجل، ابحث عن الموقع، انقر على "مشاركة" ثم "نسخ الرابط".
