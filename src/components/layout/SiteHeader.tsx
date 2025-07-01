@@ -18,17 +18,18 @@ export function SiteHeader() {
       )}
     >
       <div className="container flex h-full items-center">
-        {/* Left side: Logo and main navigation */}
-        <div className="flex items-center gap-x-2 md:gap-x-6">
+        {/* Left Group */}
+        <div className="flex items-center justify-start flex-1">
           <AppLogo />
+        </div>
+
+        {/* Center Group (Nav) */}
+        <div className="flex items-center justify-center">
           <MainNav />
         </div>
 
-        {/* Spacer to push right content to the end */}
-        <div className="flex-1" />
-
-        {/* Right side: Theme toggle and user menu */}
-        <div className="flex items-center gap-x-1 shrink-0">
+        {/* Right Group */}
+        <div className="flex items-center justify-end flex-1 gap-x-1">
           <ThemeToggleButton />
           <UserAccountNav />
         </div>
