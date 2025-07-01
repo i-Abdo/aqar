@@ -1,4 +1,3 @@
-
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import type { Plan, PropertyAppeal, AdminAppealDecisionType, UserIssue, Report, 
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge"; 
-import { dismissAllUserDashboardNotifications } from "@/actions/notificationActions";
 
 interface UserStats {
   activeListings: number;
@@ -89,7 +87,6 @@ export default function DashboardPage() {
   const [reportUpdates, setReportUpdates] = useState<ReportUpdateForDashboard[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
-  const [isLoadingDismissAll, setIsLoadingDismissAll] = useState(false);
   const [canAddProperty, setCanAddProperty] = useState(false);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<Plan | null>(null);
   const router = useRouter();
@@ -276,22 +273,6 @@ export default function DashboardPage() {
     );
   };
 
-  const handleDismissAllNotifications = async () => {
-    if (!user) return;
-    setIsLoadingDismissAll(true);
-    const result = await dismissAllUserDashboardNotifications(user.uid);
-    if (result.success) {
-        toast({ title: "تم المسح بنجاح", description: result.message });
-        clearUserDashboardNotificationBadge(); 
-        // Re-fetch notifications to update the UI from the source of truth (Firestore)
-        await Promise.all([fetchAppealNotifications(), fetchUserIssueUpdates(), fetchReportUpdates()]);
-    } else {
-        toast({ title: "خطأ في المسح", description: result.message, variant: "destructive" });
-    }
-    setIsLoadingDismissAll(false);
-  };
-
-
   if (authLoading || (isLoadingStats && !user)) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
@@ -378,18 +359,6 @@ export default function DashboardPage() {
                 <Badge variant="destructive" className="h-6 px-2.5">{totalVisibleNotifications > 9 ? '9+' : totalVisibleNotifications}</Badge>
               )}
             </CardTitle>
-            {hasVisibleNotifications && (
-              <Button
-                variant="outline_primary"
-                size="sm"
-                onClick={handleDismissAllNotifications}
-                disabled={isLoadingDismissAll}
-                className="transition-smooth hover:shadow-sm"
-              >
-                {isLoadingDismissAll ? <Loader2 size={16} className="animate-spin ml-1 rtl:mr-1 rtl:ml-0" /> : <Trash2 size={16} className="ml-1 rtl:mr-1 rtl:ml-0" />}
-                {isLoadingDismissAll ? "جاري المسح..." : "مسح كل الإشعارات"}
-              </Button>
-            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4 text-right">
