@@ -1,36 +1,45 @@
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle, MapPin } from "lucide-react";
 import type { Metadata } from 'next';
+import { db as adminDb } from '@/lib/firebase/admin';
+import StatisticsSection from "@/components/home/StatisticsSection";
 
 export const metadata: Metadata = {
   title: 'عقاري - بوابتك العقارية الشاملة في الجزائر',
   description: 'ابحث عن شقق, بيوت, أراضي, وفلل للبيع أو الكراء في جميع ولايات الجزائر. اعرض عقارك بسهولة مع عقاري.',
 };
 
-const popularCities = [
-  { name: "الجزائر", hint: "Algiers cityscape" , image: "https://placehold.co/400x300.png" },
-  { name: "وهران", hint: "Oran waterfront" , image: "https://placehold.co/400x300.png" },
-  { name: "قسنطينة", hint: "Constantine bridge" , image: "https://placehold.co/400x300.png" },
-  { name: "عنابة", hint: "Annaba beach" , image: "https://placehold.co/400x300.png" },
-  { name: "البليدة", hint: "Blida mountains" , image: "https://placehold.co/400x300.png" },
-  { name: "سطيف", hint: "Setif landmark" , image: "https://placehold.co/400x300.png" },
-];
+export default async function HomePage() {
+  let propertyCount = 0;
+  try {
+    const propertiesRef = adminDb.collection('properties').where('status', '==', 'active');
+    const snapshot = await propertiesRef.count().get();
+    propertyCount = snapshot.data().count;
+  } catch (error) {
+    console.error("Failed to fetch property count for homepage:", error);
+    propertyCount = 1250; // Fallback number
+  }
 
-export default function HomePage() {
   return (
-    <div className="flex flex-col items-center text-center space-y-12">
-      <section className="pt-12 md:pt-20">
-        <h1 className="text-4xl md:text-6xl font-bold font-headline mb-6 tracking-tight">
+    <div className="flex flex-col items-center text-center space-y-12 overflow-x-hidden">
+      <section className="pt-12 md:pt-20 w-full">
+        <h1 
+          className="text-4xl md:text-6xl font-bold font-headline mb-6 tracking-tight animate-in fade-in slide-in-from-bottom-4 duration-700"
+        >
           أهلاً بك في <span className="text-primary">عقاري</span>
         </h1>
-        <p className="text-lg md:text-xl text-muted-foreground mx-auto mb-8">
+        <p 
+          className="text-lg md:text-xl text-muted-foreground mx-auto mb-8 max-w-3xl animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200"
+        >
           منصتك المثالية لإيجار وبيع العقارات في الجزائر. ابحث عن منزلك المثالي أو اعرض عقارك بكل سهولة.
         </p>
-        <div className="flex justify-center gap-4">
+        <div 
+          className="flex justify-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300"
+        >
           <Button size="lg" asChild className="transition-smooth hover:shadow-lg transform hover:scale-105">
             <Link href="/dashboard/properties/new">أضف عقارك الآن</Link>
           </Button>
@@ -41,9 +50,13 @@ export default function HomePage() {
       </section>
 
       <section className="w-full py-12 md:py-16">
-        <h2 className="text-3xl font-bold font-headline mb-10">لماذا تختار عقاري؟</h2>
+        <h2 
+          className="text-3xl font-bold font-headline mb-10 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200"
+        >
+          لماذا تختار عقاري؟
+        </h2>
         <div className="grid md:grid-cols-3 gap-8 text-right">
-          <Card className="shadow-lg hover:shadow-xl transition-smooth">
+          <Card className="shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="text-green-500" />
@@ -56,7 +69,7 @@ export default function HomePage() {
               </p>
             </CardContent>
           </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-smooth">
+          <Card className="shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-400">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="text-green-500" />
@@ -69,7 +82,7 @@ export default function HomePage() {
               </p>
             </CardContent>
           </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-smooth">
+          <Card className="shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="text-green-500" />
@@ -91,41 +104,15 @@ export default function HomePage() {
             alt="Featured Property Showcase" 
             width={1200} 
             height={400} 
-            className="rounded-lg shadow-xl object-cover"
+            className="rounded-lg shadow-xl object-cover animate-in fade-in zoom-in-95 duration-1000"
             data-ai-hint="modern apartment building"
             priority
           />
       </section>
 
-      <section className="w-full py-12 md:py-16">
-        <h2 className="text-3xl font-bold font-headline mb-10">أشهر المدن</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {popularCities.map((city) => (
-            <Link key={city.name} href={`/properties?wilaya=${city.name}`} passHref>
-              <Card className="group overflow-hidden shadow-md hover:shadow-xl transition-smooth transform hover:-translate-y-1 cursor-pointer">
-                <div className="relative w-full h-40">
-                  <Image
-                    src={city.image}
-                    alt=""
-                    fill
-                    style={{objectFit:"cover"}}
-                    className="transition-transform duration-300 group-hover:scale-105"
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 17vw"
-                    data-ai-hint={city.hint}
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold text-center group-hover:text-primary transition-colors">
-                    {city.name}
-                  </h3>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <StatisticsSection propertyCount={propertyCount} />
 
-       <section className="w-full py-12 md:py-16 bg-secondary/30 rounded-lg">
+       <section className="w-full py-12 md:py-16 bg-secondary/30 rounded-lg animate-in fade-in slide-in-from-bottom-12 duration-700">
         <h2 className="text-3xl font-bold font-headline mb-6">جاهز للبدء؟</h2>
         <p className="text-lg text-muted-foreground mb-8">
           انضم إلى آلاف المستخدمين الذين يثقون في عقاري لاحتياجاتهم العقارية.
