@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
@@ -28,14 +27,16 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
     <Card className={cn("flex flex-col shadow-lg transition-all duration-300 hover:shadow-xl", isCurrentPlan && "ring-2 ring-primary border-primary")}>
       <CardHeader className="items-center text-center">
         <CardTitle className="text-2xl font-headline">{renderPlanName()}</CardTitle>
-        <CardDescription className="text-3xl font-bold text-accent min-h-[2.5rem]"> {/* Added min-h for consistency */}
-          {plan.priceMonthly > 0 ? (
+        <CardDescription className="text-3xl font-bold text-accent min-h-[2.5rem]">
+          {plan.id !== 'free' && plan.priceMonthly <= 0 ? (
+            '--'
+          ) : plan.priceMonthly > 0 ? (
             <>
               {`${plan.priceMonthly.toLocaleString()} د.ج`}
               <span className="text-lg font-normal text-muted-foreground">/شهر</span>
             </>
           ) : (
-            null // Render nothing if the price is 0 or less
+            null
           )}
         </CardDescription>
       </CardHeader>
@@ -94,4 +95,3 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
     </Card>
   );
 }
-

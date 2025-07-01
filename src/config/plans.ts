@@ -1,4 +1,3 @@
-
 import type { Plan } from "@/types";
 
 export const plans: Plan[] = [
@@ -23,8 +22,8 @@ export const plans: Plan[] = [
   {
     id: "vip",
     name: "VIP",
-    priceMonthly: 1500,
-    priceYearly: 15000,
+    priceMonthly: 0,
+    priceYearly: 0,
     features: [
       "نشر عقار واحد ✓",
       "إمكانية نشر أكثر من عقار ✕",
@@ -41,8 +40,8 @@ export const plans: Plan[] = [
   {
     id: "vip_plus_plus",
     name: "VIP++",
-    priceMonthly: 2000,
-    priceYearly: 20000,
+    priceMonthly: 0,
+    priceYearly: 0,
     features: [
       "نشر عدد غير محدود من العقارات ✓",
       "صور رئيسية للعقار ✓",
