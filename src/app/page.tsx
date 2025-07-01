@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle, MapPin } from "lucide-react";
 import type { Metadata } from 'next';
-import { db as adminDb } from '@/lib/firebase/admin';
+import { db as adminDb, isFirebaseAdminAppInitialized } from '@/lib/firebase/admin';
 import StatisticsSection from "@/components/home/StatisticsSection";
 
 export const metadata: Metadata = {
@@ -15,14 +15,21 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   let propertyCount = 0;
-  try {
-    const propertiesRef = adminDb.collection('properties').where('status', '==', 'active');
-    const snapshot = await propertiesRef.count().get();
-    propertyCount = snapshot.data().count;
-  } catch (error) {
-    console.error("Failed to fetch property count for homepage:", error);
-    propertyCount = 1250; // Fallback number
+
+  if (isFirebaseAdminAppInitialized) {
+    try {
+      const propertiesRef = adminDb.collection('properties').where('status', '==', 'active');
+      const snapshot = await propertiesRef.count().get();
+      propertyCount = snapshot.data().count;
+    } catch (error) {
+      console.error("Failed to fetch property count for homepage (admin SDK might be misconfigured):", error);
+      propertyCount = 1250; // Fallback number on query error
+    }
+  } else {
+    // Fallback if admin SDK is not initialized at all
+    propertyCount = 1250;
   }
+  
 
   return (
     <div className="flex flex-col items-center text-center space-y-12 overflow-x-hidden">

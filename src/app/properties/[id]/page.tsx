@@ -1,11 +1,11 @@
 
 import { Metadata } from 'next';
-import { db as adminDb } from '@/lib/firebase/admin';
+import { db as adminDb, isFirebaseAdminAppInitialized } from '@/lib/firebase/admin';
 import type { Property } from '@/types';
 import PropertyDetailClient from '@/components/properties/PropertyDetailClient';
 import { notFound } from 'next/navigation';
 import { getAuth } from 'firebase-admin/auth';
-import { app } from '@/lib/firebase/admin';
+import { app as adminApp } from '@/lib/firebase/admin';
 
 type Props = {
   params: { id: string };
@@ -14,6 +14,12 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = params.id;
+  if (!isFirebaseAdminAppInitialized) {
+    return {
+      title: 'عقار - عقاري',
+      description: 'تفاصيل العقار.',
+    };
+  }
   try {
     const propRef = adminDb.collection("properties").doc(id);
     const docSnap = await propRef.get();
@@ -51,6 +57,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // Helper function to fetch property data from Firestore on the server
 async function getProperty(id: string) {
+    if (!isFirebaseAdminAppInitialized) {
+        console.warn("Admin SDK not initialized. Cannot fetch property details on the server.");
+        return null;
+    }
     try {
         const propRef = adminDb.collection("properties").doc(id);
         const docSnap = await propRef.get();
@@ -82,8 +92,10 @@ export default async function PropertyDetailPage({ params }: Props) {
   const propertyData = await getProperty(params.id);
 
   if (!propertyData) {
-    notFound(); // Triggers the not-found.js page or a default 404
+    // If admin SDK fails, client can still try to fetch.
+    // We pass null and let the client component handle the fetching logic.
+    return <PropertyDetailClient initialProperty={null} propertyId={params.id} />;
   }
 
-  return <PropertyDetailClient initialProperty={propertyData} />;
+  return <PropertyDetailClient initialProperty={propertyData} propertyId={params.id} />;
 }

@@ -45,6 +45,7 @@ import { formatDisplayPrice } from '@/lib/utils';
 
 // Helper function to convert ISO string back to Date object
 const parsePropertyDates = (prop: any): Property => {
+  if (!prop) return prop;
   return {
     ...prop,
     createdAt: prop.createdAt?.toDate ? prop.createdAt.toDate() : new Date(prop.createdAt),
@@ -74,14 +75,19 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
   blacklisted: 'قائمة سوداء',
 };
 
+interface PropertyDetailClientProps {
+    initialProperty: any | null;
+    propertyId: string;
+}
+
 // The component now receives the initial property data as a prop
-export default function PropertyDetailClient({ initialProperty }: { initialProperty: any }) {
+export default function PropertyDetailClient({ initialProperty, propertyId }: PropertyDetailClientProps) {
   const router = useRouter();
   const { toast } = useToast();
 
   // The property state is initialized with the server-fetched data
   const [property, setProperty] = useState<Property | null>(parsePropertyDates(initialProperty));
-  const [isLoading, setIsLoading] = useState(false); // No initial loading needed
+  const [isLoading, setIsLoading] = useState(!initialProperty); // Set loading true if no initial data
   const [error, setError] = useState<string | null>(null);
   const { user, isAdmin, loading: authLoading, refreshAdminNotifications } = useAuth();
   const [isReportPropertyDialogOpen, setIsReportPropertyDialogOpen] = useState(false);
@@ -96,29 +102,70 @@ export default function PropertyDetailClient({ initialProperty }: { initialPrope
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
-  // This effect now handles authorization checks and fetching extra data (owner details)
+  const fetchPropertyAndRefresh = useCallback(async () => {
+    if (!propertyId) return;
+    setIsLoading(true);
+    try {
+      const propRef = doc(db, "properties", propertyId);
+      const docSnap = await getDoc(propRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as Omit<Property, 'id'>;
+        const fetchedProperty = parsePropertyDates({id: docSnap.id, ...data});
+        setProperty(fetchedProperty);
+
+        // Authorization check
+        const isOwnerViewing = user && fetchedProperty.userId === user.uid;
+        const canViewNonActive = isOwnerViewing || isAdmin;
+
+        if (fetchedProperty.status === 'deleted' && !canViewNonActive) {
+          setError("هذا العقار تم حذفه وغير متاح للعرض.");
+        } else if (fetchedProperty.status !== 'active' && fetchedProperty.status !== 'deleted' && !canViewNonActive) {
+          setError("هذا العقار غير متاح للعرض حاليًا.");
+        } else {
+          setError(null); // Clear any previous error
+        }
+
+        if (fetchedProperty.imageUrls && fetchedProperty.imageUrls.length > 0) {
+            setSelectedImageUrl(fetchedProperty.imageUrls[0]);
+        }
+
+      } else {
+        setError("لم يتم العثور على العقار. ربما تم حذفه.");
+      }
+    } catch(err) {
+      console.error("Error refreshing property details:", err);
+      toast({ title: "خطأ", description: "فشل تحديث بيانات العقار.", variant: "destructive" });
+      setError("فشل تحميل بيانات العقار.");
+    } finally {
+        setIsLoading(false);
+    }
+  }, [propertyId, toast, user, isAdmin]);
+
   useEffect(() => {
-    if (authLoading || !property) return;
-
-    // Authorization check
-    const isOwnerViewing = user && property.userId === user.uid;
-    const canViewNonActive = isOwnerViewing || isAdmin;
-
-    if (property.status === 'deleted' && !canViewNonActive) {
-      setError("هذا العقار تم حذفه وغير متاح للعرض.");
-    } else if (property.status !== 'active' && property.status !== 'deleted' && !canViewNonActive) {
-      setError("هذا العقار غير متاح للعرض حاليًا.");
+    if (!initialProperty) {
+      fetchPropertyAndRefresh();
     } else {
-      setError(null); // Clear any previous error
+      // Logic for when initialProperty is present
+      const isOwnerViewing = user && initialProperty.userId === user.uid;
+      const canViewNonActive = isOwnerViewing || isAdmin;
+      if (initialProperty.status === 'deleted' && !canViewNonActive) {
+        setError("هذا العقار تم حذفه وغير متاح للعرض.");
+      } else if (initialProperty.status !== 'active' && initialProperty.status !== 'deleted' && !canViewNonActive) {
+        setError("هذا العقار غير متاح للعرض حاليًا.");
+      } else {
+        setError(null);
+      }
+       if (initialProperty.imageUrls && initialProperty.imageUrls.length > 0) {
+            setSelectedImageUrl(initialProperty.imageUrls[0]);
+        }
     }
+  }, [initialProperty, fetchPropertyAndRefresh, user, isAdmin]);
 
-    if (property.imageUrls && property.imageUrls.length > 0) {
-      setSelectedImageUrl(property.imageUrls[0]);
-    }
 
-    // Fetch owner details if admin
+  // Fetch owner details if admin
+  useEffect(() => {
     const fetchOwnerDetails = async () => {
-      if (isAdmin && property.userId) {
+      if (isAdmin && property?.userId) {
         const ownerRef = doc(db, "users", property.userId);
         const ownerSnap = await getDoc(ownerRef);
         if (ownerSnap.exists()) {
@@ -133,31 +180,11 @@ export default function PropertyDetailClient({ initialProperty }: { initialPrope
         }
       }
     };
-    
-    fetchOwnerDetails();
-
-  }, [property, user, isAdmin, authLoading]);
-  
-  const fetchPropertyAndRefresh = useCallback(async () => {
-    if (!property) return;
-    setIsLoading(true);
-    try {
-      const propRef = doc(db, "properties", property.id);
-      const docSnap = await getDoc(propRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data() as Omit<Property, 'id'>;
-        setProperty(parsePropertyDates({id: docSnap.id, ...data}));
-      } else {
-        setError("لم يتم العثور على العقار. ربما تم حذفه.");
-      }
-    } catch(err) {
-      console.error("Error refreshing property details:", err);
-      toast({ title: "خطأ", description: "فشل تحديث بيانات العقار.", variant: "destructive" });
-    } finally {
-        setIsLoading(false);
+    if (property) {
+        fetchOwnerDetails();
     }
-  }, [property, toast]);
-
+  }, [property, isAdmin]);
+  
 
   const handleAdminPropertyStatusChange = async (newStatus: Property['status'], reason?: string) => {
     if (!property || !isAdmin) return;
@@ -207,11 +234,11 @@ export default function PropertyDetailClient({ initialProperty }: { initialPrope
     }
   };
 
-  if (authLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">جاري التحقق من صلاحيات الوصول...</p>
+        <p className="text-lg text-muted-foreground">جاري تحميل بيانات العقار...</p>
       </div>
     );
   }
