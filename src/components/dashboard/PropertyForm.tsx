@@ -251,7 +251,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const watchedGoogleMapsLocation = form.watch("googleMapsLocation");
 
   const mapEmbedUrl = React.useMemo(() => {
-    if (watchedGoogleMapsLocation && watchedGoogleMapsLocation.lat && watchedGoogleMapsLocation.lng) {
+    if (watchedGoogleMapsLocation && watchedGoogleMapsLocation.lat != null && watchedGoogleMapsLocation.lng != null) {
       const { lat, lng } = watchedGoogleMapsLocation;
       return `https://www.google.com/maps?q=${lat},${lng}&hl=ar&z=15&output=embed`;
     }
@@ -261,7 +261,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const handleVerificationOnBlur = async () => {
     const url = form.getValues("googleMapsLink");
     
-    // Only verify if the field is dirty and has a value
     if (!googleMapsLinkDirty || !url || url.trim() === "") {
       if (!url || url.trim() === "") {
         setUrlVerificationStatus('idle');
@@ -283,17 +282,11 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
     const result = await resolveGoogleMapsUrl(url);
 
-    if (result.success && result.finalUrl) {
+    if (result.success && result.finalUrl && result.coordinates) {
       form.setValue("googleMapsLink", result.finalUrl, { shouldValidate: true, shouldDirty: true });
-      if (result.coordinates) {
-          form.setValue("googleMapsLocation", result.coordinates, { shouldValidate: true, shouldDirty: true });
-          setUrlVerificationStatus('success');
-          toast({ title: "تم التحقق من الرابط واستخلاص الإحداثيات بنجاح!" });
-      } else {
-          form.setValue("googleMapsLocation", null, { shouldValidate: true, shouldDirty: true });
-          setUrlVerificationStatus('success'); // Still a success because the link is valid
-          toast({ title: "تم التحقق من الرابط", description: "تعذر استخلاص الإحداثيات، سيتم حفظ الرابط فقط.", variant: "default" });
-      }
+      form.setValue("googleMapsLocation", result.coordinates, { shouldValidate: true, shouldDirty: true });
+      setUrlVerificationStatus('success');
+      toast({ title: "تم التحقق بنجاح!", description: "تم استخلاص الإحداثيات من الرابط." });
     } else {
       setUrlVerificationStatus('error');
       form.setValue("googleMapsLocation", null, { shouldValidate: true, shouldDirty: true });
