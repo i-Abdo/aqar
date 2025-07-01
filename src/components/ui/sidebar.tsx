@@ -284,7 +284,7 @@ export const Sidebar = React.forwardRef<
         ref={ref as React.Ref<HTMLDivElement>}
         data-state={open ? "expanded" : "collapsed"}
         className={cn(
-          "group fixed z-20 flex-col overflow-y-auto overflow-x-hidden transition-[width] duration-300 ease-in-out",
+          "group fixed z-20 flex-col overflow-x-hidden transition-[width] duration-300 ease-in-out",
           "top-[var(--header-height)] h-[calc(100svh-var(--header-height))]",
           actualSide === 'right' ? 'right-0' : 'left-0',
           className

@@ -9,7 +9,7 @@
     --foreground: 224 71% 4%; /* Darker gray for text, adjusted for contrast */
 
     --header-background: 216 25% 92%; /* Slightly darker than page background */
-    --header-height: 6.5rem; /* Static height for header (for mobile layout) */
+    --header-height: 4rem; /* Corrected from 6.5rem to match actual h-16 */
 
     --card: 0 0% 100%; /* White */
     --card-foreground: 224 71% 4%;
