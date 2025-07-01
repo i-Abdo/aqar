@@ -429,7 +429,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                         style={{ border: 0 }}
                         loading="lazy"
                         allowFullScreen
-                        src={`https://maps.google.com/maps?q=${encodeURIComponent(googleMapsLink)}&hl=ar&z=15&output=embed`}
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(googleMapsLink)}&hl=ar&z=15&output=embed`}
                     ></iframe>
                 </div>
             </div>

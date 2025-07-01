@@ -174,6 +174,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const [manualPriceInput, setManualPriceInput] = React.useState<string>(initialPriceFormat.displayValue);
   const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey || "THOUSAND_DA");
   
+  // Track changes to googleMapsLink specifically to trigger re-validation and dirty state
+  const [googleMapsLinkDirty, setGoogleMapsLinkDirty] = React.useState(false);
+
 
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
@@ -216,6 +219,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setMainImagePreview(null);
         setAdditionalImagePreviews([]);
       }
+      setGoogleMapsLinkDirty(false); // Reset dirty state on new initial data
     }
   }, [initialData, form]);
 
@@ -403,7 +407,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     return !initialUrls.every((url, index) => url === currentUrls[index]);
   }, [isEditMode, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews, initialData]);
 
-  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged);
+  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged && !googleMapsLinkDirty);
 
 
   return (
@@ -581,13 +585,23 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           <div className="space-y-3">
             <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><Map size={18}/>الموقع على الخريطة (اختياري)</h3>
             <div>
-                <Label htmlFor="googleMapsLink">رابط أو إحداثيات الموقع</Label>
-                 <Input 
-                    id="googleMapsLink" 
-                    {...form.register("googleMapsLink")}
-                    placeholder="الصق الرابط هنا [من google map]"
-                    dir="ltr" 
-                    className="text-left"
+                <Label htmlFor="googleMapsLink">رابط الموقع</Label>
+                <Controller
+                  name="googleMapsLink"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Input 
+                      {...field}
+                      id="googleMapsLink" 
+                      placeholder="الصق الرابط هنا [من google map]"
+                      dir="ltr" 
+                      className="text-left"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setGoogleMapsLinkDirty(true);
+                      }}
+                    />
+                  )}
                 />
                 <p className="text-xs text-muted-foreground mt-1">مثال: https://www.google.com/maps/...</p>
                 {form.formState.errors.googleMapsLink && (
@@ -598,7 +612,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
              <Button type="button" variant="outline_secondary" asChild className="transition-smooth hover:shadow-md">
                 <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
                     <MapPin size={16} className="ml-2 rtl:mr-2 rtl:ml-0"/>
-                    جلب الإحداثيات من خرائط جوجل
+                    فتح خرائط جوجل
                 </a>
             </Button>
             {watchedGoogleMapsLink && (
@@ -609,7 +623,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         style={{ border: 0 }}
                         loading="lazy"
                         allowFullScreen
-                        src={`https://maps.google.com/maps?q=${encodeURIComponent(watchedGoogleMapsLink)}&hl=ar&z=15&output=embed`}
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(watchedGoogleMapsLink)}&hl=ar&z=15&output=embed`}
                     ></iframe>
                 </div>
             )}

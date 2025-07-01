@@ -8,7 +8,7 @@ const cspHeader = `
     img-src 'self' data: https://placehold.co https://res.cloudinary.com;
     connect-src 'self' wss://*.firebaseio.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
-    frame-src 'self' https://maps.google.com;
+    frame-src 'self' https://maps.google.com https://www.google.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
