@@ -267,6 +267,24 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   }
 
   const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, googleMapsLink } = property;
+  
+  const mapEmbedUrl = React.useMemo(() => {
+    if (!googleMapsLink) return null;
+
+    const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const match = googleMapsLink.match(coordRegex);
+
+    if (match && match[1] && match[2]) {
+      const lat = match[1];
+      const lon = match[2];
+      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
+    }
+
+    return `https://www.google.com/maps?q=${encodeURIComponent(
+      googleMapsLink
+    )}&hl=ar&z=15&output=embed`;
+  }, [googleMapsLink]);
+
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -419,7 +437,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
             </div>
           )}
 
-          {googleMapsLink && (
+          {mapEmbedUrl && (
             <div className="mt-8">
                 <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2 flex items-center gap-2"><Map size={18}/>الموقع على Google Map</h3>
                 <div className="aspect-video w-full rounded-md overflow-hidden border">
@@ -429,7 +447,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                         style={{ border: 0 }}
                         loading="lazy"
                         allowFullScreen
-                        src={`https://www.google.com/maps?q=${encodeURIComponent(googleMapsLink)}&hl=ar&z=15&output=embed`}
+                        src={mapEmbedUrl}
                     ></iframe>
                 </div>
             </div>

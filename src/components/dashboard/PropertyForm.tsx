@@ -239,6 +239,25 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const watchedPropertyType = form.watch("propertyType");
   const watchedGoogleMapsLink = form.watch("googleMapsLink");
 
+  const mapEmbedUrl = React.useMemo(() => {
+    if (!watchedGoogleMapsLink) return null;
+
+    const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const match = watchedGoogleMapsLink.match(coordRegex);
+
+    if (match && match[1] && match[2]) {
+      const lat = match[1];
+      const lon = match[2];
+      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
+    }
+
+    // Fallback for non-coordinate URLs
+    return `https://www.google.com/maps?q=${encodeURIComponent(
+      watchedGoogleMapsLink
+    )}&hl=ar&z=15&output=embed`;
+  }, [watchedGoogleMapsLink]);
+
+
   React.useEffect(() => {
     const lengthNum = parseFloat(String(lengthValue));
     const widthNum = parseFloat(String(widthValue));
@@ -615,7 +634,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                     فتح خرائط جوجل
                 </a>
             </Button>
-            {watchedGoogleMapsLink && (
+            {mapEmbedUrl && (
                 <div className="mt-4 aspect-video w-full rounded-md overflow-hidden border">
                     <iframe
                         width="100%"
@@ -623,7 +642,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         style={{ border: 0 }}
                         loading="lazy"
                         allowFullScreen
-                        src={`https://www.google.com/maps?q=${encodeURIComponent(watchedGoogleMapsLink)}&hl=ar&z=15&output=embed`}
+                        src={mapEmbedUrl}
                     ></iframe>
                 </div>
             )}
