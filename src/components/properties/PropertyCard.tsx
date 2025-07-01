@@ -69,30 +69,33 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </CardHeader>
         <CardContent className="p-3 flex-grow flex flex-col">
           <Link href={`/properties/${property.id}`}>
-            <CardTitle className="text-lg font-headline mb-1 truncate hover:text-primary transition-colors" title={property.title}>
+            <CardTitle className="text-base font-headline mb-1 truncate hover:text-primary transition-colors" title={property.title}>
               {property.title}
             </CardTitle>
           </Link>
-          <p className="text-lg font-semibold text-green-600 mb-2">{formatDisplayPrice(property.price)}</p>
+          <p className="text-base font-semibold text-green-600 mb-2">{formatDisplayPrice(property.price)}</p>
           
-          <ul className="text-sm text-muted-foreground space-y-1 flex-grow">
+          <ul className="text-xs text-muted-foreground space-y-1 flex-grow">
             <li className="flex items-center gap-1.5 truncate" title={`${property.wilaya}, ${property.city}`}>
-              <MapPin size={16} className="text-muted-foreground shrink-0" />
+              <MapPin size={14} className="text-muted-foreground shrink-0" />
               <span>{property.wilaya}, {property.city}</span>
             </li>
-             <li className="flex items-center gap-1.5">
-              <BedDouble size={16} className="text-muted-foreground shrink-0" />
-              <span>{property.rooms} غرف</span>
-               <span className="mx-1">·</span>
-              <Bath size={16} className="text-muted-foreground shrink-0" />
-              <span>{property.bathrooms} حمامات</span>
+            <li className="flex flex-wrap items-center gap-x-3 gap-y-1">
+               <span className="flex items-center gap-1 whitespace-nowrap">
+                  <BedDouble size={14} className="text-muted-foreground shrink-0" />
+                  {property.rooms} غرف
+                </span>
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <Bath size={14} className="text-muted-foreground shrink-0" />
+                  {property.bathrooms} حمامات
+                </span>
+                {property.area && (
+                  <span className="flex items-center gap-1 whitespace-nowrap">
+                    <Ruler size={14} className="text-muted-foreground shrink-0" />
+                    {property.area} م²
+                  </span>
+                )}
             </li>
-            {property.area && (
-              <li className="flex items-center gap-1.5">
-                <Ruler size={16} className="text-muted-foreground shrink-0" />
-                <span>{property.area} م²</span>
-              </li>
-            )}
           </ul>
         </CardContent>
         <CardFooter className="p-3 border-t flex gap-2">
