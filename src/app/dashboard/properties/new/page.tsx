@@ -1,4 +1,3 @@
-
 "use client";
 
 import { PropertyForm, PropertyFormValues } from "@/components/dashboard/PropertyForm";
@@ -134,7 +133,7 @@ export default function NewPropertyPage() {
       };
       
       // Clean up googleMapsLocation if incomplete
-      if (!propertyData.googleMapsLocation?.lat || !propertyData.googleMapsLocation?.lng) {
+      if (typeof propertyData.googleMapsLocation?.lat !== 'number' || typeof propertyData.googleMapsLocation?.lng !== 'number') {
         delete (propertyData as Partial<Property>).googleMapsLocation;
       }
 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -180,7 +179,7 @@ export default function EditPropertyPage() {
       };
       
       // Clean up googleMapsLocation if incomplete, setting to null will remove from firestore
-      if (!propertyUpdateData.googleMapsLocation?.lat || !propertyUpdateData.googleMapsLocation?.lng) {
+      if (typeof propertyUpdateData.googleMapsLocation?.lat !== 'number' || typeof propertyUpdateData.googleMapsLocation?.lng !== 'number') {
         (propertyUpdateData as any).googleMapsLocation = null;
       }
 
@@ -257,5 +256,3 @@ export default function EditPropertyPage() {
     </div>
   );
 }
-
-    
