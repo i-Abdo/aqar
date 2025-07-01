@@ -10,6 +10,7 @@ import { Loader2, SearchIcon, RotateCcw } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { cn } from '@/lib/utils';
+import { PropertyCardSkeleton } from '@/components/properties/PropertyCardSkeleton';
 
 const PROPERTIES_PER_PAGE = 9;
 
@@ -165,14 +166,6 @@ export default function PropertiesPage() {
   };
 
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto py-8">
       <header className="mb-8 text-center">
@@ -184,7 +177,13 @@ export default function PropertiesPage() {
           <PropertySearchSidebar onSearch={handleSearch} initialFilters={searchCriteria} />
         </aside>
         <main className="lg:w-2/3 xl:w-3/4">
-          {filteredProperties.length === 0 ? (
+          {isLoading ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <PropertyCardSkeleton key={index} />
+              ))}
+            </div>
+          ) : filteredProperties.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center py-12 bg-card shadow-md rounded-lg min-h-[300px]">
               <SearchIcon size={64} className="text-muted-foreground mb-4" />
               <h2 className="text-2xl font-semibold mb-2">لا توجد عقارات تطابق بحثك</h2>
@@ -208,7 +207,7 @@ export default function PropertiesPage() {
                       <PaginationPrevious 
                         href="#" 
                         onClick={(e) => { e.preventDefault(); if(currentPage > 1) handlePageChange(currentPage - 1);}} 
-                        className={cn(currentPage === 1 ? "pointer-events-none opacity-50" : "", "transition-smooth")}
+                        className={cn(currentPage === 1 ? "pointer-events-none opacity-50" : "")}
                       />
                     </PaginationItem>
                     {getPaginationItems()}
@@ -216,7 +215,7 @@ export default function PropertiesPage() {
                       <PaginationNext 
                         href="#" 
                         onClick={(e) => { e.preventDefault(); if(currentPage < totalPages) handlePageChange(currentPage + 1);}}
-                        className={cn(currentPage === totalPages ? "pointer-events-none opacity-50" : "", "transition-smooth")}
+                        className={cn(currentPage === totalPages ? "pointer-events-none opacity-50" : "")}
                       />
                     </PaginationItem>
                   </PaginationContent>
