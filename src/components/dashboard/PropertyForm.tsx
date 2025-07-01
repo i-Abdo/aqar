@@ -651,7 +651,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                     id="locationInput" 
                     value={locationInput}
                     onChange={(e) => setLocationInput(e.target.value)}
-                    placeholder="الصق رابط خرائط جوجل أو الإحداثيات هنا"
+                    placeholder="الصق الرابط هنا [من google map]"
                     dir="ltr" 
                     className="text-left"
                 />

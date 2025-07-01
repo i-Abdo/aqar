@@ -4,7 +4,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState, useCallback } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -266,7 +266,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber } = property;
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
@@ -365,6 +365,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                 {length && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>الطول:</strong> {length} متر</p>}
                 {width && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>العرض:</strong> {width} متر</p>}
                 {area && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>المساحة:</strong> {area} م²</p>}
+                {phoneNumber && <p className="flex items-center gap-2"><Phone size={18} /> <strong>رقم الهاتف:</strong> <a href={`tel:${phoneNumber}`} className="text-primary hover:underline" dir="ltr">{phoneNumber}</a></p>}
               </div>
             </div>
              <div>
