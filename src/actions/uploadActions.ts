@@ -34,7 +34,14 @@ export async function uploadImages(files: File[]): Promise<string[]> {
 
     return new Promise<string>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
-        { resource_type: 'image' }, // You can add more options like folder, tags here
+        {
+          resource_type: 'image',
+          folder: 'aqari_properties', // Organize uploads into a specific folder
+          quality: 'auto:good',      // Automatically balance quality and file size
+          transformation: [          // Apply transformations
+            { width: 1920, height: 1920, crop: 'limit' } // Resize if larger than 1920px
+          ]
+        },
         (error, result) => {
           if (error) {
             console.error('Cloudinary Upload Stream Error:', error);

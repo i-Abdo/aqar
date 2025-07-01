@@ -51,7 +51,7 @@ export const plans: Plan[] = [
       "دعم فوري ✓✓",
     ],
     maxListings: Infinity,
-    imageLimitPerProperty: 10,
+    imageLimitPerProperty: 4,
     aiAssistantAccess: true,
     cta: "اختر VIP++",
   },
