@@ -34,11 +34,11 @@ export function UserAccountNav() {
   if (!user) {
     return (
       <div className="hidden md:flex items-center gap-2">
-        <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-          <Link href="/login">تسجيل الدخول</Link>
-        </Button>
         <Button asChild className="transition-smooth hover:shadow-md">
           <Link href="/signup">إنشاء حساب</Link>
+        </Button>
+        <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
+          <Link href="/login">تسجيل الدخول</Link>
         </Button>
       </div>
     );
