@@ -1,4 +1,3 @@
-
 "use client";
 import Link from "next/link";
 import Image from "next/image";
@@ -77,7 +76,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
           
           <ul className="text-xs text-muted-foreground space-y-1 flex-grow">
             <li className="flex items-center gap-1.5 truncate" title={`${property.wilaya}, ${property.city}`}>
-              <MapPin size={14} className="text-muted-foreground shrink-0" />
+              <MapPin size={14} className="text-destructive shrink-0" />
               <span>{property.wilaya}, {property.city}</span>
             </li>
             <li className="flex flex-wrap items-center gap-x-3 gap-y-1">
