@@ -84,12 +84,11 @@ interface PropertyDetailClientProps {
 export default function PropertyDetailClient({ initialProperty, propertyId }: PropertyDetailClientProps) {
   const router = useRouter();
   const { toast } = useToast();
-
-  // The property state is initialized with the server-fetched data
+  const { user, isAdmin, loading: authLoading, refreshAdminNotifications } = useAuth();
+  
   const [property, setProperty] = useState<Property | null>(parsePropertyDates(initialProperty));
   const [isLoading, setIsLoading] = useState(!initialProperty); // Set loading true if no initial data
   const [error, setError] = useState<string | null>(null);
-  const { user, isAdmin, loading: authLoading, refreshAdminNotifications } = useAuth();
   const [isReportPropertyDialogOpen, setIsReportPropertyDialogOpen] = useState(false);
   const [isContactAdminDialogOpen, setIsContactAdminDialogOpen] = useState(false);
   
@@ -101,6 +100,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+
 
   const fetchPropertyAndRefresh = useCallback(async () => {
     if (!propertyId) return;
@@ -140,6 +140,25 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
         setIsLoading(false);
     }
   }, [propertyId, toast, user, isAdmin]);
+
+  const mapEmbedUrl = React.useMemo(() => {
+    const googleMapsLink = property?.googleMapsLink;
+    if (!googleMapsLink) return null;
+
+    const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const match = googleMapsLink.match(coordRegex);
+
+    if (match && match[1] && match[2]) {
+      const lat = match[1];
+      const lon = match[2];
+      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
+    }
+    
+    // Fallback if no coordinates are in the URL
+    return `https://www.google.com/maps?q=${encodeURIComponent(
+      googleMapsLink
+    )}&hl=ar&z=15&output=embed`;
+  }, [property?.googleMapsLink]);
 
   useEffect(() => {
     if (!initialProperty) {
@@ -268,23 +287,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
   const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, googleMapsLink } = property;
   
-  const mapEmbedUrl = React.useMemo(() => {
-    if (!googleMapsLink) return null;
-
-    const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const match = googleMapsLink.match(coordRegex);
-
-    if (match && match[1] && match[2]) {
-      const lat = match[1];
-      const lon = match[2];
-      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
-    }
-
-    return `https://www.google.com/maps?q=${encodeURIComponent(
-      googleMapsLink
-    )}&hl=ar&z=15&output=embed`;
-  }, [googleMapsLink]);
-
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
     electricity: "كهرباء متوفرة",
