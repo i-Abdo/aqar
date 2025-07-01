@@ -147,19 +147,21 @@ export const SidebarProvider = React.forwardRef<
     )
 
     return (
-      <TooltipProvider delayDuration={0}>
-        <div
-          style={style}
-          className={cn(
-            "group flex h-full w-full",
-            className
-          )}
-          ref={ref}
-          {...props}
-        >
-          {children}
-        </div>
-      </TooltipProvider>
+      <SidebarContext.Provider value={contextValue}>
+        <TooltipProvider delayDuration={0}>
+          <div
+            style={style}
+            className={cn(
+              "group flex h-full w-full",
+              className
+            )}
+            ref={ref}
+            {...props}
+          >
+            {children}
+          </div>
+        </TooltipProvider>
+      </SidebarContext.Provider>
     )
   }
 )
