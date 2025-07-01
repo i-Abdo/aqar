@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone } from 'lucide-react';
 import Image from 'next/image';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrustLevel } from '@/types';
@@ -101,7 +101,8 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   
-  const mapEmbedUrl = React.useMemo(() => {
+  // This hook MUST be called at the top level, before any conditional returns.
+  const mapEmbedUrl = useMemo(() => {
     const googleMapsLink = property?.googleMapsLink;
     if (!googleMapsLink) return null;
 
@@ -111,10 +112,11 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     if (match && match[1] && match[2]) {
       const lat = match[1];
       const lon = match[2];
-      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
+      return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d0!2d${lon}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z${lat}°N+${lon}°E!5e0!3m2!1sar!2sdz!4v1`;
     }
     
-    return null; // Return null if coordinates are not found
+    // Fallback if regex fails but link exists
+    return null;
   }, [property?.googleMapsLink]);
 
   const fetchPropertyAndRefresh = useCallback(async () => {
@@ -452,7 +454,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                 </div>
               ) : (
                 <div className="p-4 border border-dashed rounded-md bg-secondary/50 text-center">
-                  <p className="text-muted-foreground">تعذر استخلاص إحداثيات الموقع لعرض الخريطة المضمنة.</p>
+                  <p className="text-muted-foreground">تعذر عرض الخريطة المضمنة. حاول فتح الرابط مباشرة.</p>
                   <Button asChild variant="link" className="mt-2">
                     <a href={property.googleMapsLink} target="_blank" rel="noopener noreferrer">
                       عرض الموقع في علامة تبويب جديدة

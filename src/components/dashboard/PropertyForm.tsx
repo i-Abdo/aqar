@@ -14,13 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
 import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"; 
+import { resolveGoogleMapsUrl } from "@/actions/locationActions";
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -174,8 +175,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const [manualPriceInput, setManualPriceInput] = React.useState<string>(initialPriceFormat.displayValue);
   const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey || "THOUSAND_DA");
   
-  // Track changes to googleMapsLink specifically to trigger re-validation and dirty state
   const [googleMapsLinkDirty, setGoogleMapsLinkDirty] = React.useState(false);
+
+  const [isVerifyingUrl, setIsVerifyingUrl] = React.useState(false);
+  const [urlVerificationStatus, setUrlVerificationStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
 
 
   const form = useForm<PropertyFormValues>({
@@ -220,6 +223,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setAdditionalImagePreviews([]);
       }
       setGoogleMapsLinkDirty(false); // Reset dirty state on new initial data
+      setUrlVerificationStatus(initialData.googleMapsLink ? 'success' : 'idle');
     }
   }, [initialData, form]);
 
@@ -240,7 +244,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const watchedGoogleMapsLink = form.watch("googleMapsLink");
 
   const mapEmbedUrl = React.useMemo(() => {
-    if (!watchedGoogleMapsLink) return null;
+    if (!watchedGoogleMapsLink || urlVerificationStatus !== 'success') return null;
 
     const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
     const match = watchedGoogleMapsLink.match(coordRegex);
@@ -251,8 +255,34 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
     }
     
-    return null; // Don't use a fallback that causes errors
-  }, [watchedGoogleMapsLink]);
+    return null;
+  }, [watchedGoogleMapsLink, urlVerificationStatus]);
+
+  const handleVerifyUrl = async () => {
+    const url = form.getValues("googleMapsLink");
+    if (!url || !url.trim().startsWith('http')) {
+      toast({ title: "رابط غير صالح", description: "الرجاء إدخال رابط خرائط جوجل صالح يبدأ بـ http.", variant: "destructive" });
+      setUrlVerificationStatus('error');
+      return;
+    }
+
+    setIsVerifyingUrl(true);
+    setUrlVerificationStatus('idle');
+    form.clearErrors("googleMapsLink");
+
+    const result = await resolveGoogleMapsUrl(url);
+
+    if (result.success && result.finalUrl) {
+      form.setValue("googleMapsLink", result.finalUrl, { shouldValidate: true, shouldDirty: true });
+      setUrlVerificationStatus('success');
+      toast({ title: "تم التحقق بنجاح", description: "تم العثور على رابط خرائط جوجل صالح." });
+    } else {
+      setUrlVerificationStatus('error');
+      form.setError("googleMapsLink", { type: "manual", message: result.error || "فشل التحقق من الرابط." });
+      toast({ title: "فشل التحقق", description: result.error || "تعذر حل الرابط. يرجى التأكد من أنه رابط خرائط جوجل صالح.", variant: "destructive" });
+    }
+    setIsVerifyingUrl(false);
+  };
 
 
   React.useEffect(() => {
@@ -602,35 +632,39 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><Map size={18}/>الموقع على الخريطة (اختياري)</h3>
             <div>
                 <Label htmlFor="googleMapsLink">رابط الموقع</Label>
-                <Controller
-                  name="googleMapsLink"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Input 
-                      {...field}
-                      id="googleMapsLink" 
-                      placeholder="الصق الرابط هنا [من google map]"
-                      dir="ltr" 
-                      className="text-left"
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setGoogleMapsLinkDirty(true);
-                      }}
+                <div className="flex items-center gap-2">
+                    <Controller
+                      name="googleMapsLink"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Input 
+                          {...field}
+                          id="googleMapsLink" 
+                          placeholder="الصق الرابط هنا [من google map]"
+                          dir="ltr" 
+                          className="text-left flex-grow"
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setUrlVerificationStatus('idle'); // Reset verification on change
+                            setGoogleMapsLinkDirty(true);
+                          }}
+                        />
+                      )}
                     />
-                  )}
-                />
-                <p className="text-xs text-muted-foreground mt-1">مثال: https://www.google.com/maps/...</p>
+                     <Button type="button" onClick={handleVerifyUrl} disabled={isVerifyingUrl} variant="outline" size="icon" aria-label="تحقق من الرابط">
+                        {isVerifyingUrl ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+                     </Button>
+                      {urlVerificationStatus === 'success' && <Check className="text-green-500" />}
+                      {urlVerificationStatus === 'error' && <XCircle className="text-destructive" />}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                    افتح خرائط جوجل، ابحث عن الموقع، انقر على "مشاركة" ثم "نسخ الرابط".
+                </p>
                 {form.formState.errors.googleMapsLink && (
                      <p className="text-sm text-destructive mt-1">{form.formState.errors.googleMapsLink.message}</p>
                 )}
             </div>
             
-             <Button type="button" variant="outline_secondary" asChild className="transition-smooth hover:shadow-md">
-                <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
-                    <MapPin size={16} className="ml-2 rtl:mr-2 rtl:ml-0"/>
-                    فتح خرائط جوجل
-                </a>
-            </Button>
             {mapEmbedUrl ? (
                 <div className="mt-4 aspect-video w-full rounded-md overflow-hidden border">
                     <iframe
@@ -643,10 +677,10 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         title="معاينة الموقع على الخريطة"
                     ></iframe>
                 </div>
-            ) : watchedGoogleMapsLink ? (
+            ) : watchedGoogleMapsLink && urlVerificationStatus === 'success' ? (
                 <div className="mt-4 p-3 border border-dashed border-amber-500 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm text-center">
                     <p>
-                        لم نتمكن من إنشاء معاينة للخريطة. تأكد من أن الرابط الذي نسخته من خرائط جوجل يحتوي على إحداثيات الموقع (عادة ما تبدأ بعلامة @).
+                        تم التحقق من الرابط بنجاح، ولكن تعذر استخلاص الإحداثيات لعرض معاينة. سيتم حفظ الرابط كما هو.
                     </p>
                 </div>
             ) : null}
