@@ -29,6 +29,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth'; // Added
 
+interface EnhancedReport extends Report {
+  ownerCurrentTrustLevel?: UserTrustLevel;
+  ownerUserId?: string;
+}
+
 const reportStatusTranslations: Record<Report['status'], string> = {
   new: 'جديد',
   under_review: 'قيد المراجعة',
@@ -50,7 +55,7 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
 };
 
 export default function AdminReportsPage() {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<EnhancedReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
@@ -79,31 +84,38 @@ export default function AdminReportsPage() {
       const reportsDataPromises = querySnapshot.docs.map(async (docSnap) => {
         const data = docSnap.data();
         let ownerTrustLevel: UserTrustLevel = 'normal';
+        let ownerUserId: string | undefined = undefined;
+
         if (data.propertyId) {
             try {
                 const propRef = doc(db, "properties", data.propertyId);
                 const propSnap = await getDoc(propRef);
-                if (propSnap.exists() && propSnap.data()?.userId) {
-                    const userRef = doc(db, "users", propSnap.data()?.userId);
-                    const userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        ownerTrustLevel = userSnap.data()?.trustLevel || 'normal';
+                if (propSnap.exists()) {
+                    const propData = propSnap.data();
+                    if (propData && propData.userId) {
+                        ownerUserId = propData.userId;
+                        const userRef = doc(db, "users", ownerUserId);
+                        const userSnap = await getDoc(userRef);
+                        if (userSnap.exists()) {
+                            ownerTrustLevel = userSnap.data()?.trustLevel || 'normal';
+                        }
                     }
                 }
             } catch (e) {
-                console.error("Failed to fetch owner trust level for report", data.id, e);
+                console.error("Failed to fetch owner details for report", data.id, e);
             }
         }
         return {
           id: docSnap.id,
           ...data,
           ownerCurrentTrustLevel: ownerTrustLevel,
+          ownerUserId: ownerUserId,
           reportedAt: (data.reportedAt as Timestamp)?.toDate ? (data.reportedAt as Timestamp).toDate() : new Date(data.reportedAt || Date.now()),
           updatedAt: (data.updatedAt as Timestamp)?.toDate ? (data.updatedAt as Timestamp).toDate() : new Date(data.updatedAt || Date.now()),
-        } as Report & { ownerCurrentTrustLevel?: UserTrustLevel };
+        };
       });
       const reportsData = await Promise.all(reportsDataPromises);
-      setReports(reportsData as Report[]);
+      setReports(reportsData as EnhancedReport[]);
     } catch (error) {
       console.error("Error fetching reports:", error);
       toast({ title: "خطأ", description: "لم نتمكن من تحميل البلاغات.", variant: "destructive" });
@@ -321,7 +333,7 @@ export default function AdminReportsPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="max-w-[200px]">العقار المُبلغ عنه</TableHead>
-              <TableHead>المُبلغ (البريد الإلكتروني)</TableHead>
+              <TableHead>المُبلغ</TableHead>
               <TableHead>السبب</TableHead>
               <TableHead className="max-w-[250px]">التعليقات</TableHead>
               <TableHead>تاريخ البلاغ</TableHead>
@@ -338,7 +350,12 @@ export default function AdminReportsPage() {
                     {report.propertyTitle}
                   </Link>
                 </TableCell>
-                <TableCell className="max-w-[150px] truncate" title={report.reporterEmail}>{report.reporterEmail}</TableCell>
+                <TableCell 
+                  className="max-w-[150px] truncate" 
+                  title={report.reporterUserId === report.ownerUserId ? "صاحب العقار" : report.reporterEmail}
+                >
+                  {report.ownerUserId && report.reporterUserId === report.ownerUserId ? "صاحب العقار" : report.reporterEmail}
+                </TableCell>
                 <TableCell className="text-xs max-w-[120px] truncate" title={report.reason}>{report.reason}</TableCell>
                 <TableCell className="text-xs max-w-[200px] truncate" title={report.comments}>{report.comments}</TableCell>
                 <TableCell className="text-xs">{new Date(report.reportedAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
@@ -558,3 +575,4 @@ export default function AdminReportsPage() {
     </div>
   );
 }
+
