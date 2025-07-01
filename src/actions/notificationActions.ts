@@ -1,86 +1,51 @@
 
 'use server';
 
-import { collection, query, where, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client'; 
 
-interface DismissNotificationsResult {
+interface DismissNotificationResult {
   success: boolean;
   message: string;
-  dismissedCount?: number;
 }
 
-export async function dismissAllUserDashboardNotifications(userId: string): Promise<DismissNotificationsResult> {
-  if (!userId) {
-    return { success: false, message: "معرف المستخدم مطلوب." };
+export async function dismissSingleNotification(
+  notificationId: string,
+  notificationType: 'appeal' | 'issue' | 'report'
+): Promise<DismissNotificationResult> {
+  if (!notificationId || !notificationType) {
+    return { success: false, message: "معلومات الإشعار غير كاملة." };
   }
 
-  const batch = writeBatch(db);
-  let actualDismissedCount = 0;
+  let collectionName: string;
+  let fieldToUpdate: string;
+
+  switch (notificationType) {
+    case 'appeal':
+      collectionName = 'property_appeals';
+      fieldToUpdate = 'dismissedByOwner';
+      break;
+    case 'issue':
+      collectionName = 'user_issues';
+      fieldToUpdate = 'dismissedByOwner';
+      break;
+    case 'report':
+      collectionName = 'reports';
+      fieldToUpdate = 'dismissedByReporter';
+      break;
+    default:
+      return { success: false, message: "نوع الإشعار غير صالح." };
+  }
 
   try {
-    // Property Appeals to dismiss
-    const appealsQuery = query(
-      collection(db, "property_appeals"),
-      where("ownerUserId", "==", userId),
-      where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]),
-      where("dismissedByOwner", "!=", true) 
-    );
-    const appealsSnapshot = await getDocs(appealsQuery);
-    appealsSnapshot.forEach(docSnap => {
-      batch.update(docSnap.ref, { 
-        dismissedByOwner: true, 
-        updatedAt: serverTimestamp() 
-      });
-      actualDismissedCount++;
+    const notificationRef = doc(db, collectionName, notificationId);
+    await updateDoc(notificationRef, {
+      [fieldToUpdate]: true,
+      updatedAt: serverTimestamp(),
     });
-    
-    // User Issues to dismiss
-    const issuesQuery = query(
-      collection(db, "user_issues"),
-      where("userId", "==", userId),
-      where("status", "in", ["in_progress", "resolved"]),
-      where("dismissedByOwner", "!=", true) 
-    );
-    const issuesSnapshot = await getDocs(issuesQuery);
-    issuesSnapshot.forEach(docSnap => {
-      batch.update(docSnap.ref, { 
-        dismissedByOwner: true, 
-        updatedAt: serverTimestamp() 
-      });
-      actualDismissedCount++;
-    });
-    
-    // Reports to dismiss
-    const reportsQuery = query(
-      collection(db, "reports"),
-      where("reporterUserId", "==", userId),
-      where("status", "in", ["resolved", "dismissed"]),
-      where("dismissedByReporter", "!=", true) 
-    );
-    const reportsSnapshot = await getDocs(reportsQuery);
-    reportsSnapshot.forEach(docSnap => {
-      batch.update(docSnap.ref, { 
-        dismissedByReporter: true, 
-        updatedAt: serverTimestamp() 
-      });
-      actualDismissedCount++;
-    });
-
-
-    if (actualDismissedCount > 0) {
-      await batch.commit();
-      return { 
-          success: true, 
-          message: `تم مسح ${actualDismissedCount} إشعارًا بنجاح.`,
-          dismissedCount: actualDismissedCount
-      };
-    } else {
-        return { success: true, message: "لا توجد إشعارات جديدة لمسحها.", dismissedCount: 0 };
-    }
-
+    return { success: true, message: "تم إخفاء الإشعار بنجاح." };
   } catch (error) {
-    console.error("Error dismissing user dashboard notifications:", error);
-    return { success: false, message: "حدث خطأ أثناء مسح الإشعارات." };
+    console.error("Error dismissing single notification:", error);
+    return { success: false, message: "حدث خطأ أثناء إخفاء الإشعار." };
   }
 }

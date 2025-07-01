@@ -2,7 +2,7 @@
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { Loader2, Menu } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; 
@@ -46,12 +46,16 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth(); 
+  const { user, loading, userDashboardNotificationCount } = useAuth(); 
   const router = useRouter();
+  const originalTitleRef = useRef<string | null>(null);
 
   const [authHydrated, setAuthHydrated] = useState(false);
   useEffect(() => {
     setAuthHydrated(true);
+    if (typeof document !== 'undefined') {
+        originalTitleRef.current = document.title;
+    }
   }, []);
 
   useEffect(() => {
@@ -59,6 +63,24 @@ export default function DashboardLayout({
       router.push("/login");
     }
   }, [user, loading, router]);
+  
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const baseTitle = "لوحة التحكم - عقاري";
+    if (userDashboardNotificationCount > 0) {
+      document.title = `(${userDashboardNotificationCount}) ${baseTitle}`;
+    } else {
+      document.title = baseTitle;
+    }
+    
+    // Cleanup function to reset title on unmount
+    return () => {
+      if (originalTitleRef.current) {
+        document.title = originalTitleRef.current;
+      }
+    };
+  }, [userDashboardNotificationCount]);
 
 
   if (loading || !authHydrated) {

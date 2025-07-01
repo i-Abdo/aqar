@@ -12,6 +12,7 @@ import type { Plan, PropertyAppeal, AdminAppealDecisionType, UserIssue, Report, 
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge"; 
+import { dismissSingleNotification } from "@/actions/notificationActions";
 
 interface UserStats {
   activeListings: number;
@@ -28,7 +29,6 @@ interface AppealNotification {
   translatedDecision?: string;
   adminNotes?: string;
   decisionDate?: string;
-  isDismissedClientSide?: boolean; 
 }
 
 interface UserIssueUpdateForDashboard {
@@ -39,7 +39,6 @@ interface UserIssueUpdateForDashboard {
   translatedStatus: string;
   adminNotes?: string;
   lastUpdateDate: string; 
-  isDismissedClientSide?: boolean; 
 }
 
 interface ReportUpdateForDashboard {
@@ -50,7 +49,6 @@ interface ReportUpdateForDashboard {
     translatedStatus: string;
     adminNotes?: string;
     lastUpdateDate: string;
-    isDismissedClientSide?: boolean;
 }
 
 const decisionTranslations: Record<AdminAppealDecisionType, string> = {
@@ -74,7 +72,7 @@ const reportStatusTranslations: Record<Report['status'], string> = {
 
 
 export default function DashboardPage() {
-  const { user, loading: authLoading, clearUserDashboardNotificationBadge } = useAuth(); 
+  const { user, loading: authLoading, setUserDashboardNotificationCount } = useAuth(); 
   const [userStats, setUserStats] = useState<UserStats>({
     activeListings: 0,
     maxListings: "0",
@@ -113,7 +111,6 @@ export default function DashboardPage() {
           translatedDecision: data.adminDecision ? decisionTranslations[data.adminDecision] : "قرار غير محدد",
           adminNotes: data.adminNotes,
           decisionDate: data.adminDecisionAt ? (data.adminDecisionAt instanceof Timestamp ? data.adminDecisionAt.toDate() : new Date(data.adminDecisionAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric' }) : "غير محدد",
-          isDismissedClientSide: false,
         };
       });
       setAppealNotifications(notifications);
@@ -144,7 +141,6 @@ export default function DashboardPage() {
           translatedStatus: issueStatusTranslations[data.status] || data.status,
           adminNotes: data.adminNotes,
           lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "غير محدد",
-          isDismissedClientSide: false,
         };
       });
       setUserIssueUpdates(updates);
@@ -175,7 +171,6 @@ export default function DashboardPage() {
                 translatedStatus: reportStatusTranslations[data.status] || data.status,
                 adminNotes: data.adminNotes,
                 lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "غير محدد",
-                isDismissedClientSide: false,
             };
         });
         setReportUpdates(updates);
@@ -255,22 +250,34 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDismissAppealClientSide = (appealId: string) => {
-    setAppealNotifications(prev => 
-      prev.map(notif => notif.id === appealId ? { ...notif, isDismissedClientSide: true } : notif)
-    );
+  const handleDismissAppeal = async (appealId: string) => {
+    setAppealNotifications(prev => prev.filter(n => n.id !== appealId));
+    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
+    const result = await dismissSingleNotification(appealId, 'appeal');
+    if (!result.success) {
+      toast({ title: "خطأ", description: result.message, variant: "destructive" });
+      fetchAppealNotifications();
+    }
   };
 
-  const handleDismissIssueClientSide = (issueId: string) => {
-    setUserIssueUpdates(prev =>
-      prev.map(notif => notif.id === issueId ? { ...notif, isDismissedClientSide: true } : notif)
-    );
+  const handleDismissIssue = async (issueId: string) => {
+    setUserIssueUpdates(prev => prev.filter(u => u.id !== issueId));
+    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
+    const result = await dismissSingleNotification(issueId, 'issue');
+    if (!result.success) {
+      toast({ title: "خطأ", description: result.message, variant: "destructive" });
+      fetchUserIssueUpdates();
+    }
   };
   
-  const handleDismissReportClientSide = (reportId: string) => {
-    setReportUpdates(prev =>
-      prev.map(notif => notif.id === reportId ? { ...notif, isDismissedClientSide: true } : notif)
-    );
+  const handleDismissReport = async (reportId: string) => {
+    setReportUpdates(prev => prev.filter(r => r.id !== reportId));
+    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
+    const result = await dismissSingleNotification(reportId, 'report');
+    if (!result.success) {
+      toast({ title: "خطأ", description: result.message, variant: "destructive" });
+      fetchReportUpdates();
+    }
   };
 
   if (authLoading || (isLoadingStats && !user)) {
@@ -281,12 +288,9 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const visibleAppealNotifications = appealNotifications.filter(n => !n.isDismissedClientSide);
-  const visibleUserIssueUpdates = userIssueUpdates.filter(u => !u.isDismissedClientSide);
-  const visibleReportUpdates = reportUpdates.filter(u => !u.isDismissedClientSide);
-  const hasVisibleNotifications = visibleAppealNotifications.length > 0 || visibleUserIssueUpdates.length > 0 || visibleReportUpdates.length > 0;
-  const totalVisibleNotifications = visibleAppealNotifications.length + visibleUserIssueUpdates.length + visibleReportUpdates.length;
+  
+  const hasVisibleNotifications = appealNotifications.length > 0 || userIssueUpdates.length > 0 || reportUpdates.length > 0;
+  const totalVisibleNotifications = appealNotifications.length + userIssueUpdates.length + reportUpdates.length;
 
 
   return (
@@ -369,17 +373,17 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
-              {visibleAppealNotifications.length > 0 && (
+              {appealNotifications.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1">تحديثات الطعون:</h4>
                   <ul className="space-y-3">
-                    {visibleAppealNotifications.map((notification) => (
+                    {appealNotifications.map((notification) => (
                       <li key={`appeal-${notification.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDismissAppealClientSide(notification.id)}
+                          onClick={() => handleDismissAppeal(notification.id)}
                           aria-label="إخفاء هذا الإشعار"
                         >
                           <X size={16} />
@@ -401,17 +405,17 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {visibleUserIssueUpdates.length > 0 && (
+              {userIssueUpdates.length > 0 && (
                  <div className="mb-4">
                   <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1">تحديثات مشكلاتك المرسلة:</h4>
                   <ul className="space-y-3">
-                    {visibleUserIssueUpdates.map((update) => (
+                    {userIssueUpdates.map((update) => (
                       <li key={`issue-${update.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDismissIssueClientSide(update.id)}
+                          onClick={() => handleDismissIssue(update.id)}
                           aria-label="إخفاء هذا الإشعار"
                         >
                           <X size={16} />
@@ -437,17 +441,17 @@ export default function DashboardPage() {
                 </div>
               )}
               
-               {visibleReportUpdates.length > 0 && (
+               {reportUpdates.length > 0 && (
                  <div className="mb-4">
                   <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1 flex items-center gap-2"><Flag size={18}/>تحديثات بلاغاتك:</h4>
                   <ul className="space-y-3">
-                    {visibleReportUpdates.map((update) => (
+                    {reportUpdates.map((update) => (
                       <li key={`report-${update.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDismissReportClientSide(update.id)}
+                          onClick={() => handleDismissReport(update.id)}
                           aria-label="إخفاء هذا الإشعار"
                         >
                           <X size={16} />
