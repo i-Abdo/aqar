@@ -1,16 +1,13 @@
-
 "use client";
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
 import { Filter, Search, RotateCcw } from 'lucide-react';
-import type { Property, TransactionType, PropertyTypeEnum } from '@/types';
+import type { TransactionType, PropertyTypeEnum } from '@/types';
 
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
@@ -55,11 +52,6 @@ export interface SearchFilters {
   propertyType?: PropertyTypeEnum | "";
   wilaya?: string;
   city?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  minRooms?: number;
-  maxRooms?: number;
-  features?: Partial<Property['filters']>;
   searchTerm?: string;
 }
 
@@ -68,25 +60,11 @@ interface PropertySearchSidebarProps {
   initialFilters?: SearchFilters;
 }
 
-const MAX_PRICE = 100000000;
-const MAX_ROOMS = 10;
-
 const initialFormState: SearchFilters = {
     transactionType: "",
     propertyType: "",
     wilaya: "", 
     city: "",
-    minPrice: undefined,
-    maxPrice: undefined,
-    minRooms: undefined,
-    maxRooms: undefined,
-    features: {
-      water: false,
-      electricity: false,
-      internet: false,
-      gas: false,
-      contract: false,
-    },
     searchTerm: "",
 };
 
@@ -94,18 +72,12 @@ const initialFormState: SearchFilters = {
 export function PropertySearchSidebar({ onSearch, initialFilters = {} }: PropertySearchSidebarProps) {
   const [filters, setFilters] = useState<SearchFilters>({
       ...initialFormState,
-      maxPrice: MAX_PRICE, 
-      maxRooms: MAX_ROOMS, 
       ...initialFilters
     });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    if (type === 'number') {
-      setFilters(prev => ({ ...prev, [name]: value ? parseFloat(value) : undefined }));
-    } else {
-      setFilters(prev => ({ ...prev, [name]: value }));
-    }
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -121,59 +93,14 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     }
   };
 
-  const handleCheckboxChange = (name: keyof Property['filters']) => {
-    setFilters(prev => ({
-      ...prev,
-      features: {
-        ...prev.features,
-        [name]: !prev.features?.[name],
-      },
-    }));
-  };
-  
-  const handlePriceChange = (value: number[]) => {
-    setFilters(prev => ({
-        ...prev,
-        minPrice: value[0] === 0 ? undefined : value[0],
-        maxPrice: value[1], 
-    }));
-  };
-  
-  const handleRoomsChange = (value: number[]) => {
-    setFilters(prev => ({
-        ...prev,
-        minRooms: value[0] === 0 ? undefined : value[0],
-        maxRooms: value[1] 
-    }));
-  };
-
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const searchFilters = {
-        ...filters,
-        maxPrice: filters.maxPrice === MAX_PRICE ? undefined : filters.maxPrice,
-        maxRooms: filters.maxRooms === MAX_ROOMS ? undefined : filters.maxRooms,
-    };
-    onSearch(searchFilters);
+    onSearch(filters);
   };
 
   const handleReset = () => {
-    const resetStateForUiSliders = {
-        ...initialFormState, 
-        maxPrice: MAX_PRICE,  
-        maxRooms: MAX_ROOMS, 
-    };
-    setFilters(resetStateForUiSliders);
-    onSearch({...initialFormState}); 
-  };
-
-  const featureLabels: Record<keyof Property['filters'], string> = {
-    water: "ماء",
-    electricity: "كهرباء",
-    internet: "إنترنت",
-    gas: "غاز",
-    contract: "عقد موثق",
+    setFilters(initialFormState);
+    onSearch(initialFormState); 
   };
 
   return (
@@ -245,64 +172,6 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
               placeholder="مثال: الجزائر الوسطى"
             />
           </div>
-
-          <div className="space-y-2">
-            <Label>السعر (د.ج)</Label>
-            <Slider
-              dir="rtl"
-              value={[filters.minPrice || 0, filters.maxPrice || MAX_PRICE]}
-              min={0}
-              max={MAX_PRICE}
-              step={100000}
-              onValueChange={handlePriceChange}
-              className="my-4"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{filters.minPrice ? filters.minPrice.toLocaleString() + ' د.ج' : "الحد الأدنى"}</span>
-              <span>
-                {filters.maxPrice === MAX_PRICE 
-                  ? `${MAX_PRICE.toLocaleString()} د.ج+` 
-                  : (filters.maxPrice ? filters.maxPrice.toLocaleString() + ' د.ج' : `${MAX_PRICE.toLocaleString()} د.ج+`)}
-              </span>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>عدد الغرف</Label>
-            <Slider
-              dir="rtl"
-              value={[filters.minRooms || 0, filters.maxRooms || MAX_ROOMS]}
-              min={0}
-              max={MAX_ROOMS}
-              step={1}
-              onValueChange={handleRoomsChange}
-               className="my-4"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{filters.minRooms || "الحد الأدنى"}</span>
-              <span>
-                {filters.maxRooms === MAX_ROOMS
-                  ? `${MAX_ROOMS}+`
-                  : (filters.maxRooms || `${MAX_ROOMS}+`)}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <Label>الميزات</Label>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {(Object.keys(featureLabels) as Array<keyof Property['filters']>).map((key) => (
-                <div key={key} className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <Checkbox
-                    id={`feature-${key}`}
-                    checked={!!filters.features?.[key]}
-                    onCheckedChange={() => handleCheckboxChange(key)}
-                  />
-                  <Label htmlFor={`feature-${key}`} className="font-normal cursor-pointer">{featureLabels[key]}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
           
           <div className="flex flex-col sm:flex-row gap-2 pt-4">
             <Button type="submit" className="flex-1 transition-smooth">
@@ -319,4 +188,3 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
     </Card>
   );
 }
-

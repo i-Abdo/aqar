@@ -67,25 +67,7 @@ export default function PropertiesPage() {
     if (filters.city) {
       result = result.filter(p => p.city.toLowerCase().includes(filters.city!.toLowerCase()));
     }
-    if (filters.minPrice !== undefined) {
-      result = result.filter(p => p.price >= filters.minPrice!);
-    }
-    if (filters.maxPrice !== undefined) {
-      result = result.filter(p => p.price <= filters.maxPrice!);
-    }
-    if (filters.minRooms !== undefined) {
-      result = result.filter(p => p.rooms >= filters.minRooms!);
-    }
-    if (filters.maxRooms !== undefined) {
-      result = result.filter(p => p.rooms <= filters.maxRooms!);
-    }
-    if (filters.features) {
-      for (const key in filters.features) {
-        if (filters.features[key as keyof Property['filters']]) {
-          result = result.filter(p => p.filters[key as keyof Property['filters']]);
-        }
-      }
-    }
+    
     setFilteredProperties(result);
     setCurrentPage(1);
   }, []);
@@ -93,6 +75,7 @@ export default function PropertiesPage() {
 
   useEffect(() => {
     fetchProperties();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
