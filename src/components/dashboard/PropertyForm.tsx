@@ -178,6 +178,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey || "THOUSAND_DA");
   
   const [locationInput, setLocationInput] = React.useState('');
+  const [initialLocationInput, setInitialLocationInput] = React.useState('');
 
 
   const form = useForm<PropertyFormValues>({
@@ -207,10 +208,13 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       const { displayValue, unitKey } = formatPriceForInputUIDisplay(initialData.price);
       setManualPriceInput(displayValue);
       setSelectedUnit(unitKey);
-      if (initialData.googleMapsLocation?.lat && initialData.googleMapsLocation?.lng) {
-        setLocationInput(`${initialData.googleMapsLocation.lat}, ${initialData.googleMapsLocation.lng}`);
+      if (initialData.googleMapsLocation?.lat !== undefined && initialData.googleMapsLocation?.lng !== undefined) {
+        const initialString = `${initialData.googleMapsLocation.lat}, ${initialData.googleMapsLocation.lng}`;
+        setLocationInput(initialString);
+        setInitialLocationInput(initialString);
       } else {
         setLocationInput('');
+        setInitialLocationInput('');
       }
       form.reset({
         ...initialData,
@@ -233,6 +237,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setManualPriceInput(defaultFormat.displayValue);
         setSelectedUnit(defaultFormat.unitKey);
         setLocationInput('');
+        setInitialLocationInput('');
         form.reset({
             title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
             rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
@@ -243,7 +248,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setMainImagePreview(null);
         setAdditionalImagePreviews([]);
     }
-  }, [initialData, form, isEditMode]);
+  }, [initialData, isEditMode]);
 
   React.useEffect(() => {
     if (user && user.planId) {
@@ -295,7 +300,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     };
 
     parseAndSetLocation(locationInput);
-  }, [locationInput, form]);
+  }, [locationInput, form.setValue]);
 
 
   React.useEffect(() => {
@@ -466,7 +471,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     return !initialUrls.every((url, index) => url === currentUrls[index]);
   }, [isEditMode, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews, initialData]);
 
-  const isAnythingDirty = isFormFieldsDirty || imagesChanged;
+  const locationInputChanged = locationInput !== initialLocationInput;
+  const isAnythingDirty = isFormFieldsDirty || imagesChanged || locationInputChanged;
 
   const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !isAnythingDirty);
 
