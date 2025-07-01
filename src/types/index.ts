@@ -89,6 +89,7 @@ export interface Report {
   status: 'new' | 'under_review' | 'resolved' | 'dismissed';
   adminNotes?: string;
   updatedAt?: Date;
+  dismissedByReporter?: boolean; // Added
 }
 
 export interface UserIssue {
@@ -123,6 +124,7 @@ export interface PropertyAppeal {
   dismissedByOwner?: boolean; // Added
   updatedAt?: Date; // Added
 }
+
 
 
 

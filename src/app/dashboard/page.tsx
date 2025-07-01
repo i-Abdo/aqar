@@ -3,13 +3,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X, Trash2 } from "lucide-react"; 
+import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X, Trash2, Flag } from "lucide-react"; 
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState, useCallback } from "react";
 import { collection, query, where, getCountFromServer, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { plans } from "@/config/plans";
-import type { Plan, PropertyAppeal, AdminAppealDecisionType, UserIssue } from "@/types";
+import type { Plan, PropertyAppeal, AdminAppealDecisionType, UserIssue, Report, ReportReason } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge"; 
@@ -44,6 +44,17 @@ interface UserIssueUpdateForDashboard {
   isDismissedClientSide?: boolean; 
 }
 
+interface ReportUpdateForDashboard {
+    id: string;
+    propertyTitle: string;
+    originalReason: ReportReason;
+    status: Report['status'];
+    translatedStatus: string;
+    adminNotes?: string;
+    lastUpdateDate: string;
+    isDismissedClientSide?: boolean;
+}
+
 const decisionTranslations: Record<AdminAppealDecisionType, string> = {
   publish: "تم نشر عقارك",
   keep_archived: "بقي عقارك مؤرشفًا",
@@ -56,6 +67,14 @@ const issueStatusTranslations: Record<UserIssue['status'], string> = {
   resolved: 'تم الحل',
 };
 
+const reportStatusTranslations: Record<Report['status'], string> = {
+    new: 'جديد',
+    under_review: 'قيد المراجعة',
+    resolved: 'تم حل البلاغ',
+    dismissed: 'تم رفض البلاغ',
+};
+
+
 export default function DashboardPage() {
   const { user, loading: authLoading, clearUserDashboardNotificationBadge } = useAuth(); 
   const [userStats, setUserStats] = useState<UserStats>({
@@ -67,6 +86,7 @@ export default function DashboardPage() {
   });
   const [appealNotifications, setAppealNotifications] = useState<AppealNotification[]>([]);
   const [userIssueUpdates, setUserIssueUpdates] = useState<UserIssueUpdateForDashboard[]>([]);
+  const [reportUpdates, setReportUpdates] = useState<ReportUpdateForDashboard[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
   const [isLoadingDismissAll, setIsLoadingDismissAll] = useState(false);
@@ -135,6 +155,37 @@ export default function DashboardPage() {
       console.error("Error fetching user issue updates:", error);
     }
   }, [user]);
+  
+  const fetchReportUpdates = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+        const reportsQuery = query(
+            collection(db, "reports"),
+            where("reporterUserId", "==", user.uid),
+            where("status", "in", ["resolved", "dismissed"]),
+            where("dismissedByReporter", "!=", true),
+            orderBy("updatedAt", "desc"),
+            limit(5)
+        );
+        const querySnapshot = await getDocs(reportsQuery);
+        const updates = querySnapshot.docs.map(docSnap => {
+            const data = docSnap.data() as Report;
+            return {
+                id: docSnap.id,
+                propertyTitle: data.propertyTitle,
+                originalReason: data.reason,
+                status: data.status,
+                translatedStatus: reportStatusTranslations[data.status] || data.status,
+                adminNotes: data.adminNotes,
+                lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "غير محدد",
+                isDismissedClientSide: false,
+            };
+        });
+        setReportUpdates(updates);
+    } catch (error) {
+        console.error("Error fetching report updates:", error);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -180,7 +231,8 @@ export default function DashboardPage() {
         try {
             await Promise.all([
                 fetchAppealNotifications(),
-                fetchUserIssueUpdates()
+                fetchUserIssueUpdates(),
+                fetchReportUpdates(),
             ]);
         } catch (error) {
             // Individual fetches handle their own console errors
@@ -191,7 +243,7 @@ export default function DashboardPage() {
 
     fetchDashboardData();
     fetchAllNotifications();
-  }, [user, authLoading, router, toast, fetchAppealNotifications, fetchUserIssueUpdates]);
+  }, [user, authLoading, router, toast, fetchAppealNotifications, fetchUserIssueUpdates, fetchReportUpdates]);
 
   const handleAddPropertyClick = () => {
     if (canAddProperty) {
@@ -217,6 +269,12 @@ export default function DashboardPage() {
       prev.map(notif => notif.id === issueId ? { ...notif, isDismissedClientSide: true } : notif)
     );
   };
+  
+  const handleDismissReportClientSide = (reportId: string) => {
+    setReportUpdates(prev =>
+      prev.map(notif => notif.id === reportId ? { ...notif, isDismissedClientSide: true } : notif)
+    );
+  };
 
   const handleDismissAllNotifications = async () => {
     if (!user) return;
@@ -226,7 +284,7 @@ export default function DashboardPage() {
         toast({ title: "تم المسح بنجاح", description: result.message });
         clearUserDashboardNotificationBadge(); 
         // Re-fetch notifications to update the UI from the source of truth (Firestore)
-        await Promise.all([fetchAppealNotifications(), fetchUserIssueUpdates()]);
+        await Promise.all([fetchAppealNotifications(), fetchUserIssueUpdates(), fetchReportUpdates()]);
     } else {
         toast({ title: "خطأ في المسح", description: result.message, variant: "destructive" });
     }
@@ -245,8 +303,9 @@ export default function DashboardPage() {
 
   const visibleAppealNotifications = appealNotifications.filter(n => !n.isDismissedClientSide);
   const visibleUserIssueUpdates = userIssueUpdates.filter(u => !u.isDismissedClientSide);
-  const hasVisibleNotifications = visibleAppealNotifications.length > 0 || visibleUserIssueUpdates.length > 0;
-  const totalVisibleNotifications = visibleAppealNotifications.length + visibleUserIssueUpdates.length;
+  const visibleReportUpdates = reportUpdates.filter(u => !u.isDismissedClientSide);
+  const hasVisibleNotifications = visibleAppealNotifications.length > 0 || visibleUserIssueUpdates.length > 0 || visibleReportUpdates.length > 0;
+  const totalVisibleNotifications = visibleAppealNotifications.length + visibleUserIssueUpdates.length + visibleReportUpdates.length;
 
 
   return (
@@ -408,6 +467,41 @@ export default function DashboardPage() {
                   </ul>
                 </div>
               )}
+              
+               {visibleReportUpdates.length > 0 && (
+                 <div className="mb-4">
+                  <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1 flex items-center gap-2"><Flag size={18}/>تحديثات بلاغاتك:</h4>
+                  <ul className="space-y-3">
+                    {visibleReportUpdates.map((update) => (
+                      <li key={`report-${update.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDismissReportClientSide(update.id)}
+                          aria-label="إخفاء هذا الإشعار"
+                        >
+                          <X size={16} />
+                        </Button>
+                        <p className="font-semibold pr-6 rtl:pl-6">
+                          بخصوص بلاغك عن: <span className="font-normal">{update.propertyTitle}</span>
+                        </p>
+                        <p className="text-sm text-muted-foreground pr-6 rtl:pl-6">
+                          الحالة: <span className={`font-medium ${
+                              update.status === 'resolved' ? 'text-green-600' :
+                              update.status === 'dismissed' ? 'text-destructive' : 'text-gray-600'
+                          }`}>{update.translatedStatus}</span>
+                          {update.adminNotes && (
+                            <span className="block mt-1 text-xs"> ملاحظات المسؤول: {update.adminNotes}</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground/80 mt-1 pr-6 rtl:pl-6">آخر تحديث بتاريخ: {update.lastUpdateDate}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
 
               {!hasVisibleNotifications && !isLoadingNotifications && (
                  <div className="flex flex-col items-center justify-center text-center py-6">

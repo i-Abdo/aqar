@@ -210,6 +210,7 @@ export default function AdminReportsPage() {
       const updateData: Partial<Omit<Report, 'id' | 'reportedAt'>> & { updatedAt: Timestamp } = {
         status,
         updatedAt: Timestamp.now(),
+        dismissedByReporter: false, // Create a notification for the reporter
       };
       if (notes !== undefined) {
         updateData.adminNotes = notes;
@@ -381,7 +382,7 @@ export default function AdminReportsPage() {
                          </Link>
                        </DropdownMenuItem>
                        <DropdownMenuItem onClick={() => openNotesDialog(report)}>
-                         <MessageSquare className="mr-2 h-4 w-4" /> {report.adminNotes ? 'تعديل/عرض الملاحظات' : 'إضافة ملاحظات'}
+                         <MessageSquare className="mr-2 h-4 w-4" /> {report.adminNotes ? 'تعديل/عرض الملاحظات' : 'إضافة ملاحظات (إرسال رسالة للمبلغ)'}
                        </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuSub>
@@ -443,9 +444,9 @@ export default function AdminReportsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>ملاحظات المسؤول على البلاغ</AlertDialogTitle>
             <AlertDialogDescription>
-              عرض أو تعديل الملاحظات الخاصة بهذا البلاغ. العقار: "{selectedReport?.propertyTitle}"
+              عرض أو تعديل الملاحظات الخاصة بهذا البلاغ. عند حل البلاغ، سيتم إرسال هذه الملاحظات كرسالة للمبلغ.
               <br/>
-              السبب: {selectedReport?.reason} | التعليقات: {selectedReport?.comments}
+              العقار: "{selectedReport?.propertyTitle}"
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
@@ -463,7 +464,7 @@ export default function AdminReportsPage() {
                 variant="default"
             >
                  {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-                 حل البلاغ مع حفظ الملاحظات
+                 حل البلاغ وإرسال الرسالة
             </Button>
             {selectedReport && (
                  <Button
@@ -575,4 +576,5 @@ export default function AdminReportsPage() {
     </div>
   );
 }
+
 

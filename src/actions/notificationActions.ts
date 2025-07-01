@@ -50,6 +50,23 @@ export async function dismissAllUserDashboardNotifications(userId: string): Prom
       });
       actualDismissedCount++;
     });
+    
+    // Reports to dismiss
+    const reportsQuery = query(
+      collection(db, "reports"),
+      where("reporterUserId", "==", userId),
+      where("status", "in", ["resolved", "dismissed"]),
+      where("dismissedByReporter", "!=", true) 
+    );
+    const reportsSnapshot = await getDocs(reportsQuery);
+    reportsSnapshot.forEach(docSnap => {
+      batch.update(docSnap.ref, { 
+        dismissedByReporter: true, 
+        updatedAt: serverTimestamp() 
+      });
+      actualDismissedCount++;
+    });
+
 
     if (actualDismissedCount > 0) {
       await batch.commit();
