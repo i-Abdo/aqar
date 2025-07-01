@@ -92,7 +92,7 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
         <AdminSidebarNav counts={counts} />
       </Sidebar>
       <SidebarInset>
-        <div className="relative flex flex-col h-full bg-background pt-12 md:pt-0">
+        <div className="relative flex flex-col h-full bg-background">
           <Button
             variant="ghost"
             size="icon"
@@ -102,7 +102,7 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex-1 p-2 md:p-4 overflow-y-auto">
+          <div className="flex-1 p-2 pt-14 md:p-4 md:pt-4 overflow-y-auto">
             {children}
           </div>
         </div>

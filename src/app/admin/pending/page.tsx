@@ -28,7 +28,8 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/hooks/use-auth'; // Added
+import { useAuth } from '@/hooks/use-auth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PendingProperty extends Property {
   ownerEmail?: string;
@@ -56,38 +57,54 @@ export default function AdminPendingPropertiesPage() {
   const [targetUserTrustLevel, setTargetUserTrustLevel] = useState<UserTrustLevel>('normal');
 
   const { toast } = useToast();
-  const { refreshAdminNotifications } = useAuth(); // Added
+  const { refreshAdminNotifications } = useAuth();
 
   const fetchPendingProperties = async () => {
     setIsLoading(true);
     try {
-      const q = query(collection(db, "properties"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
-      const propsDataPromises = querySnapshot.docs.map(async (docSnap) => {
-        const data = docSnap.data() as Property;
-        let ownerEmail: string | undefined = undefined;
-        let ownerCurrentTrustLevel: UserTrustLevel | undefined = undefined;
+        const q = query(collection(db, "properties"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        const propsData = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Property));
 
-        if (data.userId) {
-          const userRef = doc(db, "users", data.userId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            const userData = userSnap.data() as CustomUser;
-            ownerEmail = userData.email;
-            ownerCurrentTrustLevel = userData.trustLevel || 'normal';
-          }
+        if (propsData.length === 0) {
+            setPendingProperties([]);
+            setIsLoading(false);
+            return;
         }
-        return {
-          id: docSnap.id,
-          ...data,
-          createdAt: (data.createdAt as unknown as Timestamp)?.toDate ? (data.createdAt as unknown as Timestamp).toDate() : new Date(data.createdAt as any),
-          updatedAt: (data.updatedAt as unknown as Timestamp)?.toDate ? (data.updatedAt as unknown as Timestamp).toDate() : new Date(data.updatedAt as any),
-          ownerEmail,
-          ownerCurrentTrustLevel,
-        } as PendingProperty;
-      });
-      const resolvedPropsData = await Promise.all(propsDataPromises);
-      setPendingProperties(resolvedPropsData);
+
+        const userIds = [...new Set(propsData.map(p => p.userId).filter(Boolean))];
+        const usersMap = new Map<string, { email?: string; trustLevel?: UserTrustLevel }>();
+
+        if (userIds.length > 0) {
+            const userChunks = [];
+            for (let i = 0; i < userIds.length; i += 30) {
+                userChunks.push(userIds.slice(i, i + 30));
+            }
+            
+            const userPromises = userChunks.map(chunk => 
+                getDocs(query(collection(db, "users"), where("uid", "in", chunk)))
+            );
+
+            const userSnapshots = await Promise.all(userPromises);
+            userSnapshots.forEach(snapshot => {
+                snapshot.forEach(userDoc => {
+                    const userData = userDoc.data() as CustomUser;
+                    usersMap.set(userDoc.id, { email: userData.email, trustLevel: userData.trustLevel || 'normal' });
+                });
+            });
+        }
+
+        const resolvedPropsData = propsData.map(prop => {
+            const ownerInfo = prop.userId ? usersMap.get(prop.userId) : undefined;
+            return {
+                ...prop,
+                createdAt: (prop.createdAt as unknown as Timestamp)?.toDate ? (prop.createdAt as unknown as Timestamp).toDate() : new Date(prop.createdAt as any),
+                updatedAt: (prop.updatedAt as unknown as Timestamp)?.toDate ? (prop.updatedAt as unknown as Timestamp).toDate() : new Date(prop.updatedAt as any),
+                ownerEmail: ownerInfo?.email,
+                ownerCurrentTrustLevel: ownerInfo?.trustLevel,
+            } as PendingProperty;
+        });
+        setPendingProperties(resolvedPropsData);
     } catch (error) {
       console.error("Error fetching pending properties:", error);
       toast({ title: "خطأ", description: "لم نتمكن من تحميل العقارات قيد المراجعة.", variant: "destructive" });
@@ -98,6 +115,7 @@ export default function AdminPendingPropertiesPage() {
 
   useEffect(() => {
     fetchPendingProperties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openApproveDialog = (property: PendingProperty) => {
@@ -207,9 +225,38 @@ export default function AdminPendingPropertiesPage() {
     }
   };
 
-
-  if (isLoading && pendingProperties.length === 0) {
-    return <div className="flex justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+  if (isLoading) {
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold font-headline">مراجعة العقارات المعلقة</h1>
+            <Card className="shadow-xl">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[60px]"><Skeleton className="h-5 w-10" /></TableHead>
+                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                            <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                            <TableHead className="text-right"><Skeleton className="h-5 w-16" /></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {[...Array(5)].map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell><Skeleton className="h-12 w-12 rounded" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-8 w-8" /></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </Card>
+        </div>
+    );
   }
 
   return (

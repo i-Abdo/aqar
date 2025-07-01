@@ -26,7 +26,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/use-auth'; // Added
+import { useAuth } from '@/hooks/use-auth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const appealStatusTranslations: Record<AppealStatus, string> = {
   new: 'جديد',
@@ -54,7 +55,7 @@ export default function AdminPropertyAppealsPage() {
   const [adminNotes, setAdminNotes] = useState("");
   
   const { toast } = useToast();
-  const { refreshAdminNotifications } = useAuth(); // Added
+  const { refreshAdminNotifications } = useAuth();
 
   const fetchAppeals = async () => {
     setIsLoading(true);
@@ -81,7 +82,8 @@ export default function AdminPropertyAppealsPage() {
 
   useEffect(() => {
     fetchAppeals();
-  }, []); // Removed toast from dependency array as it's stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openDecisionDialog = (appeal: PropertyAppeal, type: AdminAppealDecisionType) => {
     setSelectedAppeal(appeal);
@@ -186,9 +188,40 @@ export default function AdminPropertyAppealsPage() {
     blacklisted: 'قائمة سوداء',
   };
 
-
-  if (isLoading && appeals.length === 0) {
-    return <div className="flex justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+  if (isLoading) {
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold font-headline">إدارة الطعون على العقارات</h1>
+            <Card className="shadow-xl">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                            <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+                            <TableHead className="max-w-[250px]"><Skeleton className="h-5 w-48" /></TableHead>
+                            <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                            <TableHead><Skeleton className="h-5 w-20" /></TableHead>
+                            <TableHead className="max-w-[200px]"><Skeleton className="h-5 w-24" /></TableHead>
+                            <TableHead className="text-right"><Skeleton className="h-5 w-16" /></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {[...Array(5)].map((_, i) => (
+                            <TableRow key={i}>
+                                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-8 w-8" /></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </Card>
+        </div>
+    );
   }
 
   return (
