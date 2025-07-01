@@ -250,11 +250,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       const lon = match[2];
       return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
     }
-
-    // Fallback for non-coordinate URLs
-    return `https://www.google.com/maps?q=${encodeURIComponent(
-      watchedGoogleMapsLink
-    )}&hl=ar&z=15&output=embed`;
+    
+    return null; // Don't use a fallback that causes errors
   }, [watchedGoogleMapsLink]);
 
 
@@ -634,7 +631,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                     فتح خرائط جوجل
                 </a>
             </Button>
-            {mapEmbedUrl && (
+            {mapEmbedUrl ? (
                 <div className="mt-4 aspect-video w-full rounded-md overflow-hidden border">
                     <iframe
                         width="100%"
@@ -643,9 +640,16 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         loading="lazy"
                         allowFullScreen
                         src={mapEmbedUrl}
+                        title="معاينة الموقع على الخريطة"
                     ></iframe>
                 </div>
-            )}
+            ) : watchedGoogleMapsLink ? (
+                <div className="mt-4 p-3 border border-dashed border-amber-500 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm text-center">
+                    <p>
+                        لم نتمكن من إنشاء معاينة للخريطة. تأكد من أن الرابط الذي نسخته من خرائط جوجل يحتوي على إحداثيات الموقع (عادة ما تبدأ بعلامة @).
+                    </p>
+                </div>
+            ) : null}
           </div>
           
           <div className="space-y-3">

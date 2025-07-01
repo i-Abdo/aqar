@@ -100,7 +100,22 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  
+  const mapEmbedUrl = React.useMemo(() => {
+    const googleMapsLink = property?.googleMapsLink;
+    if (!googleMapsLink) return null;
 
+    const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const match = googleMapsLink.match(coordRegex);
+
+    if (match && match[1] && match[2]) {
+      const lat = match[1];
+      const lon = match[2];
+      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
+    }
+    
+    return null; // Return null if coordinates are not found
+  }, [property?.googleMapsLink]);
 
   const fetchPropertyAndRefresh = useCallback(async () => {
     if (!propertyId) return;
@@ -140,25 +155,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
         setIsLoading(false);
     }
   }, [propertyId, toast, user, isAdmin]);
-
-  const mapEmbedUrl = React.useMemo(() => {
-    const googleMapsLink = property?.googleMapsLink;
-    if (!googleMapsLink) return null;
-
-    const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const match = googleMapsLink.match(coordRegex);
-
-    if (match && match[1] && match[2]) {
-      const lat = match[1];
-      const lon = match[2];
-      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
-    }
-    
-    // Fallback if no coordinates are in the URL
-    return `https://www.google.com/maps?q=${encodeURIComponent(
-      googleMapsLink
-    )}&hl=ar&z=15&output=embed`;
-  }, [property?.googleMapsLink]);
 
   useEffect(() => {
     if (!initialProperty) {
@@ -439,19 +435,31 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
             </div>
           )}
 
-          {mapEmbedUrl && (
+          {property?.googleMapsLink && (
             <div className="mt-8">
-                <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2 flex items-center gap-2"><Map size={18}/>الموقع على Google Map</h3>
+              <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2 flex items-center gap-2"><Map size={18}/>الموقع على Google Map</h3>
+              {mapEmbedUrl ? (
                 <div className="aspect-video w-full rounded-md overflow-hidden border">
-                    <iframe
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={mapEmbedUrl}
-                    ></iframe>
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    src={mapEmbedUrl}
+                    title="موقع العقار على الخريطة"
+                  ></iframe>
                 </div>
+              ) : (
+                <div className="p-4 border border-dashed rounded-md bg-secondary/50 text-center">
+                  <p className="text-muted-foreground">تعذر استخلاص إحداثيات الموقع لعرض الخريطة المضمنة.</p>
+                  <Button asChild variant="link" className="mt-2">
+                    <a href={property.googleMapsLink} target="_blank" rel="noopener noreferrer">
+                      عرض الموقع في علامة تبويب جديدة
+                    </a>
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
