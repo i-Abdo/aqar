@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,7 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { cn } from '@/lib/utils';
 import { PropertyCardSkeleton } from '@/components/properties/PropertyCardSkeleton';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 
 const PROPERTIES_PER_PAGE = 9;
 
@@ -185,8 +188,16 @@ export default function PropertiesPage() {
               تصفية البحث
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0">
-            <PropertySearchSidebar onSearch={handleSearch} initialFilters={searchCriteria} />
+          <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 flex flex-col">
+            <SheetHeader className="p-6 pb-2 border-b shrink-0">
+                <SheetTitle className="flex items-center gap-2 text-xl font-headline">
+                    <Filter size={22} />
+                    <span>تصفية البحث</span>
+                </SheetTitle>
+            </SheetHeader>
+            <div className="overflow-y-auto">
+                <PropertySearchSidebar onSearch={handleSearch} initialFilters={searchCriteria} />
+            </div>
           </SheetContent>
         </Sheet>
       </div>
@@ -194,7 +205,17 @@ export default function PropertiesPage() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Desktop-only Sidebar */}
         <aside className="hidden lg:block lg:w-1/3 xl:w-1/4 sticky top-20 self-start">
-          <PropertySearchSidebar onSearch={handleSearch} initialFilters={searchCriteria} />
+           <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl font-headline">
+                        <Filter size={24} />
+                        <span>تصفية البحث</span>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <PropertySearchSidebar onSearch={handleSearch} initialFilters={searchCriteria} />
+                </CardContent>
+            </Card>
         </aside>
 
         <main className="lg:w-2/3 xl:w-3/4">

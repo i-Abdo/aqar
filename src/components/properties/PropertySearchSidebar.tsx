@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -5,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Filter, Search, RotateCcw } from 'lucide-react';
 import type { TransactionType, PropertyTypeEnum } from '@/types';
 
@@ -104,87 +104,77 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
   };
 
   return (
-    <Card className="shadow-lg h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl font-headline">
-          <Filter size={24} />
-          <span>تصفية البحث</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="searchTerm">بحث بالكلمة المفتاحية</Label>
-            <Input
-              id="searchTerm"
-              name="searchTerm"
-              value={filters.searchTerm || ""}
-              onChange={handleChange}
-              placeholder="مثال: شقة، فيلا، بالقرب من..."
-            />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+      <div>
+        <Label htmlFor="searchTerm">بحث بالكلمة المفتاحية</Label>
+        <Input
+          id="searchTerm"
+          name="searchTerm"
+          value={filters.searchTerm || ""}
+          onChange={handleChange}
+          placeholder="مثال: شقة، فيلا، بالقرب من..."
+        />
+      </div>
 
-          <div>
-            <Label htmlFor="transactionType">نوع المعاملة</Label>
-            <Select 
-              name="transactionType" 
-              value={filters.transactionType || ALL_TRANSACTION_TYPES_VALUE} 
-              onValueChange={(value) => handleSelectChange("transactionType", value)}
-            >
-              <SelectTrigger id="transactionType"><SelectValue placeholder="اختر نوع المعاملة" /></SelectTrigger>
-              <SelectContent>
-                {transactionTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+      <div>
+        <Label htmlFor="transactionType">نوع المعاملة</Label>
+        <Select 
+          name="transactionType" 
+          value={filters.transactionType || ALL_TRANSACTION_TYPES_VALUE} 
+          onValueChange={(value) => handleSelectChange("transactionType", value)}
+        >
+          <SelectTrigger id="transactionType"><SelectValue placeholder="اختر نوع المعاملة" /></SelectTrigger>
+          <SelectContent>
+            {transactionTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
 
-          <div>
-            <Label htmlFor="propertyType">نوع العقار</Label>
-            <Select 
-              name="propertyType" 
-              value={filters.propertyType || ALL_PROPERTY_TYPES_VALUE} 
-              onValueChange={(value) => handleSelectChange("propertyType", value)}
-            >
-              <SelectTrigger id="propertyType"><SelectValue placeholder="اختر نوع العقار" /></SelectTrigger>
-              <SelectContent>
-                {propertyTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        
-          <div>
-            <Label htmlFor="wilaya">الولاية</Label>
-            <Select name="wilaya" value={filters.wilaya || ALL_WILAYAS_VALUE} onValueChange={(value) => handleSelectChange("wilaya", value)}>
-              <SelectTrigger id="wilaya"><SelectValue placeholder="اختر الولاية" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_WILAYAS_VALUE}>الكل</SelectItem>
-                {wilayas.map(w => <SelectItem key={w.code} value={w.name}>{w.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="city">المدينة/البلدية</Label>
-            <Input
-              id="city"
-              name="city"
-              value={filters.city || ""}
-              onChange={handleChange}
-              placeholder="مثال: الجزائر الوسطى"
-            />
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-2 pt-4">
-            <Button type="submit" className="flex-1 transition-smooth">
-              <Search size={18} className="ml-2 rtl:mr-2 rtl:ml-0" />
-              تطبيق الفلاتر
-            </Button>
-            <Button type="button" variant="outline" onClick={handleReset} className="flex-1 transition-smooth">
-               <RotateCcw size={18} className="ml-2 rtl:mr-2 rtl:ml-0" />
-              إعادة تعيين
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      <div>
+        <Label htmlFor="propertyType">نوع العقار</Label>
+        <Select 
+          name="propertyType" 
+          value={filters.propertyType || ALL_PROPERTY_TYPES_VALUE} 
+          onValueChange={(value) => handleSelectChange("propertyType", value)}
+        >
+          <SelectTrigger id="propertyType"><SelectValue placeholder="اختر نوع العقار" /></SelectTrigger>
+          <SelectContent>
+            {propertyTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    
+      <div>
+        <Label htmlFor="wilaya">الولاية</Label>
+        <Select name="wilaya" value={filters.wilaya || ALL_WILAYAS_VALUE} onValueChange={(value) => handleSelectChange("wilaya", value)}>
+          <SelectTrigger id="wilaya"><SelectValue placeholder="اختر الولاية" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_WILAYAS_VALUE}>الكل</SelectItem>
+            {wilayas.map(w => <SelectItem key={w.code} value={w.name}>{w.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor="city">المدينة/البلدية</Label>
+        <Input
+          id="city"
+          name="city"
+          value={filters.city || ""}
+          onChange={handleChange}
+          placeholder="مثال: الجزائر الوسطى"
+        />
+      </div>
+      
+      <div className="flex flex-col sm:flex-row gap-2 pt-4">
+        <Button type="submit" className="flex-1 transition-smooth">
+          <Search size={18} className="ml-2 rtl:mr-2 rtl:ml-0" />
+          تطبيق الفلاتر
+        </Button>
+        <Button type="button" variant="outline" onClick={handleReset} className="flex-1 transition-smooth">
+           <RotateCcw size={18} className="ml-2 rtl:mr-2 rtl:ml-0" />
+          إعادة تعيين
+        </Button>
+      </div>
+    </form>
   );
 }
