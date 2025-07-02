@@ -1,6 +1,5 @@
-'use server';
 
-import puppeteer from 'puppeteer';
+'use server';
 
 export interface LocationResolutionResult {
   success: boolean;
@@ -14,19 +13,17 @@ export async function resolveGoogleMapsUrl(url: string): Promise<LocationResolut
     return { success: false, finalUrl: null, coordinates: null, error: 'رابط غير صالح. يجب أن يبدأ بـ http:// أو https://' };
   }
 
-  let browser;
   try {
-    // Use Puppeteer to launch a headless browser to resolve the URL,
-    // which is more robust for URLs that use JavaScript for redirection.
-    // The --no-sandbox argument is often necessary for running in containerized environments.
-    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
-    
-    // Go to the URL and wait for network activity to settle, which is better for JS redirects.
-    await page.goto(url, { waitUntil: 'networkidle2' });
-    
-    const finalUrl = page.url();
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow', // This is the default in Node's fetch, but explicit is clearer
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
 
+    const finalUrl = response.url;
+    
     if (!finalUrl || !finalUrl.includes('google.com/maps')) {
       return { success: false, finalUrl: finalUrl, coordinates: null, error: 'الرابط لا يؤدي إلى خرائط جوجل صالحة.' };
     }
@@ -75,11 +72,7 @@ export async function resolveGoogleMapsUrl(url: string): Promise<LocationResolut
     return { success: true, finalUrl: finalUrl, coordinates: { lat, lng }, error: null };
 
   } catch (error) {
-    console.error("Error resolving Google Maps URL with Puppeteer:", error);
+    console.error("Error resolving Google Maps URL with fetch:", error);
     return { success: false, finalUrl: null, coordinates: null, error: 'فشل الوصول إلى الرابط. تحقق من اتصالك بالإنترنت أو صحة الرابط.' };
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
   }
 }
