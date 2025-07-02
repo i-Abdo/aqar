@@ -21,8 +21,10 @@ export async function resolveGoogleMapsUrl(url: string): Promise<LocationResolut
     // The --no-sandbox argument is often necessary for running in containerized environments.
     browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
-    // Go to the URL and wait for the document to be loaded.
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    
+    // Go to the URL and wait for network activity to settle, which is better for JS redirects.
+    await page.goto(url, { waitUntil: 'networkidle2' });
+    
     const finalUrl = page.url();
 
     if (!finalUrl || !finalUrl.includes('google.com/maps')) {
