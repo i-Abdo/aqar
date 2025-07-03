@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants, type VariantProps } from "@/components/ui/button";
 import { CheckCircle, XCircle, BadgeCheck } from "lucide-react";
 import type { Plan } from "@/types";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,19 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
   };
 
   const price = interval === 'yearly' ? plan.priceYearly : plan.priceMonthly;
-  const Icon = CheckCircle; // Placeholder, will be determined inside the map
+  
+  let buttonVariant: VariantProps<typeof buttonVariants>['variant'] = "outline_primary";
+  let customClasses = "";
+
+  if (isCurrentPlan) {
+    buttonVariant = "outline_primary";
+  } else if (isFeatured) {
+    buttonVariant = "default";
+  } else if (plan.id === 'vip_plus_plus') {
+    buttonVariant = "default";
+    customClasses = "border-2 border-accent hover:border-accent/80 shadow-lg shadow-accent/20";
+  }
+  // The 'free' plan will use the default 'outline_primary' from the initial value.
 
   return (
     <Card className={cn(
@@ -81,10 +93,10 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
       </CardContent>
       <CardFooter className="p-6">
         <Button 
-          className="w-full transition-smooth hover:shadow-md text-base" 
+          className={cn("w-full transition-smooth hover:shadow-md text-base", customClasses)} 
           onClick={() => onSelectPlan(plan.id)}
           disabled={isCurrentPlan || isLoading}
-          variant={isCurrentPlan ? "outline_primary" : isFeatured ? "default" : "outline_primary"}
+          variant={buttonVariant}
           size="lg"
         >
           {isLoading ? "جاري..." : (isCurrentPlan ? "الخطة الحالية" : plan.cta)}
