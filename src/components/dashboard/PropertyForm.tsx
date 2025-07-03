@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check, Facebook, Instagram } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
@@ -81,6 +81,8 @@ const propertyFormSchema = z.object({
     .regex(algerianPhoneNumberRegex, {
         message: "رقم الهاتف غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.",
     }),
+  facebookUrl: z.string().url({ message: "الرجاء إدخال رابط فيسبوك صالح." }).optional().or(z.literal('')),
+  instagramUrl: z.string().url({ message: "الرجاء إدخال رابط انستقرام صالح." }).optional().or(z.literal('')),
   description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(1000, "الوصف يجب أن لا يتجاوز 1000 حرفًا."), // Increased max length
   filters: z.object({
     water: z.boolean().default(false),
@@ -200,7 +202,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       : {
           title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
           rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
-          wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", description: "",
+          wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", facebookUrl: "", instagramUrl: "", description: "",
           filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
           googleMapsLink: "",
           googleMapsLocation: null,
@@ -221,6 +223,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         otherPropertyType: initialData.otherPropertyType || "",
         googleMapsLink: initialData.googleMapsLink || "",
         googleMapsLocation: initialData.googleMapsLocation || null,
+        facebookUrl: initialData.facebookUrl || "",
+        instagramUrl: initialData.instagramUrl || "",
       });
        if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
@@ -564,11 +568,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                     </div>
                     {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
                 </div>
-                <div>
-                    <Label htmlFor="phoneNumber" className="flex items-center gap-1"><Phone size={16}/>رقم الهاتف *</Label>
-                    <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
-                    {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
-                </div>
             </div>
 
 
@@ -639,6 +638,30 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                   <Input id="address" {...form.register("address")} placeholder="مثال: شارع الحرية، رقم 15" />
                 </div>
             </div>
+          </div>
+           
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><Phone size={18}/>معلومات التواصل</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <Label htmlFor="phoneNumber">رقم الهاتف *</Label>
+                    <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
+                    {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor="facebookUrl">رابط فيسبوك (اختياري)</Label>
+                    <Input id="facebookUrl" {...form.register("facebookUrl")} placeholder="https://facebook.com/your-profile" />
+                    {form.formState.errors.facebookUrl && <p className="text-sm text-destructive">{form.formState.errors.facebookUrl.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor="instagramUrl">رابط انستقرام (اختياري)</Label>
+                    <Input id="instagramUrl" {...form.register("instagramUrl")} placeholder="https://instagram.com/your-profile" />
+                    {form.formState.errors.instagramUrl && <p className="text-sm text-destructive">{form.formState.errors.instagramUrl.message}</p>}
+                </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+            سيتم عرض معلومات التواصل هذه للمشترين المحتملين.
+            </p>
           </div>
 
           <div className="space-y-3">

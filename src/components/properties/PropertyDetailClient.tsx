@@ -4,7 +4,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2, CalendarDays } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2, CalendarDays, Facebook, Instagram } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -377,7 +377,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, googleMapsLink } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, facebookUrl, instagramUrl, googleMapsLink } = property;
   
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
@@ -553,18 +553,49 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                     </Card>
                 )}
 
+                {/* Contact Card */}
+                 <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-xl text-center">التواصل مع صاحب العقار</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {phoneNumber && (
+                            <a href={`tel:${phoneNumber}`} className="w-full">
+                                <Button size="lg" className="w-full text-base transition-smooth hover:shadow-md">
+                                    <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
+                                    {phoneNumber}
+                                </Button>
+                            </a>
+                        )}
+                        {facebookUrl && (
+                            <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="w-full">
+                                <Button size="lg" variant="outline_primary" className="w-full text-base transition-smooth hover:shadow-md">
+                                    <Facebook size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
+                                    فيسبوك
+                                </Button>
+                            </a>
+                        )}
+                        {instagramUrl && (
+                            <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="w-full">
+                                <Button size="lg" variant="outline_accent" className="w-full text-base transition-smooth hover:shadow-md">
+                                    <Instagram size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
+                                    انستقرام
+                                </Button>
+                            </a>
+                        )}
+                        {!phoneNumber && !facebookUrl && !instagramUrl && (
+                            <p className="text-sm text-muted-foreground text-center">لم يوفر المالك معلومات تواصل إضافية.</p>
+                        )}
+                    </CardContent>
+                </Card>
+
+
                 {/* Actions Card */}
                  <Card className="shadow-lg bg-secondary/30">
                     <CardHeader>
-                        <CardTitle className="font-headline text-xl text-center">تواصل أو قم بإجراء</CardTitle>
+                        <CardTitle className="font-headline text-xl text-center">إجراءات</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                         <a href={`tel:${phoneNumber}`} className="w-full">
-                            <Button size="lg" className="w-full text-base transition-smooth hover:shadow-md">
-                                <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
-                                اتصل الآن
-                            </Button>
-                        </a>
                         <Button
                             size="lg"
                             variant="outline_primary"
@@ -636,5 +667,3 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     </>
   );
 }
-
-    

@@ -46,6 +46,8 @@ export interface Property {
   neighborhood?: string;
   address?: string;
   phoneNumber?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
   filters: {
     water: boolean;
     electricity: boolean;
