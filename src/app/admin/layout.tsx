@@ -79,8 +79,9 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 
 
 function AdminInternalLayout({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
-  const { toggleSidebar } = useSidebar();
-  const { adminNotificationCount } = useAuth(); 
+  const { toggleSidebar, actualSide } = useSidebar();
+  const { adminNotificationCount } = useAuth();
+  const ChevronIcon = actualSide === 'right' ? ChevronsLeft : ChevronsRight;
 
   return (
     <>
@@ -96,10 +97,10 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
             variant="secondary"
             size="icon"
             onClick={toggleSidebar}
-            className="absolute top-4 right-4 z-50 h-10 w-10 rounded-lg shadow-lg shadow-accent/30 md:hidden"
+            className="absolute top-3 right-4 z-50 h-10 w-10 rounded-lg shadow-lg shadow-primary/20 md:hidden"
             aria-label="فتح القائمة"
           >
-            <Menu className="h-6 w-6" />
+            <ChevronIcon className="h-6 w-6" />
           </Button>
           <div className="flex-1 p-2 pt-16 md:p-4 md:pt-4 overflow-y-auto">
             <div className="mb-6 md:hidden"></div>
@@ -169,8 +170,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode; }) {
         <SidebarProvider
         defaultOpen={false} 
         style={{
-            '--sidebar-width': '18rem', 
-            '--sidebar-width-mobile': '16rem', 
+            '--sidebar-width': '16rem',
+            '--sidebar-width-mobile': '15rem', 
             '--sidebar-width-icon': '4rem', 
             '--sidebar-outer-padding': '0rem',
             '--sidebar-header-height': '3rem',
