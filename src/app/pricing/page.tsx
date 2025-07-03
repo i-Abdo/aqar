@@ -9,6 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase/client';
 import { useRouter } from 'next/navigation';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 
 export default function PricingPage() {
   const { user, loading: authLoading } = useAuth();
@@ -16,6 +19,7 @@ export default function PricingPage() {
   const router = useRouter();
   const [currentPlanId, setCurrentPlanId] = useState<PlanId | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
     async function fetchUserPlan() {
@@ -66,26 +70,50 @@ export default function PricingPage() {
   };
   
   if (authLoading) {
-    return <div className="text-center py-10">جاري تحميل بيانات المستخدم...</div>;
+    return (
+      <div className="flex justify-center items-center py-10 min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mr-4 text-muted-foreground">جاري تحميل بيانات المستخدم...</p>
+      </div>
+    );
   }
 
 
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold font-headline mb-4">خطط أسعار مرنة تناسب الجميع</h1>
-        <p className="text-xl text-muted-foreground">
-          اختر الخطة المثالية لك وابدأ في عرض أو إيجاد العقارات اليوم.
+        <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4 text-primary">
+          خطة لكل احتياج
+        </h1>
+        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+          سواء كنت تبدأ للتو أو تدير قائمة كبيرة من العقارات، لدينا الخطة المثالية لدعم أهدافك.
         </p>
       </div>
-      <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      
+      <div className="flex items-center justify-center space-x-4 rtl:space-x-reverse mb-10">
+        <Label htmlFor="billing-interval" className="font-semibold text-lg">شهري</Label>
+        <Switch
+          id="billing-interval"
+          checked={billingInterval === 'yearly'}
+          onCheckedChange={(checked) => setBillingInterval(checked ? 'yearly' : 'monthly')}
+          aria-label="Toggle billing interval"
+        />
+        <Label htmlFor="billing-interval" className="font-semibold text-lg">
+          سنوي <span className="text-sm text-green-500 font-normal">(وفر 20%)</span>
+        </Label>
+      </div>
+
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
         {predefinedPlans.map((plan) => (
           <PlanCard 
             key={plan.id} 
-            plan={plan} 
+            plan={plan}
+            interval={billingInterval}
             isCurrentPlan={currentPlanId === plan.id}
+            isFeatured={plan.id === 'vip'}
             onSelectPlan={handleSelectPlan}
-            isLoading={isLoading}
+            isLoading={isLoading || authLoading}
           />
         ))}
       </div>

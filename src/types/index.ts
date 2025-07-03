@@ -16,6 +16,7 @@ export type PlanId = 'free' | 'vip' | 'vip_plus_plus';
 export interface Plan {
   id: PlanId;
   name: string;
+  description?: string;
   priceMonthly: number;
   priceYearly: number;
   features: string[];

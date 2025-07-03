@@ -4,6 +4,7 @@ export const plans: Plan[] = [
   {
     id: "free",
     name: "مجاني",
+    description: "مثالية للبدء واستكشاف المنصة. انشر أول عقار لك مجانًا.",
     priceMonthly: 0,
     priceYearly: 0,
     features: [
@@ -22,6 +23,7 @@ export const plans: Plan[] = [
   {
     id: "vip",
     name: "VIP",
+    description: "الأكثر شيوعًا للمستخدمين الجادين. احصل على أدوات متقدمة للتميز.",
     priceMonthly: 0,
     priceYearly: 0,
     features: [
@@ -40,6 +42,7 @@ export const plans: Plan[] = [
   {
     id: "vip_plus_plus",
     name: "VIP++",
+    description: "الحل الأمثل للوكالات العقارية والمحترفين. لا حدود لطموحاتك.",
     priceMonthly: 0,
     priceYearly: 0,
     features: [

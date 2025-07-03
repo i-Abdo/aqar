@@ -1,17 +1,19 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, BadgeCheck } from "lucide-react";
 import type { Plan } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface PlanCardProps {
   plan: Plan;
+  interval: 'monthly' | 'yearly';
   isCurrentPlan?: boolean;
+  isFeatured?: boolean;
   onSelectPlan: (planId: Plan["id"]) => void;
   isLoading?: boolean;
 }
 
-export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanCardProps) {
+export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPlan, isLoading }: PlanCardProps) {
   const renderPlanName = () => {
     if (plan.name === "VIP++") {
       return (
@@ -23,73 +25,68 @@ export function PlanCard({ plan, isCurrentPlan, onSelectPlan, isLoading }: PlanC
     return plan.name;
   };
 
+  const price = interval === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+
   return (
-    <Card className={cn("flex flex-col shadow-lg transition-all duration-300 hover:shadow-xl", isCurrentPlan && "ring-2 ring-primary border-primary")}>
-      <CardHeader className="items-center text-center">
+    <Card className={cn(
+        "flex flex-col shadow-lg transition-all duration-300 relative", 
+        isCurrentPlan ? "ring-2 ring-primary border-primary" : "hover:shadow-xl hover:-translate-y-2",
+        isFeatured ? "bg-secondary/50 border-primary lg:scale-105" : "bg-card"
+    )}>
+        {isFeatured && (
+            <div className="absolute -top-3 right-4 bg-primary text-primary-foreground px-3 py-1 text-sm font-semibold rounded-full flex items-center gap-1 shadow-lg">
+                <BadgeCheck size={16}/>
+                الأكثر شيوعًا
+            </div>
+        )}
+      <CardHeader className="items-center text-center pt-8">
         <CardTitle className="text-2xl font-headline">{renderPlanName()}</CardTitle>
-        <CardDescription className="text-3xl font-bold text-accent min-h-[2.5rem]">
-          {plan.id !== 'free' && plan.priceMonthly <= 0 ? (
-            '--'
-          ) : plan.priceMonthly > 0 ? (
-            <>
-              {`${plan.priceMonthly.toLocaleString()} د.ج`}
-              <span className="text-lg font-normal text-muted-foreground">/شهر</span>
-            </>
+        <CardDescription className="text-muted-foreground h-12">{plan.description || ""}</CardDescription>
+        <div className="text-4xl font-bold text-accent min-h-[3.5rem] flex items-baseline gap-1">
+          {plan.id === 'free' ? (
+            'مجاني'
+          ) : price <= 0 ? (
+            'اتصل بنا'
           ) : (
-            null
+            <>
+              <span>{price.toLocaleString()}</span>
+              <span className="text-lg font-normal text-muted-foreground">د.ج/{interval === 'monthly' ? 'شهر' : 'سنة'}</span>
+            </>
           )}
-        </CardDescription>
+        </div>
       </CardHeader>
       <CardContent className="flex-grow">
-        <ul className="space-y-2 list-none p-0">
+        <ul className="space-y-4 list-none p-0">
           {plan.features.map((feature, index) => {
-            let iconElement = null;
-            let textElement = feature;
-            let iconColorClass = "";
-            let specificIconContainerClass = "w-6"; // Default for single icons
-
-            if (feature.endsWith(" ✓✓")) {
-              iconElement = (
-                <>
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                </>
-              );
-              textElement = feature.slice(0, -3).trim(); // Remove " ✓✓"
-              specificIconContainerClass = "w-auto"; // Container adapts to content
-            } else if (feature.endsWith(" ✓")) {
-              iconElement = <CheckCircle className="h-5 w-5" />;
-              textElement = feature.slice(0, -2).trim();
-              iconColorClass = "text-green-500";
-            } else if (feature.endsWith(" ✕")) {
-              iconElement = <XCircle className="h-5 w-5" />;
-              textElement = feature.slice(0, -2).trim();
-              iconColorClass = "text-destructive";
-            }
+            const hasCheck = feature.endsWith(" ✓") || feature.endsWith(" ✓✓");
+            const hasCross = feature.endsWith(" ✕");
+            
+            const icon = hasCheck ? CheckCircle : hasCross ? XCircle : CheckCircle;
+            const iconColor = hasCheck ? "text-green-500" : hasCross ? "text-destructive/50" : "text-primary";
+            const textColor = hasCross ? "text-muted-foreground" : "text-foreground";
+            
+            const textElement = feature.replace(/ (✓|✓✓|✕)$/, '').trim();
 
             return (
-              <li key={index} className="flex items-start min-h-10">
-                <span className={cn(
-                  "inline-flex items-center justify-center h-5 ml-2 shrink-0", // ml-2 for space between icon(s) and text (RTL)
-                  specificIconContainerClass, 
-                  !feature.endsWith(" ✓✓") ? iconColorClass : "" 
-                )}>
-                  {iconElement}
+              <li key={index} className="flex items-start gap-3">
+                <span className={cn("inline-flex items-center justify-center h-5 shrink-0", iconColor)}>
+                    <icon className="h-5 w-5" />
                 </span>
-                <span>{textElement}</span>
+                <span className={textColor}>{textElement}</span>
               </li>
             );
           })}
         </ul>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="p-6">
         <Button 
-          className="w-full transition-smooth hover:shadow-md" 
+          className="w-full transition-smooth hover:shadow-md text-base" 
           onClick={() => onSelectPlan(plan.id)}
           disabled={isCurrentPlan || isLoading}
-          variant={isCurrentPlan ? "outline_primary" : "default"}
+          variant={isCurrentPlan ? "outline_primary" : isFeatured ? "default" : "secondary"}
+          size="lg"
         >
-          {isLoading ? "جاري المعالجة..." : (isCurrentPlan ? "الخطة الحالية" : plan.cta)}
+          {isLoading ? "جاري..." : (isCurrentPlan ? "الخطة الحالية" : plan.cta)}
         </Button>
       </CardFooter>
     </Card>
