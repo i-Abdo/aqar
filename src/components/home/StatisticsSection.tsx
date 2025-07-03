@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Home, Users, BadgeCheck } from 'lucide-react';
+import { Home, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useInView } from 'react-intersection-observer';
 
@@ -60,17 +59,12 @@ export default function StatisticsSection({ propertyCount, userCount }: Statisti
       value: userCount, 
       label: "مستخدم مسجل",
     },
-    { 
-      icon: BadgeCheck, 
-      value: 1200, // Keep this one static for "successful operations"
-      label: "عملية ناجحة",
-    },
   ];
 
   return (
     <section className="w-full py-12 md:py-16">
       <h2 className="text-3xl font-bold font-headline mb-10">بالأرقام</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-center max-w-3xl mx-auto">
         {stats.map((stat, index) => (
           <Card key={index} className="bg-primary/5 p-6 shadow-lg animate-in fade-in slide-in-from-bottom-12 duration-700" style={{ animationDelay: `${200 * (index + 1)}ms` }}>
             <CardHeader className="p-0 mb-4">
