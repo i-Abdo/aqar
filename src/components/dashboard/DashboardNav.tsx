@@ -1,4 +1,3 @@
-
 "use client"
 
 import Link from "next/link"
@@ -29,7 +28,7 @@ const dashboardNavItems = [
   // Separator will be added after this item
   {
     title: "الاشتراكات",
-    href: "/pricing", 
+    href: "/dashboard/subscriptions",
     icon: DollarSign,
   },
   {
@@ -60,7 +59,7 @@ export function DashboardNav() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href}
+                isActive={pathname === item.href || (item.href.startsWith('/dashboard/properties') && pathname.startsWith('/dashboard/properties'))}
                 tooltip={item.title}
               >
                 <Link href={item.href} className="flex items-center justify-center w-full overflow-hidden">
