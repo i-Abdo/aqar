@@ -2,7 +2,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState, useCallback } from "react";
-import { Loader2, ShieldAlert, ChevronsLeft, Menu, ChevronsRight } from "lucide-react";
+import { Loader2, Menu } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; 
@@ -10,7 +10,7 @@ import { collection, query, where, getCountFromServer } from "firebase/firestore
 import { db } from "@/lib/firebase/client";
 import { Badge } from "@/components/ui/badge";
 
-import { LayoutDashboard, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react";
+import { Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from "lucide-react";
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator as UiSidebarSeparator } from "@/components/ui/sidebar";
 
 
@@ -76,11 +76,10 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 }
 
 
-function AdminInternalLayout({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
-  const { toggleSidebar, actualSide } = useSidebar();
+function AdminPageContent({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
+  const { toggleSidebar } = useSidebar();
   const { adminNotificationCount } = useAuth();
-  const ChevronIcon = actualSide === 'right' ? ChevronsRight : ChevronsLeft;
-
+  
   return (
     <>
       <Sidebar 
@@ -91,17 +90,16 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
       </Sidebar>
       <SidebarInset>
         <div className="relative flex flex-col h-full bg-background">
-          <Button
+           <Button
             variant="secondary"
             size="icon"
             onClick={toggleSidebar}
-            className="absolute top-3 right-4 z-50 h-10 w-10 rounded-lg shadow-lg shadow-primary/20 md:hidden"
+            className="absolute top-3 right-4 z-20 h-10 w-10 rounded-lg shadow-lg shadow-primary/20 md:hidden"
             aria-label="فتح القائمة"
           >
             <Menu className="h-6 w-6" />
           </Button>
-          <div className="flex-1 p-4 overflow-y-auto">
-            <div className="mb-6 md:hidden"></div>
+          <div className="flex-1 p-2 pt-16 md:pt-4 md:p-4 overflow-y-auto">
             {children}
           </div>
         </div>
@@ -110,114 +108,76 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
   );
 }
 
-// This component only renders if the user is a confirmed admin.
-// It handles fetching admin-specific data.
-function AdminLayoutContent({ children }: { children: React.ReactNode; }) {
-    const { refreshAdminNotifications } = useAuth();
-    const pathname = usePathname();
-
-    const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
-    const [isLoadingCounts, setIsLoadingCounts] = useState(true);
-
-    const fetchAdminCountsForSidebar = useCallback(async () => {
-        setIsLoadingCounts(true);
-        try {
-            const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
-            const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
-            const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
-            const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
-
-            const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
-            getCountFromServer(pendingPropsQuery),
-            getCountFromServer(newReportsQuery),
-            getCountFromServer(newUserIssuesQuery),
-            getCountFromServer(newAppealsQuery),
-            ]);
-
-            const currentCountsData = {
-            pending: pendingSnapshot.data().count,
-            reports: reportsSnapshot.data().count,
-            issues: issuesSnapshot.data().count,
-            appeals: appealsSnapshot.data().count,
-            };
-            setCounts(currentCountsData);
-        } catch (error) {
-            console.error("Error fetching admin counts for sidebar:", error);
-            setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
-        } finally {
-            setIsLoadingCounts(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchAdminCountsForSidebar();
-    }, [fetchAdminCountsForSidebar]);
-
-    useEffect(() => {
-        refreshAdminNotifications();
-    }, [pathname, refreshAdminNotifications]);
-
-    if (isLoadingCounts) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        );
-    }
-  
-    return (
-        <SidebarProvider
-          defaultOpen={false} 
-          style={{
-              '--sidebar-width': '16rem',
-              '--sidebar-width-mobile': '15rem', 
-              '--sidebar-width-icon': '4rem', 
-              '--sidebar-outer-padding': '0rem',
-              '--sidebar-header-height': '3rem',
-              '--sidebar-inset-top': '0px', 
-              '--sidebar-side': 'right',
-              '--sidebar-collapsible': 'icon',
-          } as React.CSSProperties}
-        >
-            <AdminInternalLayout counts={counts}>
-                {children}
-            </AdminInternalLayout>
-        </SidebarProvider>
-    );
-}
-
-
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading, refreshAdminNotifications } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [authHydrated, setAuthHydrated] = useState(false);
+  
+  const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
+  const [isLoadingCounts, setIsLoadingCounts] = useState(true);
+
+  const fetchAdminCountsForSidebar = useCallback(async () => {
+    setIsLoadingCounts(true);
+    try {
+        const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
+        const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
+        const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
+        const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
+
+        const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
+        getCountFromServer(pendingPropsQuery),
+        getCountFromServer(newReportsQuery),
+        getCountFromServer(newUserIssuesQuery),
+        getCountFromServer(newAppealsQuery),
+        ]);
+
+        const currentCountsData = {
+        pending: pendingSnapshot.data().count,
+        reports: reportsSnapshot.data().count,
+        issues: issuesSnapshot.data().count,
+        appeals: appealsSnapshot.data().count,
+        };
+        setCounts(currentCountsData);
+    } catch (error) {
+        console.error("Error fetching admin counts for sidebar:", error);
+        setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
+    } finally {
+        setIsLoadingCounts(false);
+    }
+  }, []);
 
   useEffect(() => {
     setAuthHydrated(true);
   }, []);
 
-  // This effect handles the redirection logic for unauthorized users.
   useEffect(() => {
-    // We wait until auth is not loading and the component is hydrated on the client.
     if (!authLoading && authHydrated) {
       if (!user) {
-        // If there's no user, redirect to login.
         router.push("/login?redirect=/admin/reports");
       } else if (!isAdmin) {
-        // If there's a user but they are not an admin, redirect to their dashboard.
         router.push("/dashboard");
       }
     }
   }, [user, isAdmin, authLoading, router, authHydrated]);
   
-  // This is the main security guard. 
-  // It shows a loader until we are certain the user is an authenticated admin.
-  // This prevents any "flash" of the admin UI for unauthorized users.
-  if (authLoading || !authHydrated || !isAdmin) { 
+  useEffect(() => {
+    if (isAdmin) {
+      fetchAdminCountsForSidebar();
+    }
+  }, [isAdmin, fetchAdminCountsForSidebar]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      refreshAdminNotifications();
+    }
+  }, [pathname, refreshAdminNotifications, isAdmin]);
+
+  if (authLoading || !authHydrated || !isAdmin || isLoadingCounts) { 
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -225,7 +185,23 @@ export default function AdminLayout({
     );
   }
 
-  // If we reach here, the user is a confirmed admin.
-  // We can now safely render the admin content.
-  return <AdminLayoutContent>{children}</AdminLayoutContent>;
+  return (
+    <SidebarProvider
+      defaultOpen={false} 
+      style={{
+          '--sidebar-width': '16rem',
+          '--sidebar-width-mobile': '15rem', 
+          '--sidebar-width-icon': '4rem', 
+          '--sidebar-outer-padding': '0rem',
+          '--sidebar-header-height': '3rem',
+          '--sidebar-inset-top': '0px', 
+          '--sidebar-side': 'right',
+          '--sidebar-collapsible': 'icon',
+      } as React.CSSProperties}
+    >
+      <AdminPageContent counts={counts}>
+        {children}
+      </AdminPageContent>
+    </SidebarProvider>
+  );
 }

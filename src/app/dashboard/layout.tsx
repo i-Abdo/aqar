@@ -4,15 +4,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState, useRef } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, ChevronsLeft, ChevronsRight, Menu } from "lucide-react";
+import { Loader2, Menu } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; 
 import { Button } from "@/components/ui/button";
 
 
 function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
-  const { toggleSidebar, actualSide } = useSidebar(); 
+  const { toggleSidebar } = useSidebar(); 
   const { userDashboardNotificationCount } = useAuth();
-  const ChevronIcon = actualSide === 'right' ? ChevronsLeft : ChevronsRight;
   
   return (
     <>
@@ -31,7 +30,7 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
             className="absolute top-3 right-4 z-20 h-10 w-10 rounded-lg shadow-lg shadow-primary/20 md:hidden"
             aria-label="فتح القائمة"
           >
-            <ChevronIcon className="h-6 w-6" />
+            <Menu className="h-6 w-6" />
           </Button>
           <div className="flex-1 p-2 pt-16 md:pt-4 md:p-4 overflow-y-auto">
             {children}
