@@ -52,21 +52,21 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                 isActive={pathname.startsWith(item.href)}
                 tooltip={item.title}
               >
-                <Link href={item.href} className="flex items-center w-full overflow-hidden">
-                  <div className="flex items-center gap-2 flex-grow">
+                <Link href={item.href} className="flex items-center justify-center w-full overflow-hidden">
+                  <div className="flex items-center gap-2">
                     {IconComponent && <IconComponent className="shrink-0" />}
                     <span className="truncate group-data-[state=collapsed]:hidden">
                       {item.title}
                     </span>
+                    {item.countKey !== "properties" && count > 0 && (
+                      <Badge 
+                          variant="destructive" 
+                          className="shrink-0 group-data-[state=collapsed]:hidden px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
+                      > 
+                        {count > 9 ? '9+' : count}
+                      </Badge>
+                    )}
                   </div>
-                  {item.countKey !== "properties" && count > 0 && (
-                    <Badge 
-                        variant="destructive" 
-                        className="shrink-0 group-data-[state=collapsed]:hidden px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
-                    > 
-                      {count > 9 ? '9+' : count}
-                    </Badge>
-                  )}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -97,7 +97,7 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="absolute top-2 right-2 z-20 h-10 w-10 md:hidden"
+            className="absolute top-2 right-2 z-50 h-12 w-12 rounded-full shadow-lg md:hidden"
             aria-label="فتح القائمة"
           >
             <ChevronsLeft className="h-6 w-6" />
