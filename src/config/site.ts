@@ -42,7 +42,7 @@ export const siteConfig: SiteConfig = {
     },
     {
       title: "إدارة", // Admin
-      href: "/admin/properties",
+      href: "/admin/reports",
       authRequired: true,
       adminRequired: true,
     },

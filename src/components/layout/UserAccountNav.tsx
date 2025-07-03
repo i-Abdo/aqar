@@ -76,7 +76,7 @@ export function UserAccountNav() {
           </DropdownMenuItem>
           {isAdmin && (
              <DropdownMenuItem asChild>
-             <Link href="/admin/properties">
+             <Link href="/admin/reports">
                <ShieldCheck className="ms-2 h-4 w-4" />
                <span>لوحة الإدارة</span>
              </Link>
