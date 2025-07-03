@@ -54,12 +54,24 @@ export function DashboardNav() {
         const countToDisplay = showBadge ? userDashboardNotificationCount : 0;
         const IconComponent = item.icon; 
         
+        const isPropertiesPageFamily = pathname.startsWith('/dashboard/properties');
+        const isNewPropertyPage = pathname === '/dashboard/properties/new';
+        
+        let isActive = false;
+        if (item.href === '/dashboard/properties') {
+            // "عقاراتي" is active on the main list page and edit pages, but NOT on the 'new' page.
+            isActive = isPropertiesPageFamily && !isNewPropertyPage;
+        } else {
+            // All other links match exactly.
+            isActive = pathname === item.href;
+        }
+        
         return (
           <React.Fragment key={item.href + index}>
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href || (item.href.startsWith('/dashboard/properties') && pathname.startsWith('/dashboard/properties'))}
+                isActive={isActive}
                 tooltip={item.title}
               >
                 <Link href={item.href} className="flex items-center justify-center w-full overflow-hidden">
