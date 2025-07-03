@@ -18,20 +18,20 @@ export function SiteHeader() {
       )}
     >
       <div className="container flex h-full items-center justify-between">
-        {/* Left side (in RTL): Logo */}
-        <div className="hidden md:flex items-center">
-          <AppLogo />
-        </div>
-
-        {/* Center: Main Nav (Desktop only) */}
-        <div className="hidden md:flex flex-1 items-center justify-center">
-          <MainNav />
-        </div>
-
-        {/* Right Side (in RTL): User Nav & Theme Toggle */}
+        {/* Right side (in RTL) */}
         <div className="flex items-center gap-1">
           <UserAccountNav />
           <ThemeToggleButton />
+        </div>
+
+        {/* Center: Main Nav (Desktop only) */}
+        <div className="hidden md:flex">
+          <MainNav />
+        </div>
+
+        {/* Left Side (in RTL) */}
+        <div className="flex items-center">
+          <AppLogo />
         </div>
       </div>
     </header>
