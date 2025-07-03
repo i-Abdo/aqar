@@ -1,7 +1,7 @@
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Loader2, ShieldAlert, ChevronsLeft, Menu, ChevronsRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,7 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
             className="absolute top-3 right-4 z-50 h-10 w-10 rounded-lg shadow-lg shadow-primary/20 md:hidden"
             aria-label="فتح القائمة"
           >
-            <ChevronIcon className="h-6 w-6" />
+            <Menu className="h-6 w-6" />
           </Button>
           <div className="flex-1 p-4 overflow-y-auto">
             <div className="mb-6 md:hidden"></div>
@@ -113,7 +113,7 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
 // This component only renders if the user is a confirmed admin.
 // It handles fetching admin-specific data.
 function AdminLayoutContent({ children }: { children: React.ReactNode; }) {
-    const { adminNotificationCount, refreshAdminNotifications } = useAuth();
+    const { refreshAdminNotifications } = useAuth();
     const pathname = usePathname();
 
     const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
