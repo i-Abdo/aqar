@@ -6,8 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Feather, SlidersHorizontal, Sparkles, Search, Phone, KeyRound, LifeBuoy, Lightbulb } from "lucide-react";
 import { useState } from "react";
-import { ContactDialog } from "@/components/layout/ContactDialog";
 import { cn } from "@/lib/utils";
+import dynamic from 'next/dynamic';
+
+const ContactDialog = dynamic(() =>
+  import('@/components/layout/ContactDialog').then((mod) => mod.ContactDialog)
+);
 
 export default function HomePage() {
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
@@ -171,7 +175,7 @@ export default function HomePage() {
           </Button>
         </section>
       </div>
-      <ContactDialog isOpen={isContactDialogOpen} onOpenChange={setIsContactDialogOpen} />
+      {isContactDialogOpen && <ContactDialog isOpen={isContactDialogOpen} onOpenChange={setIsContactDialogOpen} />}
     </>
   );
 }

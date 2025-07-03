@@ -15,7 +15,12 @@ import { Loader2, AlertTriangle, ShieldX, MessageSquareWarning } from "lucide-re
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ContactAdminDialog } from "@/components/dashboard/ContactAdminDialog";
+import dynamic from 'next/dynamic';
+
+const ContactAdminDialog = dynamic(() =>
+  import('@/components/dashboard/ContactAdminDialog').then((mod) => mod.ContactAdminDialog)
+);
+
 
 export default function NewPropertyPage() {
   const { toast } = useToast();

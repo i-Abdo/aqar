@@ -11,8 +11,6 @@ import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/fir
 import { db } from '@/lib/firebase/client';
 import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrustLevel } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
-import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
-import { ContactAdminDialog } from '@/components/dashboard/ContactAdminDialog';
 import { incrementPropertyView } from '@/actions/viewActions';
 import {
   AlertDialog,
@@ -44,6 +42,14 @@ import { cn } from '@/lib/utils';
 import { formatDisplayPrice } from '@/lib/utils';
 import { siteConfig } from '@/config/site';
 import { Badge } from '@/components/ui/badge';
+import dynamic from 'next/dynamic';
+
+const ReportPropertyDialog = dynamic(() => 
+  import('./ReportPropertyDialog').then((mod) => mod.ReportPropertyDialog)
+);
+const ContactAdminDialog = dynamic(() => 
+  import('@/components/dashboard/ContactAdminDialog').then((mod) => mod.ContactAdminDialog)
+);
 
 
 // Helper function to convert ISO string back to Date object

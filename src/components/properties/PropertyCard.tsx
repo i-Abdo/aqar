@@ -8,9 +8,13 @@ import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
 import { BedDouble, Bath, MapPin, Phone, Flag, Tag, Home, Ruler, Share2, Check } from "lucide-react"; 
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { ReportPropertyDialog } from "./ReportPropertyDialog"; 
 import { formatDisplayPrice } from '@/lib/utils';
 import { Badge } from "@/components/ui/badge";
+import dynamic from 'next/dynamic';
+
+const ReportPropertyDialog = dynamic(() => 
+  import('./ReportPropertyDialog').then((mod) => mod.ReportPropertyDialog)
+);
 
 interface PropertyCardProps {
   property: Property;
