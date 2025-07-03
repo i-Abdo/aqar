@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -33,11 +34,11 @@ export function UserAccountNav() {
 
   if (!user) {
     return (
-      <div className="hidden md:flex items-center gap-2">
-        <Button asChild className="transition-smooth hover:shadow-md">
+      <div className="flex items-center gap-2">
+        <Button asChild size="sm" className="transition-smooth hover:shadow-md text-xs sm:text-sm">
           <Link href="/signup">إنشاء حساب</Link>
         </Button>
-        <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
+        <Button asChild size="sm" variant="outline_primary" className="transition-smooth hover:shadow-md text-xs sm:text-sm">
           <Link href="/login">تسجيل الدخول</Link>
         </Button>
       </div>

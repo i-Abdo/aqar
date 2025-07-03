@@ -61,7 +61,7 @@ export default function RootLayout({
         <ThemeProvider> 
           <AuthProvider>
             <SiteHeader />
-            <main className="flex-grow container mx-auto px-4 pb-8">
+            <main className="flex-grow container mx-auto px-4 py-8">
               {children}
             </main>
             <SiteFooter />
