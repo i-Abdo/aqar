@@ -26,6 +26,7 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
   };
 
   const price = interval === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+  const Icon = CheckCircle; // Placeholder, will be determined inside the map
 
   return (
     <Card className={cn(
@@ -83,7 +84,7 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
           className="w-full transition-smooth hover:shadow-md text-base" 
           onClick={() => onSelectPlan(plan.id)}
           disabled={isCurrentPlan || isLoading}
-          variant={isCurrentPlan ? "outline_primary" : isFeatured ? "default" : "secondary"}
+          variant={isCurrentPlan ? "outline_primary" : isFeatured ? "default" : "outline_primary"}
           size="lg"
         >
           {isLoading ? "جاري..." : (isCurrentPlan ? "الخطة الحالية" : plan.cta)}
