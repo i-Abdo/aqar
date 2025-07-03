@@ -18,8 +18,8 @@ export type SiteConfig = {
 };
 
 export const siteConfig: SiteConfig = {
-  name: "عقاري",
-  description: "منصتك المثالية لإيجاد وبيع العقارات في الجزائر.",
+  name: "دار دز",
+  description: "دار دز هي منصتك المثالية لإيجاد وبيع وتأجير العقارات في الجزائر.",
   url: "https://aqari.example.com", // Replace with actual URL
   ogImage: "https://placehold.co/1200x630.png",
   mainNav: [
