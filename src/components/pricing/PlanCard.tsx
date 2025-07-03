@@ -32,15 +32,20 @@ export function PlanCard({ plan, isCurrentPlan, isFeatured, onSelectPlan, isLoad
   } else if (isFeatured) {
     buttonVariant = "default";
   } else if (plan.id === 'vip_plus_plus') {
+    // This is the custom style for VIP++
     buttonVariant = "default";
     customClasses = "bg-primary text-primary-foreground border-2 border-accent hover:bg-primary/90 hover:border-accent/80 shadow-lg shadow-accent/20";
+  } else if (plan.id === 'free') {
+    // This makes "ابدأ مجانًا" have outline style
+     buttonVariant = "outline_primary";
   }
+
 
   return (
     <Card className={cn(
         "flex flex-col shadow-lg transition-all duration-300 relative", 
         isCurrentPlan ? "ring-2 ring-primary border-primary" : "hover:shadow-xl hover:-translate-y-2",
-        isFeatured ? "bg-secondary/50 border-primary lg:scale-105" : "bg-card"
+        isFeatured ? "bg-secondary/50 border-primary" : "bg-card"
     )}>
         {isFeatured && (
             <div className="absolute -top-3 right-4 bg-primary text-primary-foreground px-3 py-1 text-sm font-semibold rounded-full flex items-center gap-1 shadow-lg">
