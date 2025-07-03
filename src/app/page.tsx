@@ -1,9 +1,10 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Feather, SlidersHorizontal, Sparkles, Star, Search, Phone, KeyRound } from "lucide-react";
+import { Feather, SlidersHorizontal, Sparkles, Search, Phone, KeyRound, LifeBuoy, Lightbulb } from "lucide-react";
 import { useState } from "react";
 import { ContactDialog } from "@/components/layout/ContactDialog";
 import { cn } from "@/lib/utils";
@@ -50,24 +51,6 @@ export default function HomePage() {
       icon: KeyRound,
       title: "أتمم الصفقة",
       description: "احصل على منزل أحلامك أو استثمر في عقارك الجديد بثقة وأمان.",
-    },
-  ];
-
-  const testimonials = [
-    {
-      name: "سارة. ك",
-      text: "لقد وجدت شقة أحلامي عبر عقاري في أقل من أسبوع. كانت التجربة سلسة والخيارات متنوعة. أنصح به بشدة!",
-      rating: 5,
-    },
-    {
-      name: "أحمد. ب",
-      text: "كمالك عقار، سهولة عرض الممتلكات وسرعة تلقي الاستفسارات كانت مذهلة. أفضل منصة عقارية استخدمتها.",
-      rating: 5,
-    },
-    {
-      name: "فاطمة. ز",
-      text: "أدوات البحث المتقدمة ساعدتني في تحديد ما أريده بالضبط. الموقع احترافي وموثوق.",
-      rating: 4,
     },
   ];
 
@@ -141,24 +124,40 @@ export default function HomePage() {
         </section>
         
         <section className="w-full">
-          <h2 className="text-3xl font-bold font-headline mb-4 text-center">ماذا يقول عملاؤنا؟</h2>
+          <h2 className="text-3xl font-bold font-headline mb-4 text-center">موارد إضافية لمساعدتك</h2>
           <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-            آراء بعض من وثقوا بنا لإيجاد أو عرض عقاراتهم.
+            سواء كنت بائعًا، مشتريًا، أو تبحث عن معلومات، نحن هنا لنوفر لك الدعم اللازم.
           </p>
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-               <Card key={index} className="shadow-lg animate-in fade-in slide-in-from-bottom-10 duration-700 text-right" style={{ animationDelay: `${400 + index * 100}ms` }}>
-                <CardContent className="p-6">
-                  <div className="flex mb-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={cn("w-5 h-5", i < testimonial.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30")} />
-                    ))}
-                  </div>
-                  <p className="text-muted-foreground mb-4 italic">"{testimonial.text}"</p>
-                  <p className="font-semibold text-primary">{testimonial.name}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-10 duration-700 text-right" style={{ animationDelay: '400ms' }}>
+              <div className="p-8 flex flex-col h-full">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-accent/10 border-2 border-accent/20">
+                  <Lightbulb className="w-8 h-8 text-accent" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-3">دليلك العقاري</h3>
+                <p className="text-muted-foreground mb-6 flex-grow">
+                  اكتشف نصائح الخبراء لبيع وشراء وتأجير العقارات. تعلم كيف تحقق أفضل الصفقات وتتجنب الأخطاء الشائعة.
+                </p>
+                <Button asChild size="lg" variant="outline_accent" className="mt-auto w-fit self-end">
+                  <Link href="/tips">اطلع على النصائح</Link>
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-10 duration-700 text-right" style={{ animationDelay: '500ms' }}>
+              <div className="p-8 flex flex-col h-full">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-blue-500/10 border-2 border-blue-500/20">
+                  <LifeBuoy className="w-8 h-8 text-blue-500" />
+                </div>
+                <h3 className="text-2xl font-semibold mb-3">هل لديك استفسار؟</h3>
+                <p className="text-muted-foreground mb-6 flex-grow">
+                  فريقنا جاهز للإجابة على جميع أسئلتك ومساعدتك في كل خطوة. لا تتردد في التواصل معنا.
+                </p>
+                <Button onClick={() => setIsContactDialogOpen(true)} size="lg" variant="outline_primary" className="mt-auto w-fit self-end">
+                  تواصل معنا
+                </Button>
+              </div>
+            </Card>
           </div>
         </section>
 
