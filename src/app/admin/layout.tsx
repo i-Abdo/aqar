@@ -1,4 +1,3 @@
-
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -27,7 +26,6 @@ interface AdminCounts {
   reports: number;
   issues: number;
   appeals: number;
-  properties?: number; 
 }
 
 function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
@@ -57,7 +55,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                     <span className="truncate group-data-[state=collapsed]:hidden">
                       {item.title}
                     </span>
-                    {item.countKey !== "properties" && count > 0 && (
+                    {count > 0 && (
                       <Badge 
                           variant="destructive" 
                           className="shrink-0 group-data-[state=collapsed]:hidden px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full"
@@ -81,7 +79,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 function AdminInternalLayout({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
   const { toggleSidebar, actualSide } = useSidebar();
   const { adminNotificationCount } = useAuth();
-  const ChevronIcon = actualSide === 'right' ? ChevronsLeft : ChevronsRight;
+  const ChevronIcon = actualSide === 'right' ? ChevronsRight : ChevronsLeft;
 
   return (
     <>
@@ -102,7 +100,7 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
           >
             <ChevronIcon className="h-6 w-6" />
           </Button>
-          <div className="flex-1 p-2 pt-16 md:p-4 md:pt-4 overflow-y-auto">
+          <div className="flex-1 p-4 overflow-y-auto">
             <div className="mb-6 md:hidden"></div>
             {children}
           </div>
@@ -121,42 +119,43 @@ function AdminLayoutContent({ children }: { children: React.ReactNode; }) {
     const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
     const [isLoadingCounts, setIsLoadingCounts] = useState(true);
 
-    useEffect(() => {
-        const fetchAdminCountsForSidebar = async () => {
-            setIsLoadingCounts(true);
-            try {
-                const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
-                const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
-                const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
-                const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
+    const fetchAdminCountsForSidebar = useCallback(async () => {
+        setIsLoadingCounts(true);
+        try {
+            const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
+            const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
+            const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
+            const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
 
-                const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
-                getCountFromServer(pendingPropsQuery),
-                getCountFromServer(newReportsQuery),
-                getCountFromServer(newUserIssuesQuery),
-                getCountFromServer(newAppealsQuery),
-                ]);
+            const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
+            getCountFromServer(pendingPropsQuery),
+            getCountFromServer(newReportsQuery),
+            getCountFromServer(newUserIssuesQuery),
+            getCountFromServer(newAppealsQuery),
+            ]);
 
-                const currentCountsData = {
-                pending: pendingSnapshot.data().count,
-                reports: reportsSnapshot.data().count,
-                issues: issuesSnapshot.data().count,
-                appeals: appealsSnapshot.data().count,
-                };
-                setCounts(currentCountsData);
-            } catch (error) {
-                console.error("Error fetching admin counts for sidebar:", error);
-                setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
-            } finally {
-                setIsLoadingCounts(false);
-            }
-        };
-        fetchAdminCountsForSidebar();
+            const currentCountsData = {
+            pending: pendingSnapshot.data().count,
+            reports: reportsSnapshot.data().count,
+            issues: issuesSnapshot.data().count,
+            appeals: appealsSnapshot.data().count,
+            };
+            setCounts(currentCountsData);
+        } catch (error) {
+            console.error("Error fetching admin counts for sidebar:", error);
+            setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
+        } finally {
+            setIsLoadingCounts(false);
+        }
     }, []);
 
     useEffect(() => {
+        fetchAdminCountsForSidebar();
+    }, [fetchAdminCountsForSidebar]);
+
+    useEffect(() => {
         refreshAdminNotifications();
-    }, [pathname, adminNotificationCount, refreshAdminNotifications]);
+    }, [pathname, refreshAdminNotifications]);
 
     if (isLoadingCounts) {
         return (
@@ -168,17 +167,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode; }) {
   
     return (
         <SidebarProvider
-        defaultOpen={false} 
-        style={{
-            '--sidebar-width': '16rem',
-            '--sidebar-width-mobile': '15rem', 
-            '--sidebar-width-icon': '4rem', 
-            '--sidebar-outer-padding': '0rem',
-            '--sidebar-header-height': '3rem',
-            '--sidebar-inset-top': '0px', 
-            '--sidebar-side': 'right',
-            '--sidebar-collapsible': 'icon',
-        } as React.CSSProperties}
+          defaultOpen={false} 
+          style={{
+              '--sidebar-width': '16rem',
+              '--sidebar-width-mobile': '15rem', 
+              '--sidebar-width-icon': '4rem', 
+              '--sidebar-outer-padding': '0rem',
+              '--sidebar-header-height': '3rem',
+              '--sidebar-inset-top': '0px', 
+              '--sidebar-side': 'right',
+              '--sidebar-collapsible': 'icon',
+          } as React.CSSProperties}
         >
             <AdminInternalLayout counts={counts}>
                 {children}
