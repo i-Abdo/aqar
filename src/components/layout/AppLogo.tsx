@@ -16,7 +16,7 @@ export function AppLogo({ onClick }: AppLogoProps) {
     >
       <Image
         src="https://res.cloudinary.com/dgz2rwp09/image/upload/v1750759328/74751946173_upgo4n.png"
-        alt="شعار دار دز"
+        alt="شعار عقاري"
         width={1024} // Original width for aspect ratio calculation
         height={1024} // Original height for aspect ratio calculation
         className="h-12 w-auto"

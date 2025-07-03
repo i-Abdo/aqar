@@ -56,7 +56,7 @@ export default function HomePage() {
   const testimonials = [
     {
       name: "سارة. ك",
-      text: "لقد وجدت شقة أحلامي عبر دار دز في أقل من أسبوع. كانت التجربة سلسة والخيارات متنوعة. أنصح به بشدة!",
+      text: "لقد وجدت شقة أحلامي عبر عقاري في أقل من أسبوع. كانت التجربة سلسة والخيارات متنوعة. أنصح به بشدة!",
       rating: 5,
     },
     {
@@ -82,7 +82,7 @@ export default function HomePage() {
 
           <div className="relative z-10 p-4 max-w-4xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-6 tracking-tight text-primary animate-in fade-in slide-in-from-bottom-4 duration-700">
-              دار دز: دليلك الأول لسوق العقار
+              عقاري: دليلك الأول لسوق العقار
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mx-auto mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
               منصتك المثالية لإيجار وبيع العقارات في الجزائر. ابحث عن منزلك المثالي أو اعرض عقارك بكل سهولة وثقة.
@@ -99,7 +99,7 @@ export default function HomePage() {
         </section>
 
         <section className="w-full">
-          <h2 className="text-3xl font-bold font-headline mb-4 text-center">لماذا تختار <span className="text-primary">دار دز</span>؟</h2>
+          <h2 className="text-3xl font-bold font-headline mb-4 text-center">لماذا تختار <span className="text-primary">عقاري</span>؟</h2>
           <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
             نحن نقدم مجموعة من الميزات المصممة لجعل تجربتك في البحث عن العقارات أو عرضها هي الأفضل على الإطلاق.
           </p>
@@ -165,7 +165,7 @@ export default function HomePage() {
         <section className="w-full py-16 md:py-20 bg-primary text-primary-foreground rounded-lg animate-in fade-in slide-in-from-bottom-12 duration-700">
           <h2 className="text-3xl font-bold font-headline mb-6">جاهز للبدء؟</h2>
           <p className="text-lg text-primary-foreground/80 mb-8 max-w-xl mx-auto">
-            انضم إلى آلاف المستخدمين الذين يثقون في دار دز لاحتياجاتهم العقارية. أنشئ حسابك المجاني اليوم وابدأ رحلتك.
+            انضم إلى آلاف المستخدمين الذين يثقون في عقاري لاحتياجاتهم العقارية. أنشئ حسابك المجاني اليوم وابدأ رحلتك.
           </p>
           <Button size="lg" variant="secondary" asChild className="transition-smooth hover:shadow-lg transform hover:scale-105">
             <Link href="/signup">إنشاء حساب مجاني</Link>
