@@ -52,7 +52,6 @@ export interface SearchFilters {
   propertyType?: PropertyTypeEnum | "";
   wilaya?: string;
   city?: string;
-  searchTerm?: string;
 }
 
 interface PropertySearchSidebarProps {
@@ -65,7 +64,6 @@ const initialFormState: SearchFilters = {
     propertyType: "",
     wilaya: "", 
     city: "",
-    searchTerm: "",
 };
 
 
@@ -82,7 +80,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === "wilaya") {
-      setFilters(prev => ({ ...prev, [name]: value === ALL_WILAYAS_VALUE ? "" : value }));
+      setFilters(prev => ({ ...prev, [name]: value === ALL_WILAYAS_VALUE ? "" : value, city: "" })); // Reset city when wilaya changes
     } else if (name === "transactionType") {
       setFilters(prev => ({ ...prev, [name]: value === ALL_TRANSACTION_TYPES_VALUE ? "" : value as TransactionType | "" }));
     } else if (name === "propertyType") {
@@ -105,17 +103,6 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 p-6">
-      <div>
-        <Label htmlFor="searchTerm">بحث بالكلمة المفتاحية</Label>
-        <Input
-          id="searchTerm"
-          name="searchTerm"
-          value={filters.searchTerm || ""}
-          onChange={handleChange}
-          placeholder="مثال: شقة، فيلا، بالقرب من..."
-        />
-      </div>
-
       <div>
         <Label htmlFor="transactionType">نوع المعاملة</Label>
         <Select 
@@ -162,6 +149,7 @@ export function PropertySearchSidebar({ onSearch, initialFilters = {} }: Propert
           value={filters.city || ""}
           onChange={handleChange}
           placeholder="مثال: الجزائر الوسطى"
+          disabled={!filters.wilaya} // Disable if no wilaya is selected
         />
       </div>
       

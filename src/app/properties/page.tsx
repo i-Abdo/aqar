@@ -62,17 +62,6 @@ export default function PropertiesPage() {
   const applyFilters = useCallback((propertiesToFilter: Property[], filters: SearchFilters) => {
     let result = [...propertiesToFilter];
 
-    if (filters.searchTerm) {
-        const term = filters.searchTerm.toLowerCase();
-        result = result.filter(p => 
-            p.title.toLowerCase().includes(term) || 
-            p.description.toLowerCase().includes(term) ||
-            p.city.toLowerCase().includes(term) ||
-            p.wilaya.toLowerCase().includes(term) ||
-            (p.neighborhood && p.neighborhood.toLowerCase().includes(term)) ||
-            (p.otherPropertyType && p.otherPropertyType.toLowerCase().includes(term))
-        );
-    }
     if (filters.transactionType && filters.transactionType !== "") {
       result = result.filter(p => p.transactionType === filters.transactionType);
     }
