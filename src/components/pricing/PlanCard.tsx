@@ -61,7 +61,7 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
             const hasCheck = feature.endsWith(" ✓") || feature.endsWith(" ✓✓");
             const hasCross = feature.endsWith(" ✕");
             
-            const icon = hasCheck ? CheckCircle : hasCross ? XCircle : CheckCircle;
+            const Icon = hasCheck ? CheckCircle : hasCross ? XCircle : CheckCircle;
             const iconColor = hasCheck ? "text-green-500" : hasCross ? "text-destructive/50" : "text-primary";
             const textColor = hasCross ? "text-muted-foreground" : "text-foreground";
             
@@ -70,7 +70,7 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
             return (
               <li key={index} className="flex items-start gap-3">
                 <span className={cn("inline-flex items-center justify-center h-5 shrink-0", iconColor)}>
-                    <icon className="h-5 w-5" />
+                    <Icon className="h-5 w-5" />
                 </span>
                 <span className={textColor}>{textElement}</span>
               </li>
