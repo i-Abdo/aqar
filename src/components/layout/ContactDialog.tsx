@@ -44,9 +44,9 @@ const contactLinks = [
 export function ContactDialog({ isOpen, onOpenChange }: ContactDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-slate-900 to-gray-900 text-white border-accent/30 shadow-lg shadow-accent/20">
+      <DialogContent className="sm:max-w-md bg-gradient-to-br from-gray-900 to-slate-800 text-white border-accent/30 shadow-2xl shadow-accent/20">
         <DialogHeader className="items-center text-center">
-          <div className="mb-4">
+          <div className="mb-4 invert brightness-0">
              <AppLogo />
           </div>
           <DialogTitle className="text-3xl font-headline text-white">تواصل معنا</DialogTitle>
@@ -66,7 +66,7 @@ export function ContactDialog({ isOpen, onOpenChange }: ContactDialogProps) {
                 aria-label={link.ariaLabel}
                 className="group"
               >
-                <div className="flex items-center space-x-4 rtl:space-x-reverse rounded-lg border border-accent/20 bg-white/5 p-4 transition-all duration-300 hover:border-accent/50 hover:bg-white/10 hover:shadow-[0_0_15px_theme(colors.accent/0.4)]">
+                <div className="flex items-center space-x-4 rtl:space-x-reverse rounded-lg border border-accent/20 bg-white/5 p-4 transition-all duration-300 hover:border-accent/50 hover:bg-white/10 hover:shadow-lg hover:shadow-accent/30">
                    <div className="flex-shrink-0 rounded-full bg-accent/10 p-3 border border-accent/30 group-hover:bg-accent/20 transition-colors">
                      <Icon className="h-6 w-6 text-accent" />
                    </div>
