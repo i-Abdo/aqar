@@ -1,10 +1,11 @@
+
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X, Trash2, Flag } from "lucide-react"; 
+import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X, ShieldQuestion, MessageSquareWarning, Flag, ListChecks, DollarSign, Edit } from "lucide-react"; 
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { plans } from "@/config/plans";
@@ -13,13 +14,13 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge"; 
 import { dismissSingleNotification } from "@/actions/notificationActions";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 
 interface UserStats {
   activeListings: number;
   maxListings: string | number;
-  planName: string;
   propertyViews: number;
-  unreadMessages: number;
 }
 
 interface AppealNotification {
@@ -28,7 +29,7 @@ interface AppealNotification {
   decision?: AdminAppealDecisionType;
   translatedDecision?: string;
   adminNotes?: string;
-  decisionDate?: string;
+  decisionDate: string;
 }
 
 interface UserIssueUpdateForDashboard {
@@ -50,6 +51,18 @@ interface ReportUpdateForDashboard {
     adminNotes?: string;
     lastUpdateDate: string;
 }
+
+type ActivityItem = {
+  id: string;
+  type: 'appeal' | 'issue' | 'report';
+  date: Date;
+  title: string;
+  description: string;
+  Icon: React.ElementType;
+  iconColor: string;
+  bgColor: string;
+  onDismiss: () => void;
+};
 
 const decisionTranslations: Record<AdminAppealDecisionType, string> = {
   publish: "تم نشر عقارك",
@@ -76,108 +89,44 @@ export default function DashboardPage() {
   const [userStats, setUserStats] = useState<UserStats>({
     activeListings: 0,
     maxListings: "0",
-    planName: "...",
     propertyViews: 0,
-    unreadMessages: 0,
   });
   const [appealNotifications, setAppealNotifications] = useState<AppealNotification[]>([]);
   const [userIssueUpdates, setUserIssueUpdates] = useState<UserIssueUpdateForDashboard[]>([]);
   const [reportUpdates, setReportUpdates] = useState<ReportUpdateForDashboard[]>([]);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [canAddProperty, setCanAddProperty] = useState(false);
   const [currentPlanDetails, setCurrentPlanDetails] = useState<Plan | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
-  const fetchAppealNotifications = useCallback(async () => {
-    if (!user?.uid) return;
-    try {
-      const appealsQuery = query(
-        collection(db, "property_appeals"),
-        where("ownerUserId", "==", user.uid),
-        where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]),
-        where("dismissedByOwner", "!=", true), 
-        orderBy("adminDecisionAt", "desc"),
-        limit(5)
-      );
-      const querySnapshot = await getDocs(appealsQuery);
-      const notifications = querySnapshot.docs.map(docSnap => {
-        const data = docSnap.data() as PropertyAppeal;
-        return {
-          id: docSnap.id,
-          propertyTitle: data.propertyTitle,
-          decision: data.adminDecision,
-          translatedDecision: data.adminDecision ? decisionTranslations[data.adminDecision] : "قرار غير محدد",
-          adminNotes: data.adminNotes,
-          decisionDate: data.adminDecisionAt ? (data.adminDecisionAt instanceof Timestamp ? data.adminDecisionAt.toDate() : new Date(data.adminDecisionAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric' }) : "غير محدد",
-        };
-      });
-      setAppealNotifications(notifications);
-    } catch (error) {
-      console.error("Error fetching appeal notifications:", error);
+  const handleDismissAppeal = useCallback(async (appealId: string) => {
+    setAppealNotifications(prev => prev.filter(n => n.id !== appealId));
+    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
+    const result = await dismissSingleNotification(appealId, 'appeal');
+    if (!result.success) {
+      toast({ title: "خطأ", description: result.message, variant: "destructive" });
     }
-  }, [user]);
+  }, [setUserDashboardNotificationCount, toast]);
 
-  const fetchUserIssueUpdates = useCallback(async () => {
-    if (!user?.uid) return;
-    try {
-      const issuesQuery = query(
-        collection(db, "user_issues"),
-        where("userId", "==", user.uid),
-        where("status", "in", ["in_progress", "resolved"]),
-        where("dismissedByOwner", "!=", true), 
-        orderBy("updatedAt", "desc"),
-        limit(5)
-      );
-      const querySnapshot = await getDocs(issuesQuery);
-      const updates = querySnapshot.docs.map(docSnap => {
-        const data = docSnap.data() as UserIssue;
-        return {
-          id: docSnap.id,
-          propertyTitle: data.propertyTitle,
-          originalMessagePreview: data.message.substring(0, 100) + (data.message.length > 100 ? "..." : ""),
-          status: data.status,
-          translatedStatus: issueStatusTranslations[data.status] || data.status,
-          adminNotes: data.adminNotes,
-          lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "غير محدد",
-        };
-      });
-      setUserIssueUpdates(updates);
-    } catch (error) {
-      console.error("Error fetching user issue updates:", error);
+  const handleDismissIssue = useCallback(async (issueId: string) => {
+    setUserIssueUpdates(prev => prev.filter(u => u.id !== issueId));
+    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
+    const result = await dismissSingleNotification(issueId, 'issue');
+    if (!result.success) {
+      toast({ title: "خطأ", description: result.message, variant: "destructive" });
     }
-  }, [user]);
+  }, [setUserDashboardNotificationCount, toast]);
   
-  const fetchReportUpdates = useCallback(async () => {
-    if (!user?.uid) return;
-    try {
-        const reportsQuery = query(
-            collection(db, "reports"),
-            where("reporterUserId", "==", user.uid),
-            where("status", "in", ["resolved", "dismissed"]),
-            where("dismissedByReporter", "!=", true),
-            orderBy("updatedAt", "desc"),
-            limit(5)
-        );
-        const querySnapshot = await getDocs(reportsQuery);
-        const updates = querySnapshot.docs.map(docSnap => {
-            const data = docSnap.data() as Report;
-            return {
-                id: docSnap.id,
-                propertyTitle: data.propertyTitle,
-                originalReason: data.reason,
-                status: data.status,
-                translatedStatus: reportStatusTranslations[data.status] || data.status,
-                adminNotes: data.adminNotes,
-                lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toLocaleDateString('ar-DZ', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "غير محدد",
-            };
-        });
-        setReportUpdates(updates);
-    } catch (error) {
-        console.error("Error fetching report updates:", error);
+  const handleDismissReport = useCallback(async (reportId: string) => {
+    setReportUpdates(prev => prev.filter(r => r.id !== reportId));
+    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
+    const result = await dismissSingleNotification(reportId, 'report');
+    if (!result.success) {
+      toast({ title: "خطأ", description: result.message, variant: "destructive" });
     }
-  }, [user]);
+  }, [setUserDashboardNotificationCount, toast]);
+
 
   useEffect(() => {
     if (authLoading) return;
@@ -187,59 +136,73 @@ export default function DashboardPage() {
     }
 
     const fetchDashboardData = async () => {
-      setIsLoadingStats(true);
+      setIsLoading(true);
       try {
         const userPlanId = user.planId || 'free';
         const planDetails = plans.find(p => p.id === userPlanId);
         setCurrentPlanDetails(planDetails || null);
 
-        if (planDetails) {
-          const propertiesRef = collection(db, "properties");
-          const q = query(propertiesRef, where("userId", "==", user.uid), where("status", "in", ["active", "pending"]));
-          
-          const querySnapshot = await getDocs(q);
-          const userProperties = querySnapshot.docs.map(doc => doc.data() as Property);
-          const currentPropertyCount = userProperties.length;
-          const totalViews = userProperties.reduce((sum, prop) => sum + (prop.viewCount || 0), 0);
+        const propertiesRef = collection(db, "properties");
+        const q = query(propertiesRef, where("userId", "==", user.uid));
+        
+        const [querySnapshot, appealsSnapshot, issuesSnapshot, reportsSnapshot] = await Promise.all([
+          getDocs(q),
+          getDocs(query(collection(db, "property_appeals"), where("ownerUserId", "==", user.uid), where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]), where("dismissedByOwner", "!=", true), orderBy("adminDecisionAt", "desc"), limit(5))),
+          getDocs(query(collection(db, "user_issues"), where("userId", "==", user.uid), where("status", "in", ["in_progress", "resolved"]), where("dismissedByOwner", "!=", true), orderBy("updatedAt", "desc"), limit(5))),
+          getDocs(query(collection(db, "reports"), where("reporterUserId", "==", user.uid), where("status", "in", ["resolved", "dismissed"]), where("dismissedByReporter", "!=", true), orderBy("updatedAt", "desc"), limit(5)))
+        ]);
 
+        const userProperties = querySnapshot.docs.map(doc => doc.data() as Property);
+        const activeProperties = userProperties.filter(p => ["active", "pending"].includes(p.status));
+        const currentPropertyCount = activeProperties.length;
+        const totalViews = activeProperties.reduce((sum, prop) => sum + (prop.viewCount || 0), 0);
+
+        if (planDetails) {
           setCanAddProperty(planDetails.maxListings === Infinity || currentPropertyCount < planDetails.maxListings);
-          setUserStats(prev => ({
-            ...prev,
+          setUserStats({
             activeListings: currentPropertyCount,
-            maxListings: planDetails.maxListings === Infinity ? 'غير محدود' : planDetails.maxListings,
-            planName: planDetails.name,
+            maxListings: planDetails.maxListings === Infinity ? '∞' : planDetails.maxListings,
             propertyViews: totalViews,
-          }));
-        } else {
-          setCanAddProperty(false);
-          setUserStats(prev => ({ ...prev, planName: "غير محدد"}));
+          });
         }
+        
+        setAppealNotifications(appealsSnapshot.docs.map(docSnap => {
+          const data = docSnap.data() as PropertyAppeal;
+          return {
+            id: docSnap.id, propertyTitle: data.propertyTitle, decision: data.adminDecision,
+            translatedDecision: data.adminDecision ? decisionTranslations[data.adminDecision] : "غير محدد",
+            adminNotes: data.adminNotes,
+            decisionDate: data.adminDecisionAt ? (data.adminDecisionAt instanceof Timestamp ? data.adminDecisionAt.toDate() : new Date(data.adminDecisionAt)).toISOString() : new Date().toISOString(),
+          };
+        }));
+        
+        setUserIssueUpdates(issuesSnapshot.docs.map(docSnap => {
+          const data = docSnap.data() as UserIssue;
+          return {
+            id: docSnap.id, propertyTitle: data.propertyTitle, originalMessagePreview: data.message.substring(0, 100) + (data.message.length > 100 ? "..." : ""),
+            status: data.status, translatedStatus: issueStatusTranslations[data.status] || data.status, adminNotes: data.adminNotes,
+            lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toISOString() : new Date().toISOString(),
+          };
+        }));
+
+        setReportUpdates(reportsSnapshot.docs.map(docSnap => {
+          const data = docSnap.data() as Report;
+          return {
+            id: docSnap.id, propertyTitle: data.propertyTitle, originalReason: data.reason, status: data.status,
+            translatedStatus: reportStatusTranslations[data.status] || data.status, adminNotes: data.adminNotes,
+            lastUpdateDate: data.updatedAt ? (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(data.updatedAt)).toISOString() : new Date().toISOString(),
+          };
+        }));
+
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
         toast({ title: "خطأ", description: "لم نتمكن من تحميل بيانات لوحة التحكم.", variant: "destructive" });
       } finally {
-        setIsLoadingStats(false);
+        setIsLoading(false);
       }
     };
-
-    const fetchAllNotifications = async () => {
-        setIsLoadingNotifications(true);
-        try {
-            await Promise.all([
-                fetchAppealNotifications(),
-                fetchUserIssueUpdates(),
-                fetchReportUpdates(),
-            ]);
-        } catch (error) {
-            // Individual fetches handle their own console errors
-        } finally {
-            setIsLoadingNotifications(false);
-        }
-    };
-
     fetchDashboardData();
-    fetchAllNotifications();
-  }, [user, authLoading, router, toast, fetchAppealNotifications, fetchUserIssueUpdates, fetchReportUpdates]);
+  }, [user, authLoading, router, toast]);
 
   const handleAddPropertyClick = () => {
     if (canAddProperty) {
@@ -254,247 +217,174 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDismissAppeal = async (appealId: string) => {
-    setAppealNotifications(prev => prev.filter(n => n.id !== appealId));
-    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
-    const result = await dismissSingleNotification(appealId, 'appeal');
-    if (!result.success) {
-      toast({ title: "خطأ", description: result.message, variant: "destructive" });
-      fetchAppealNotifications();
-    }
-  };
+  const combinedActivities = useMemo(() => {
+    const activities: ActivityItem[] = [];
 
-  const handleDismissIssue = async (issueId: string) => {
-    setUserIssueUpdates(prev => prev.filter(u => u.id !== issueId));
-    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
-    const result = await dismissSingleNotification(issueId, 'issue');
-    if (!result.success) {
-      toast({ title: "خطأ", description: result.message, variant: "destructive" });
-      fetchUserIssueUpdates();
-    }
-  };
-  
-  const handleDismissReport = async (reportId: string) => {
-    setReportUpdates(prev => prev.filter(r => r.id !== reportId));
-    setUserDashboardNotificationCount(prev => Math.max(0, prev - 1));
-    const result = await dismissSingleNotification(reportId, 'report');
-    if (!result.success) {
-      toast({ title: "خطأ", description: result.message, variant: "destructive" });
-      fetchReportUpdates();
-    }
-  };
+    appealNotifications.forEach(n => activities.push({
+      id: n.id, type: 'appeal', date: new Date(n.decisionDate),
+      title: `قرار بشأن طعنك على: ${n.propertyTitle}`,
+      description: `القرار: ${n.translatedDecision}. ${n.adminNotes || ''}`,
+      Icon: ShieldQuestion, iconColor: 'text-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+      onDismiss: () => handleDismissAppeal(n.id)
+    }));
 
-  if (authLoading || (isLoadingStats && !user)) {
+    userIssueUpdates.forEach(u => activities.push({
+      id: u.id, type: 'issue', date: new Date(u.lastUpdateDate),
+      title: `تحديث على مشكلتك المرسلة`,
+      description: `الحالة: ${u.translatedStatus}. ${u.adminNotes ? `ملاحظات المسؤول: ${u.adminNotes}` : ''}`,
+      Icon: MessageSquareWarning, iconColor: 'text-orange-500', bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+      onDismiss: () => handleDismissIssue(u.id)
+    }));
+    
+    reportUpdates.forEach(r => activities.push({
+      id: r.id, type: 'report', date: new Date(r.lastUpdateDate),
+      title: `تحديث على بلاغك بخصوص: ${r.propertyTitle}`,
+      description: `الحالة: ${r.translatedStatus}. ${r.adminNotes ? `ملاحظات المسؤول: ${r.adminNotes}` : ''}`,
+      Icon: Flag, iconColor: 'text-red-500', bgColor: 'bg-red-100 dark:bg-red-900/30',
+      onDismiss: () => handleDismissReport(r.id)
+    }));
+
+    return activities.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [appealNotifications, userIssueUpdates, reportUpdates, handleDismissAppeal, handleDismissIssue, handleDismissReport]);
+
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-muted-foreground">جاري تحميل بيانات لوحة التحكم...</p>
       </div>
     );
   }
+
+  const userInitials = user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : "U");
   
-  const hasVisibleNotifications = appealNotifications.length > 0 || userIssueUpdates.length > 0 || reportUpdates.length > 0;
-  const totalVisibleNotifications = appealNotifications.length + userIssueUpdates.length + reportUpdates.length;
-
-
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold font-headline text-right">مرحباً بك في لوحة تحكم عقاري</h1>
+      <div>
+        <h1 className="text-3xl font-bold font-headline">مرحباً، {user?.displayName || 'زائر'}!</h1>
+        <p className="text-muted-foreground mt-1">
+          هنا تجد ملخصًا لنشاطك وآخر التحديثات على حسابك وعقاراتك.
+        </p>
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2 text-right">
-            <CardTitle className="text-sm font-medium text-right">العقارات النشطة</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">العقارات النشطة</CardTitle>
             <Home className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-right">
-            <>
-              <div className="text-2xl font-bold">{userStats.activeListings} / {userStats.maxListings}</div>
-              <p className="text-xs text-muted-foreground">
-                بناءً على خطة {userStats.planName} الخاصة بك
-              </p>
-            </>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.activeListings} / {userStats.maxListings}</div>
+            <p className="text-xs text-muted-foreground">بناءً على خطتك الحالية</p>
           </CardContent>
         </Card>
-
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2 text-right">
-            <CardTitle className="text-sm font-medium text-right">زيارات العقارات (الإجمالي)</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي المشاهدات</CardTitle>
             <BarChart3 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="text-right">
+          <CardContent>
             <div className="text-2xl font-bold">{userStats.propertyViews.toLocaleString()}</div>
-             <p className="text-xs text-muted-foreground">
-              مجموع المشاهدات على كل عقاراتك
-            </p>
+            <p className="text-xs text-muted-foreground">على جميع عقاراتك النشطة</p>
           </CardContent>
         </Card>
-
-         <Card className="shadow-lg flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/80 to-primary hover:shadow-xl transition-smooth">
+        <Card className="shadow-lg flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/80 to-primary hover:shadow-xl transition-smooth">
           <PlusCircle className="h-12 w-12 text-primary-foreground mb-3" />
-          <CardTitle className="text-xl font-semibold text-primary-foreground mb-2 text-center">هل لديك عقار جديد؟</CardTitle>
-          <Button onClick={handleAddPropertyClick} variant="secondary" className="w-full transition-smooth hover:shadow-md">
-            أضف عقار الآن
+          <Button onClick={handleAddPropertyClick} variant="secondary" className="w-full transition-smooth hover:shadow-md mt-2">
+            أضف عقار جديد
           </Button>
         </Card>
       </div>
-
-      <div className="space-y-4">
-        <h2 className="text-2xl font-semibold font-headline text-right">إجراءات سريعة</h2>
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-            <Link href="/dashboard/properties"><Home className="mr-2 h-4 w-4" /> عرض كل عقاراتي</Link>
-          </Button>
-          <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-            <Link href="/pricing"><PlusCircle className="mr-2 h-4 w-4" /> ترقية الخطة</Link>
-          </Button>
-           <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-            <Link href="/dashboard/profile"><UserCircle className="mr-2 h-4 w-4" /> تعديل الملف الشخصي</Link>
-          </Button>
-          <Button asChild variant="outline_primary" className="transition-smooth hover:shadow-md">
-            <Link href="/dashboard/settings"><Settings className="mr-2 h-4 w-4" /> الإعدادات</Link>
-          </Button>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="text-primary"/>
+                <span>آخر الأنشطة</span>
+                {combinedActivities.length > 0 && <Badge variant="destructive">{combinedActivities.length}</Badge>}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : combinedActivities.length > 0 ? (
+                <div className="space-y-4">
+                  {combinedActivities.map((item) => {
+                    const ItemIcon = item.Icon;
+                    return (
+                      <div key={item.id} className="flex items-start gap-4 p-3 rounded-lg bg-background hover:bg-muted/50 relative group">
+                        <div className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${item.bgColor}`}>
+                          <ItemIcon className={`h-5 w-5 ${item.iconColor}`} />
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-semibold text-sm">{item.title}</p>
+                          <p className="text-xs text-muted-foreground">{item.description}</p>
+                          <p className="text-xs text-muted-foreground/80 mt-1">{new Date(item.date).toLocaleString('ar-DZ', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-1 left-1 h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={item.onDismiss}
+                          aria-label="إخفاء الإشعار"
+                        >
+                          <X size={16} />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center py-10">
+                  <AlertTriangle size={32} className="text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">لا توجد أنشطة حديثة لعرضها.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="shadow-md">
+            <CardHeader className="items-center text-center">
+              <Avatar className="h-20 w-20 border-2 border-primary">
+                <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "User"} />
+                <AvatarFallback className="text-2xl">{userInitials}</AvatarFallback>
+              </Avatar>
+              <CardTitle className="pt-2">{user?.displayName}</CardTitle>
+              <CardDescription>{user?.email}</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Badge variant="outline_primary">خطة {currentPlanDetails?.name || '...'}</Badge>
+            </CardContent>
+            <CardFooter>
+              <Button asChild variant="secondary" className="w-full">
+                <Link href="/pricing">الترقية الآن</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle>إجراءات سريعة</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button asChild variant="ghost" className="w-full justify-start">
+                <Link href="/dashboard/properties"><ListChecks className="mr-2 ml-2 h-4 w-4" /> عرض كل عقاراتي</Link>
+              </Button>
+              <Button asChild variant="ghost" className="w-full justify-start">
+                <Link href="/dashboard/profile"><UserCircle className="mr-2 ml-2 h-4 w-4" /> تعديل الملف الشخصي</Link>
+              </Button>
+              <Button asChild variant="ghost" className="w-full justify-start">
+                <Link href="/dashboard/settings"><Settings className="mr-2 ml-2 h-4 w-4" /> الإعدادات</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      <Card className="shadow-md hover:shadow-lg transition-smooth">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-right flex items-center gap-2">
-              <Bell className="text-primary"/>
-              <span>آخر الأنشطة والإشعارات</span>
-              {totalVisibleNotifications > 0 && (
-                <Badge variant="destructive" className="h-6 px-2.5">{totalVisibleNotifications > 9 ? '9+' : totalVisibleNotifications}</Badge>
-              )}
-            </CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4 text-right">
-          {isLoadingNotifications ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="ml-2 text-muted-foreground">جاري تحميل الإشعارات...</p>
-            </div>
-          ) : (
-            <>
-              {appealNotifications.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1">تحديثات الطعون:</h4>
-                  <ul className="space-y-3">
-                    {appealNotifications.map((notification) => (
-                      <li key={`appeal-${notification.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDismissAppeal(notification.id)}
-                          aria-label="إخفاء هذا الإشعار"
-                        >
-                          <X size={16} />
-                        </Button>
-                        <p className="font-semibold pr-6 rtl:pl-6">بخصوص طعن على عقار: <span className="font-normal text-foreground">{notification.propertyTitle}</span></p>
-                        <p className="text-sm text-muted-foreground pr-6 rtl:pl-6">
-                          القرار: <span className={`font-medium ${
-                            notification.decision === 'publish' ? 'text-green-600' :
-                            notification.decision === 'delete' ? 'text-destructive' : 'text-orange-500'
-                          }`}>{notification.translatedDecision}</span>
-                          {notification.adminNotes && (
-                            <span className="block mt-1 text-xs"> ملاحظات المسؤول: {notification.adminNotes}</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground/80 mt-1 pr-6 rtl:pl-6">بتاريخ: {notification.decisionDate}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {userIssueUpdates.length > 0 && (
-                 <div className="mb-4">
-                  <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1">تحديثات مشكلاتك المرسلة:</h4>
-                  <ul className="space-y-3">
-                    {userIssueUpdates.map((update) => (
-                      <li key={`issue-${update.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDismissIssue(update.id)}
-                          aria-label="إخفاء هذا الإشعار"
-                        >
-                          <X size={16} />
-                        </Button>
-                        <p className="font-semibold pr-6 rtl:pl-6">
-                          {update.propertyTitle
-                            ? `بخصوص مشكلتك حول العقار: ${update.propertyTitle}`
-                            : `بخصوص مشكلتك: "${update.originalMessagePreview}"`}
-                        </p>
-                        <p className="text-sm text-muted-foreground pr-6 rtl:pl-6">
-                          الحالة: <span className={`font-medium ${
-                              update.status === 'resolved' ? 'text-green-600' :
-                              update.status === 'in_progress' ? 'text-blue-600' : 'text-gray-600'
-                          }`}>{update.translatedStatus}</span>
-                          {update.adminNotes && (
-                            <span className="block mt-1 text-xs"> ملاحظات المسؤول: {update.adminNotes}</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground/80 mt-1 pr-6 rtl:pl-6">آخر تحديث بتاريخ: {update.lastUpdateDate}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-               {reportUpdates.length > 0 && (
-                 <div className="mb-4">
-                  <h4 className="text-lg font-semibold mb-2 text-primary-foreground/90 border-b pb-1 flex items-center gap-2"><Flag size={18}/>تحديثات بلاغاتك:</h4>
-                  <ul className="space-y-3">
-                    {reportUpdates.map((update) => (
-                      <li key={`report-${update.id}`} className="relative p-3 rounded-md border border-border bg-background hover:bg-muted/50 transition-colors">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-1 left-1 rtl:right-auto rtl:left-1 h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDismissReport(update.id)}
-                          aria-label="إخفاء هذا الإشعار"
-                        >
-                          <X size={16} />
-                        </Button>
-                        <p className="font-semibold pr-6 rtl:pl-6">
-                          بخصوص بلاغك عن: <span className="font-normal">{update.propertyTitle}</span>
-                        </p>
-                        <p className="text-sm text-muted-foreground pr-6 rtl:pl-6">
-                          الحالة: <span className={`font-medium ${
-                              update.status === 'resolved' ? 'text-green-600' :
-                              update.status === 'dismissed' ? 'text-destructive' : 'text-gray-600'
-                          }`}>{update.translatedStatus}</span>
-                          {update.adminNotes && (
-                            <span className="block mt-1 text-xs"> ملاحظات المسؤول: {update.adminNotes}</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground/80 mt-1 pr-6 rtl:pl-6">آخر تحديث بتاريخ: {update.lastUpdateDate}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-
-              {!hasVisibleNotifications && !isLoadingNotifications && (
-                 <div className="flex flex-col items-center justify-center text-center py-6">
-                    <AlertTriangle size={32} className="text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground">لا توجد إشعارات أو أنشطة حديثة لعرضها.</p>
-                 </div>
-              )}
-            </>
-          )}
-          {userStats.unreadMessages > 0 && (
-            <div className="mt-4 p-3 rounded-md border border-accent bg-accent/10 text-right">
-                <p className="text-accent-foreground">لديك <span className="font-bold">{userStats.unreadMessages}</span> رسائل جديدة غير مقروءة. <Link href="/dashboard/messages" className="underline hover:text-primary">عرض الرسائل</Link></p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
