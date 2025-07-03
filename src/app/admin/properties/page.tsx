@@ -23,11 +23,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDisplayPrice } from '@/lib/utils';
 
 interface AdminProperty extends Property {
   ownerEmail?: string;
@@ -39,6 +40,16 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
   normal: 'عادي',
   untrusted: 'غير موثوق',
   blacklisted: 'قائمة سوداء',
+};
+
+const getStatusDisplay = (status: Property['status']): { text: string; variant: "default" | "secondary" | "destructive" | "outline" } => {
+    switch (status) {
+      case 'active': return { text: 'نشط', variant: 'default' };
+      case 'pending': return { text: 'قيد المراجعة', variant: 'secondary' };
+      case 'deleted': return { text: 'محذوف', variant: 'destructive' };
+      case 'archived': return { text: 'مؤرشف', variant: 'outline' };
+      default: return { text: status, variant: 'secondary' };
+    }
 };
 
 export default function AdminPropertiesPage() {
@@ -215,6 +226,46 @@ export default function AdminPropertiesPage() {
     }
   };
 
+  const renderDropdownMenu = (prop: AdminProperty) => (
+      <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">فتح القائمة</span>
+                  <MoreHorizontal className="h-4 w-4" />
+              </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+              <DropdownMenuLabel>إجراءات العقار</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => window.open(`/properties/${prop.id}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض التفاصيل</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {prop.status === 'pending' && (
+                  <DropdownMenuItem onClick={() => handleReactivateProperty(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
+                      <CheckCircle className="mr-2 h-4 w-4" /> تفعيل العقار
+                  </DropdownMenuItem>
+              )}
+              {(prop.status === 'deleted' || prop.status === 'archived') && (
+                  <DropdownMenuItem onClick={() => handleReactivateProperty(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
+                      <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط
+                  </DropdownMenuItem>
+              )}
+              {prop.status !== 'deleted' && prop.status !== 'archived' && prop.status !== 'pending' && (
+                  <DropdownMenuItem onClick={() => openDeleteDialog(prop)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                      <Trash2 className="mr-2 h-4 w-4" /> حذف (نقل للمحذوفات)
+                  </DropdownMenuItem>
+              )}
+              {(prop.status === 'active' || prop.status === 'pending') && (
+                  <DropdownMenuItem onClick={() => openArchiveDialog(prop)}>
+                      <Archive className="mr-2 h-4 w-4" /> أرشفة
+                  </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>إجراءات المالك</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
+                  <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك
+              </DropdownMenuItem>
+          </DropdownMenuContent>
+      </DropdownMenu>
+  );
 
   if (isLoading) {
     return (
@@ -254,20 +305,61 @@ export default function AdminPropertiesPage() {
     );
   }
 
-  const getStatusVariant = (status: Property['status']): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
-      case 'active': return 'default';
-      case 'pending': return 'secondary';
-      case 'deleted': return 'destructive';
-      case 'archived': return 'outline';
-      default: return 'secondary';
-    }
-  };
-
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">إدارة جميع العقارات</h1>
-      <Card className="shadow-xl">
+      
+      {/* Mobile View: Cards */}
+      <div className="md:hidden space-y-4">
+        {properties.map((prop) => {
+            const status = getStatusDisplay(prop.status);
+            return (
+                <Card key={prop.id} className="shadow-md">
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                             <div className="flex items-center gap-3 flex-1 overflow-hidden pr-2">
+                                <Image
+                                    src={prop.imageUrls?.[0] || "https://placehold.co/50x50.png"}
+                                    alt={prop.title}
+                                    width={50}
+                                    height={50}
+                                    className="rounded-md object-cover"
+                                    data-ai-hint="house exterior"
+                                />
+                                <CardTitle className="text-base truncate" title={prop.title}>{prop.title}</CardTitle>
+                            </div>
+                            {renderDropdownMenu(prop)}
+                        </div>
+                        <CardDescription className="pt-2">
+                            <Badge variant={status.variant}>{status.text}</Badge>
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        <div>
+                            <p className="font-semibold text-xs text-muted-foreground">السعر</p>
+                            <p>{formatDisplayPrice(prop.price)}</p>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-xs text-muted-foreground">المالك</p>
+                            <p className="truncate" title={prop.ownerEmail || prop.userId}>{prop.ownerEmail || prop.userId}</p>
+                        </div>
+                        <div>
+                            <p className="font-semibold text-xs text-muted-foreground">تصنيف المالك</p>
+                            <Badge variant={prop.ownerCurrentTrustLevel === 'blacklisted' ? 'destructive' : prop.ownerCurrentTrustLevel === 'untrusted' ? 'secondary' : 'default'}>
+                                {prop.ownerCurrentTrustLevel ? trustLevelTranslations[prop.ownerCurrentTrustLevel] : 'غير محدد'}
+                            </Badge>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="text-xs text-muted-foreground">
+                        تاريخ الإنشاء: {new Date(prop.createdAt).toLocaleDateString('ar-DZ')}
+                    </CardFooter>
+                </Card>
+            )
+        })}
+      </div>
+
+      {/* Desktop View: Table */}
+      <Card className="shadow-xl hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -295,7 +387,7 @@ export default function AdminPropertiesPage() {
                   />
                 </TableCell>
                 <TableCell className="font-medium max-w-[200px] truncate" title={prop.title}>{prop.title}</TableCell>
-                <TableCell>{prop.price.toLocaleString()} د.ج</TableCell>
+                <TableCell>{formatDisplayPrice(prop.price)}</TableCell>
                 <TableCell className="max-w-[150px] truncate" title={prop.ownerEmail || prop.userId}>{prop.ownerEmail || prop.userId}</TableCell>
                 <TableCell>
                   <Badge variant={prop.ownerCurrentTrustLevel === 'blacklisted' ? 'destructive' : prop.ownerCurrentTrustLevel === 'untrusted' ? 'secondary' : 'default'}>
@@ -303,53 +395,13 @@ export default function AdminPropertiesPage() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getStatusVariant(prop.status)}>
-                    {prop.status === 'active' ? 'نشط' :
-                     prop.status === 'pending' ? 'قيد المراجعة' :
-                     prop.status === 'deleted' ? 'محذوف' :
-                     prop.status === 'archived' ? 'مؤرشف' : prop.status}
+                  <Badge variant={getStatusDisplay(prop.status).variant}>
+                    {getStatusDisplay(prop.status).text}
                   </Badge>
                 </TableCell>
                 <TableCell>{new Date(prop.createdAt).toLocaleDateString('ar-DZ')}</TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">فتح القائمة</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>إجراءات العقار</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => window.open(`/properties/${prop.id}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض التفاصيل</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {prop.status === 'pending' && (
-                        <DropdownMenuItem onClick={() => handleReactivateProperty(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                            <CheckCircle className="mr-2 h-4 w-4" /> تفعيل العقار
-                        </DropdownMenuItem>
-                      )}
-                      {(prop.status === 'deleted' || prop.status === 'archived') && (
-                        <DropdownMenuItem onClick={() => handleReactivateProperty(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                          <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط
-                        </DropdownMenuItem>
-                      )}
-                      {prop.status !== 'deleted' && prop.status !== 'archived' && prop.status !== 'pending' && (
-                        <DropdownMenuItem onClick={() => openDeleteDialog(prop)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                          <Trash2 className="mr-2 h-4 w-4" /> حذف (نقل للمحذوفات)
-                        </DropdownMenuItem>
-                      )}
-                       {(prop.status === 'active' || prop.status === 'pending') && (
-                        <DropdownMenuItem onClick={() => openArchiveDialog(prop)}>
-                          <Archive className="mr-2 h-4 w-4" /> أرشفة
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>إجراءات المالك</DropdownMenuLabel>
-                       <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
-                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك
-                       </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {renderDropdownMenu(prop)}
                 </TableCell>
               </TableRow>
             ))}

@@ -102,7 +102,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
             </li>
           </ul>
         </CardContent>
-        <CardFooter className="p-3 border-t flex gap-2">
+        <CardFooter className="p-3 border-t flex justify-center gap-2">
           <Button asChild size="sm" className="flex-1 transition-smooth hover:shadow-md">
             <Link href={`/properties/${property.id}`}>عرض التفاصيل</Link>
           </Button>

@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label"; 
 import Link from 'next/link';
@@ -184,7 +184,46 @@ export default function AdminUserIssuesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">إدارة مشاكل المستخدمين</h1>
-      <Card className="shadow-xl">
+
+      {/* Mobile View: Cards */}
+      <div className="md:hidden space-y-4">
+        {issues.map((issue) => (
+          <Card key={issue.id} className="shadow-md">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                  <CardTitle className="text-sm truncate flex-1 pr-2" title={issue.userEmail}>
+                      {issue.userEmail}
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => openDetailsDialog(issue)}>
+                    <Eye className="mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4" /> عرض
+                  </Button>
+              </div>
+              <CardDescription className="pt-1">
+                <Badge variant={issueStatusVariants[issue.status]}>
+                  {issueStatusTranslations[issue.status]}
+                </Badge>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+                <p className="line-clamp-2" title={issue.message}><span className="font-semibold">الرسالة:</span> {issue.message}</p>
+                {issue.propertyId && issue.propertyTitle && (
+                  <p className="truncate">
+                    <span className="font-semibold">العقار:</span>
+                    <Link href={`/properties/${issue.propertyId}`} target="_blank" className="hover:underline text-primary flex items-center gap-1">
+                      <Building size={14}/> {issue.propertyTitle}
+                    </Link>
+                  </p>
+                )}
+            </CardContent>
+             <CardFooter className="text-xs text-muted-foreground">
+                {new Date(issue.submittedAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+             </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop View: Table */}
+      <Card className="shadow-xl hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>

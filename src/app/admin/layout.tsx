@@ -1,3 +1,4 @@
+
 "use client";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -80,8 +81,9 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 
 
 function AdminInternalLayout({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, actualSide } = useSidebar();
   const { adminNotificationCount } = useAuth(); 
+  const ChevronIcon = actualSide === 'right' ? ChevronsLeft : ChevronsRight;
 
   return (
     <>
@@ -97,12 +99,12 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
             variant="secondary"
             size="icon"
             onClick={toggleSidebar}
-            className="absolute top-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg md:hidden"
+            className="absolute top-3 right-4 z-50 h-10 w-10 rounded-lg shadow-lg shadow-primary/20 md:hidden"
             aria-label="فتح القائمة"
           >
-            <Menu className="h-6 w-6" />
+            <ChevronIcon className="h-6 w-6" />
           </Button>
-          <div className="flex-1 p-2 pt-14 md:p-4 md:pt-4 overflow-y-auto">
+          <div className="flex-1 p-2 pt-16 md:p-4 md:pt-4 overflow-y-auto">
             {children}
           </div>
         </div>

@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
@@ -224,6 +224,36 @@ export default function AdminPendingPropertiesPage() {
         setSelectedProperty(null);
     }
   };
+  
+  const renderDropdownMenu = (prop: PendingProperty) => (
+      <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">فتح القائمة</span>
+                  <MoreHorizontal className="h-4 w-4" />
+              </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+              <DropdownMenuLabel>إجراءات المراجعة</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => window.open(`/properties/${prop.id}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => openApproveDialog(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
+                  <CheckCircle className="mr-2 h-4 w-4" /> تنشيط العقار
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openRejectDeleteDialog(prop)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                  <Trash2 className="mr-2 h-4 w-4" /> حذف العقار
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openRejectArchiveDialog(prop)}>
+                  <Archive className="mr-2 h-4 w-4" /> أرشفة العقار
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
+                  <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك فقط
+              </DropdownMenuItem>
+          </DropdownMenuContent>
+      </DropdownMenu>
+  );
+
 
   if (isLoading) {
     return (
@@ -262,7 +292,49 @@ export default function AdminPendingPropertiesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">مراجعة العقارات المعلقة</h1>
-      <Card className="shadow-xl">
+
+      {/* Mobile View: Cards */}
+      <div className="md:hidden space-y-4">
+        {pendingProperties.map((prop) => (
+            <Card key={prop.id} className="shadow-md">
+                <CardHeader>
+                    <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3 flex-1 overflow-hidden pr-2">
+                            <Image
+                                src={prop.imageUrls?.[0] || "https://placehold.co/50x50.png"}
+                                alt={prop.title}
+                                width={50}
+                                height={50}
+                                className="rounded-md object-cover"
+                                data-ai-hint="house exterior"
+                            />
+                            <CardTitle className="text-base truncate" title={prop.title}>{prop.title}</CardTitle>
+                        </div>
+                        {renderDropdownMenu(prop)}
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <div>
+                        <p className="font-semibold text-xs text-muted-foreground">مالك العقار</p>
+                        <p className="truncate" title={prop.ownerEmail || prop.userId}>{prop.ownerEmail || prop.userId}</p>
+                    </div>
+                     <div>
+                        <p className="font-semibold text-xs text-muted-foreground">تصنيف المالك الحالي</p>
+                        <Badge variant={prop.ownerCurrentTrustLevel === 'blacklisted' ? 'destructive' : prop.ownerCurrentTrustLevel === 'untrusted' ? 'secondary' : 'default'}>
+                            {prop.ownerCurrentTrustLevel ? trustLevelTranslations[prop.ownerCurrentTrustLevel] : 'غير محدد'}
+                        </Badge>
+                     </div>
+                </CardContent>
+                <CardFooter className="text-xs text-muted-foreground">
+                    تاريخ الإرسال: {new Date(prop.createdAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </CardFooter>
+            </Card>
+        ))}
+      </div>
+
+
+      {/* Desktop View: Table */}
+      <Card className="shadow-xl hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -296,32 +368,7 @@ export default function AdminPendingPropertiesPage() {
                 </TableCell>
                 <TableCell className="text-xs">{new Date(prop.createdAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">فتح القائمة</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>إجراءات المراجعة</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => window.open(`/properties/${prop.id}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => openApproveDialog(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                        <CheckCircle className="mr-2 h-4 w-4" /> تنشيط العقار
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openRejectDeleteDialog(prop)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="mr-2 h-4 w-4" /> حذف العقار
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openRejectArchiveDialog(prop)}>
-                        <Archive className="mr-2 h-4 w-4" /> أرشفة العقار
-                      </DropdownMenuItem>
-                       <DropdownMenuSeparator />
-                       <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
-                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك فقط
-                       </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    {renderDropdownMenu(prop)}
                 </TableCell>
               </TableRow>
             ))}

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -188,6 +188,43 @@ export default function AdminPropertyAppealsPage() {
     blacklisted: 'قائمة سوداء',
   };
 
+  const renderDropdownMenu = (appeal: PropertyAppeal) => (
+    <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">فتح القائمة</span>
+                <MoreHorizontal className="h-4 w-4" />
+            </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+            <DropdownMenuLabel>خيارات الطعن</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => window.open(`/properties/${appeal.propertyId}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {appeal.appealStatus === 'new' && (
+                <DropdownMenuItem onClick={() => handleUpdateAppealStatusOnly(appeal, 'under_review')}>
+                    <Edit className="mr-2 h-4 w-4" /> بدء المراجعة
+                </DropdownMenuItem>
+            )}
+            {(appeal.appealStatus === 'new' || appeal.appealStatus === 'under_review') && (
+                <>
+                    <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'publish')} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
+                        <CheckCircle className="mr-2 h-4 w-4" /> نشر العقار
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'keep_archived')}>
+                        <Archive className="mr-2 h-4 w-4" /> إبقاء الأرشفة (تحديث السبب)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'delete')} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <XCircle className="mr-2 h-4 w-4" /> حذف العقار
+                    </DropdownMenuItem>
+                </>
+            )}
+            {appeal.appealStatus !== 'new' && appeal.appealStatus !== 'under_review' && (
+                <DropdownMenuItem disabled>لا توجد إجراءات إضافية</DropdownMenuItem>
+            )}
+        </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   if (isLoading) {
     return (
         <div className="space-y-6">
@@ -227,7 +264,51 @@ export default function AdminPropertyAppealsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">إدارة الطعون على العقارات</h1>
-      <Card className="shadow-xl">
+
+      {/* Mobile View: Cards */}
+      <div className="md:hidden space-y-4">
+          {appeals.map((appeal) => (
+              <Card key={appeal.id} className="shadow-md">
+                  <CardHeader>
+                      <div className="flex justify-between items-start">
+                          <CardTitle className="text-base truncate flex-1 pr-2">
+                              <Link href={`/properties/${appeal.propertyId}`} target="_blank" className="hover:underline text-primary">
+                                  {appeal.propertyTitle}
+                              </Link>
+                          </CardTitle>
+                          {renderDropdownMenu(appeal)}
+                      </div>
+                      <CardDescription className="pt-1">
+                          <Badge variant={appealStatusVariants[appeal.appealStatus]}>
+                              {appealStatusTranslations[appeal.appealStatus]}
+                          </Badge>
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                      <div>
+                          <p className="font-semibold text-xs text-muted-foreground">مقدم الطعن</p>
+                          <p className="truncate" title={appeal.ownerEmail}>{appeal.ownerEmail}</p>
+                      </div>
+                      <div>
+                          <p className="font-semibold text-xs text-muted-foreground">سبب الأرشفة الأصلي</p>
+                          <p className="text-xs truncate" title={appeal.propertyArchivalReason || "غير محدد"}>
+                              {appeal.propertyArchivalReason || "غير محدد"}
+                          </p>
+                      </div>
+                      <div>
+                          <p className="font-semibold text-xs text-muted-foreground">ملاحظات المسؤول</p>
+                          <p className="text-xs truncate" title={appeal.adminNotes || "لا يوجد"}>{appeal.adminNotes || "لا يوجد"}</p>
+                      </div>
+                  </CardContent>
+                  <CardFooter className="text-xs text-muted-foreground">
+                      {new Date(appeal.submittedAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour:'2-digit', minute:'2-digit' })}
+                  </CardFooter>
+              </Card>
+          ))}
+      </div>
+
+      {/* Desktop View: Table */}
+      <Card className="shadow-xl hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -260,40 +341,7 @@ export default function AdminPropertyAppealsPage() {
                 </TableCell>
                 <TableCell className="text-xs max-w-[150px] truncate" title={appeal.adminNotes || "لا يوجد"}>{appeal.adminNotes || "لا يوجد"}</TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">فتح القائمة</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>خيارات الطعن</DropdownMenuLabel>
-                       <DropdownMenuItem onClick={() => window.open(`/properties/${appeal.propertyId}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
-                       <DropdownMenuSeparator />
-                      {appeal.appealStatus === 'new' && (
-                        <DropdownMenuItem onClick={() => handleUpdateAppealStatusOnly(appeal, 'under_review')}>
-                          <Edit className="mr-2 h-4 w-4" /> بدء المراجعة
-                        </DropdownMenuItem>
-                      )}
-                       {(appeal.appealStatus === 'new' || appeal.appealStatus === 'under_review') && (
-                         <>
-                           <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'publish')} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                             <CheckCircle className="mr-2 h-4 w-4" /> نشر العقار
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'keep_archived')}>
-                             <Archive className="mr-2 h-4 w-4" /> إبقاء الأرشفة (تحديث السبب)
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'delete')} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                             <XCircle className="mr-2 h-4 w-4" /> حذف العقار
-                           </DropdownMenuItem>
-                         </>
-                       )}
-                       {appeal.appealStatus !== 'new' && appeal.appealStatus !== 'under_review' && (
-                           <DropdownMenuItem disabled>لا توجد إجراءات إضافية</DropdownMenuItem>
-                       )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {renderDropdownMenu(appeal)}
                 </TableCell>
               </TableRow>
             ))}

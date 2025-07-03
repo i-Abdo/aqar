@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/hooks/use-auth';
@@ -357,6 +357,65 @@ export default function AdminReportsPage() {
     }
   };
 
+  const renderDropdownMenu = (report: EnhancedReport) => (
+      <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">فتح القائمة</span>
+                  <MoreHorizontal className="h-4 w-4" />
+              </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+              <DropdownMenuLabel>إجراءات البلاغ</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                  <Link href={`/properties/${report.propertyId}`} target="_blank">
+                      <Eye className="mr-2 h-4 w-4" /> عرض العقار
+                  </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openNotesDialog(report)}>
+                  <MessageSquare className="mr-2 h-4 w-4" /> {report.adminNotes ? 'تعديل/عرض الملاحظات' : 'إضافة ملاحظات (إرسال رسالة للمبلغ)'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                      <Edit className="mr-2 h-4 w-4" />
+                      <span>تغيير حالة البلاغ</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'new')}>
+                              <AlertOctagon className="mr-2 h-4 w-4 text-blue-500" /> جديد
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'under_review')}>
+                              <Loader2 className="mr-2 h-4 w-4 text-yellow-500 animate-spin" /> قيد المراجعة
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setSelectedReport(report); setAdminNotes(report.adminNotes || ""); setIsNotesDialogOpen(true); }}>
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> تم الحل (مع ملاحظات)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'dismissed')}>
+                              <ArchiveX className="mr-2 h-4 w-4 text-red-500" /> مرفوض
+                          </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>إجراءات على العقار والمالك</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => openDeletePropertyDialog(report)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                  <Trash2 className="mr-2 h-4 w-4" /> حذف العقار
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openArchivePropertyDialog(report)}>
+                  <Archive className="mr-2 h-4 w-4" /> أرشفة العقار
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleReactivateProperty(report)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
+                  <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط العقار
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openTrustLevelDialogForReportOwner(report)} disabled={!report.propertyId}>
+                  <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف مالك العقار
+              </DropdownMenuItem>
+          </DropdownMenuContent>
+      </DropdownMenu>
+  );
+
 
   if (isLoading) {
     return (
@@ -399,7 +458,49 @@ export default function AdminReportsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">إدارة البلاغات</h1>
-      <Card className="shadow-xl">
+      
+      {/* Mobile View: Cards */}
+      <div className="md:hidden space-y-4">
+        {reports.map((report) => (
+          <Card key={report.id} className="shadow-md">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                  <CardTitle className="text-base truncate flex-1 pr-2">
+                     <Link href={`/properties/${report.propertyId}`} target="_blank" className="hover:underline text-primary">
+                        {report.propertyTitle}
+                     </Link>
+                  </CardTitle>
+                  {renderDropdownMenu(report)}
+              </div>
+              <CardDescription className="pt-1">
+                 <Badge variant={reportStatusVariants[report.status]}>
+                    {reportStatusTranslations[report.status]}
+                  </Badge>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+                <div>
+                  <p className="font-semibold text-xs text-muted-foreground">المبلغ</p>
+                  <p className="truncate" title={report.reporterEmail}>{report.reporterUserId === report.ownerUserId ? "صاحب العقار" : report.reporterEmail}</p>
+                </div>
+                 <div>
+                  <p className="font-semibold text-xs text-muted-foreground">السبب</p>
+                  <p className="truncate" title={report.reason}>{report.reason}</p>
+                </div>
+                 <div>
+                  <p className="font-semibold text-xs text-muted-foreground">التعليقات</p>
+                  <p className="text-xs truncate" title={report.comments}>{report.comments}</p>
+                </div>
+            </CardContent>
+            <CardFooter className="text-xs text-muted-foreground">
+                {new Date(report.reportedAt).toLocaleDateString('ar-DZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop View: Table */}
+      <Card className="shadow-xl hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -437,62 +538,7 @@ export default function AdminReportsPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">فتح القائمة</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>إجراءات البلاغ</DropdownMenuLabel>
-                       <DropdownMenuItem asChild>
-                         <Link href={`/properties/${report.propertyId}`} target="_blank">
-                           <Eye className="mr-2 h-4 w-4" /> عرض العقار
-                         </Link>
-                       </DropdownMenuItem>
-                       <DropdownMenuItem onClick={() => openNotesDialog(report)}>
-                         <MessageSquare className="mr-2 h-4 w-4" /> {report.adminNotes ? 'تعديل/عرض الملاحظات' : 'إضافة ملاحظات (إرسال رسالة للمبلغ)'}
-                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
-                          <Edit className="mr-2 h-4 w-4" />
-                          <span>تغيير حالة البلاغ</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                                <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'new')}>
-                                <AlertOctagon className="mr-2 h-4 w-4 text-blue-500" /> جديد
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'under_review')}>
-                                <Loader2 className="mr-2 h-4 w-4 text-yellow-500 animate-spin" /> قيد المراجعة
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {setSelectedReport(report); setAdminNotes(report.adminNotes || ""); setIsNotesDialogOpen(true);}}>
-                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> تم الحل (مع ملاحظات)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleUpdateReportStatus(report.id, 'dismissed')}>
-                                <ArchiveX className="mr-2 h-4 w-4 text-red-500" /> مرفوض
-                                </DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                      </DropdownMenuSub>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>إجراءات على العقار والمالك</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => openDeletePropertyDialog(report)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="mr-2 h-4 w-4" /> حذف العقار
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openArchivePropertyDialog(report)}>
-                        <Archive className="mr-2 h-4 w-4" /> أرشفة العقار
-                      </DropdownMenuItem>
-                       <DropdownMenuItem onClick={() => handleReactivateProperty(report)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                        <RefreshCcwDot className="mr-2 h-4 w-4" /> إعادة تنشيط العقار
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openTrustLevelDialogForReportOwner(report)} disabled={!report.propertyId}>
-                         <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف مالك العقار
-                       </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {renderDropdownMenu(report)}
                 </TableCell>
               </TableRow>
             ))}
