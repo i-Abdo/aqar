@@ -5,10 +5,10 @@ import Link from "next/link";
 import { Home, PlusCircle, BarChart3, Settings, UserCircle, Loader2, Bell, AlertTriangle, X, Trash2, Flag } from "lucide-react"; 
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState, useCallback } from "react";
-import { collection, query, where, getCountFromServer, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { plans } from "@/config/plans";
-import type { Plan, PropertyAppeal, AdminAppealDecisionType, UserIssue, Report, ReportReason } from "@/types";
+import type { Plan, Property, PropertyAppeal, AdminAppealDecisionType, UserIssue, Report, ReportReason } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge"; 
@@ -196,8 +196,11 @@ export default function DashboardPage() {
         if (planDetails) {
           const propertiesRef = collection(db, "properties");
           const q = query(propertiesRef, where("userId", "==", user.uid), where("status", "in", ["active", "pending"]));
-          const snapshot = await getCountFromServer(q);
-          const currentPropertyCount = snapshot.data().count;
+          
+          const querySnapshot = await getDocs(q);
+          const userProperties = querySnapshot.docs.map(doc => doc.data() as Property);
+          const currentPropertyCount = userProperties.length;
+          const totalViews = userProperties.reduce((sum, prop) => sum + (prop.viewCount || 0), 0);
 
           setCanAddProperty(planDetails.maxListings === Infinity || currentPropertyCount < planDetails.maxListings);
           setUserStats(prev => ({
@@ -205,6 +208,7 @@ export default function DashboardPage() {
             activeListings: currentPropertyCount,
             maxListings: planDetails.maxListings === Infinity ? 'غير محدود' : planDetails.maxListings,
             planName: planDetails.name,
+            propertyViews: totalViews,
           }));
         } else {
           setCanAddProperty(false);
@@ -295,7 +299,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold font-headline text-right">مرحباً بك في لوحة تحكم عقاري</h1>
+      <h1 className="text-3xl font-bold font-headline text-right">مرحباً بك في لوحة تحكم دار دز</h1>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
@@ -315,13 +319,13 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg hover:shadow-xl transition-smooth">
           <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2 text-right">
-            <CardTitle className="text-sm font-medium text-right">زيارات العقارات (آخر 30 يوم)</CardTitle>
+            <CardTitle className="text-sm font-medium text-right">زيارات العقارات (الإجمالي)</CardTitle>
             <BarChart3 className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent className="text-right">
             <div className="text-2xl font-bold">{userStats.propertyViews.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              (سيتم تفعيل هذه الميزة قريباً)
+             <p className="text-xs text-muted-foreground">
+              مجموع المشاهدات على كل عقاراتك
             </p>
           </CardContent>
         </Card>

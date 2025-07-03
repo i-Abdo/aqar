@@ -60,6 +60,7 @@ export interface Property {
   archivalReason?: string; 
   createdAt: Date;
   updatedAt: Date;
+  viewCount?: number;
   googleMapsLink?: string;
   googleMapsLocation?: {
     lat: number;

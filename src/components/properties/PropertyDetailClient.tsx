@@ -13,6 +13,7 @@ import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrust
 import { useAuth } from '@/hooks/use-auth';
 import { ReportPropertyDialog } from '@/components/properties/ReportPropertyDialog';
 import { ContactAdminDialog } from '@/components/dashboard/ContactAdminDialog';
+import { incrementPropertyView } from '@/actions/viewActions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -182,6 +183,29 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
         }
     }
   }, [initialProperty, fetchPropertyAndRefresh, user, isAdmin]);
+
+  // Effect to increment view count
+  useEffect(() => {
+    const handleIncrementView = async () => {
+      // Only run if property exists and user is not the owner
+      if (property && user?.uid !== property.userId) {
+        const viewedKey = `viewed-${property.id}`;
+        if (!sessionStorage.getItem(viewedKey)) {
+          try {
+            await incrementPropertyView(property.id);
+            sessionStorage.setItem(viewedKey, 'true');
+          } catch (e) {
+            console.error("Failed to increment view count:", e);
+            // We don't toast this error to the user as it's a background task.
+          }
+        }
+      }
+    };
+
+    if (propertyId && property && property.status === 'active') {
+      handleIncrementView();
+    }
+  }, [propertyId, property, user]);
 
 
   // Fetch owner details if admin
