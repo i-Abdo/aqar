@@ -6,14 +6,13 @@ import { cn } from "@/lib/utils";
 
 interface PlanCardProps {
   plan: Plan;
-  interval: 'monthly' | 'yearly';
   isCurrentPlan?: boolean;
   isFeatured?: boolean;
   onSelectPlan: (planId: Plan["id"]) => void;
   isLoading?: boolean;
 }
 
-export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPlan, isLoading }: PlanCardProps) {
+export function PlanCard({ plan, isCurrentPlan, isFeatured, onSelectPlan, isLoading }: PlanCardProps) {
   const renderPlanName = () => {
     if (plan.name === "VIP++") {
       return (
@@ -25,8 +24,6 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
     return plan.name;
   };
 
-  const price = interval === 'yearly' ? plan.priceYearly : plan.priceMonthly;
-  
   let buttonVariant: VariantProps<typeof buttonVariants>['variant'] = "outline_primary";
   let customClasses = "";
 
@@ -36,9 +33,8 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
     buttonVariant = "default";
   } else if (plan.id === 'vip_plus_plus') {
     buttonVariant = "default";
-    customClasses = "border-2 border-accent hover:border-accent/80 shadow-lg shadow-accent/20";
+    customClasses = "bg-primary text-primary-foreground border-2 border-accent hover:bg-primary/90 hover:border-accent/80 shadow-lg shadow-accent/20";
   }
-  // The 'free' plan will use the default 'outline_primary' from the initial value.
 
   return (
     <Card className={cn(
@@ -56,16 +52,7 @@ export function PlanCard({ plan, interval, isCurrentPlan, isFeatured, onSelectPl
         <CardTitle className="text-2xl font-headline">{renderPlanName()}</CardTitle>
         <CardDescription className="text-muted-foreground h-12">{plan.description || ""}</CardDescription>
         <div className="text-4xl font-bold text-accent min-h-[3.5rem] flex items-baseline gap-1">
-          {plan.id === 'free' ? (
-            'مجاني'
-          ) : price <= 0 ? (
-            'اتصل بنا'
-          ) : (
-            <>
-              <span>{price.toLocaleString()}</span>
-              <span className="text-lg font-normal text-muted-foreground">د.ج/{interval === 'monthly' ? 'شهر' : 'سنة'}</span>
-            </>
-          )}
+          --
         </div>
       </CardHeader>
       <CardContent className="flex-grow">

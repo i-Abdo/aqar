@@ -9,8 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase/client';
 import { useRouter } from 'next/navigation';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 
 export default function PricingPage() {
@@ -19,7 +17,6 @@ export default function PricingPage() {
   const router = useRouter();
   const [currentPlanId, setCurrentPlanId] = useState<PlanId | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
-  const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
     async function fetchUserPlan() {
@@ -89,27 +86,12 @@ export default function PricingPage() {
           سواء كنت تبدأ للتو أو تدير قائمة كبيرة من العقارات، لدينا الخطة المثالية لدعم أهدافك.
         </p>
       </div>
-      
-      <div className="flex items-center justify-center space-x-4 rtl:space-x-reverse mb-10">
-        <Label htmlFor="billing-interval" className="font-semibold text-lg">شهري</Label>
-        <Switch
-          id="billing-interval"
-          checked={billingInterval === 'yearly'}
-          onCheckedChange={(checked) => setBillingInterval(checked ? 'yearly' : 'monthly')}
-          aria-label="Toggle billing interval"
-        />
-        <Label htmlFor="billing-interval" className="font-semibold text-lg">
-          سنوي <span className="text-sm text-green-500 font-normal">(وفر 20%)</span>
-        </Label>
-      </div>
-
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
         {predefinedPlans.map((plan) => (
           <PlanCard 
             key={plan.id} 
             plan={plan}
-            interval={billingInterval}
             isCurrentPlan={currentPlanId === plan.id}
             isFeatured={plan.id === 'vip'}
             onSelectPlan={handleSelectPlan}
@@ -118,7 +100,7 @@ export default function PricingPage() {
         ))}
       </div>
        <p className="text-center text-muted-foreground mt-12">
-        جميع الأسعار بالدينار الجزائري (DZD). يمكنك إلغاء أو تغيير خطتك في أي وقت.
+        يمكنك إلغاء أو تغيير خطتك في أي وقت.
       </p>
     </div>
   );

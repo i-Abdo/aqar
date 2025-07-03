@@ -3,7 +3,7 @@ import type { Plan } from "@/types";
 export const plans: Plan[] = [
   {
     id: "free",
-    name: "مجاني",
+    name: "العادي",
     description: "مثالية للبدء واستكشاف المنصة. انشر أول عقار لك مجانًا.",
     priceMonthly: 0,
     priceYearly: 0,
@@ -18,7 +18,7 @@ export const plans: Plan[] = [
     maxListings: 1,
     imageLimitPerProperty: 1, 
     aiAssistantAccess: false,
-    cta: "ابدأ مجاناً",
+    cta: "اختر العادي",
   },
   {
     id: "vip",
