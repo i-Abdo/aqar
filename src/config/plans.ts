@@ -1,3 +1,4 @@
+
 import type { Plan } from "@/types";
 
 export const plans: Plan[] = [
@@ -8,17 +9,16 @@ export const plans: Plan[] = [
     priceMonthly: 0,
     priceYearly: 0,
     features: [
-      "نشر عقار واحد ✓",
+      "نشر أكثر من عقار ✕",
       "صور رئيسية للعقار ✓",
-      "إمكانية نشر أكثر من عقار ✕",
-      "صور تفصيلية للعقار ✕", 
+      "صور تفصيلية للعقار ✕",
       "مساعد الوصف بالذكاء الاصطناعي ✕",
-      "دعم محدود ✓",
+      "دعم ذو اولوية ✕",
     ],
     maxListings: 1,
     imageLimitPerProperty: 1, 
     aiAssistantAccess: false,
-    cta: "اختر العادي",
+    cta: "ابدأ مجانًا",
   },
   {
     id: "vip",
@@ -27,12 +27,11 @@ export const plans: Plan[] = [
     priceMonthly: 0,
     priceYearly: 0,
     features: [
-      "نشر عقار واحد ✓",
-      "إمكانية نشر أكثر من عقار ✕",
+      "نشر أكثر من عقار ✕",
       "صور رئيسية للعقار ✓",
       "صور تفصيلية للعقار ✓",
-      "مساعد الوصف بالذكاء الاصطناعي (محدود) ✓",
-      "دعم ذو أولوية ✓",
+      "مساعد الوصف بالذكاء الاصطناعي ✓",
+      "دعم ذو اولوية ✓",
     ],
     maxListings: 1,
     imageLimitPerProperty: 5,
@@ -46,12 +45,11 @@ export const plans: Plan[] = [
     priceMonthly: 0,
     priceYearly: 0,
     features: [
-      "نشر عدد غير محدود من العقارات ✓",
+      "نشر أكثر من عقار ✓",
       "صور رئيسية للعقار ✓",
       "صور تفصيلية للعقار ✓",
-      "مساعد الوصف بالذكاء الاصطناعي (كامل) ✓✓",
-      "ظهور مميز للعقارات ✓✓",
-      "دعم فوري ✓✓",
+      "مساعد الوصف بالذكاء الاصطناعي ✓",
+      "دعم ذو أولوية ✓",
     ],
     maxListings: Infinity,
     imageLimitPerProperty: 4,
