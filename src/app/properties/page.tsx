@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -13,7 +12,7 @@ import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, Pagi
 import { cn } from '@/lib/utils';
 import { PropertyCardSkeleton } from '@/components/properties/PropertyCardSkeleton';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { findProperties, FindPropertiesInput } from '@/ai/flows/find-properties-flow';
 import { Input } from '@/components/ui/input';
 
