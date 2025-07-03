@@ -11,7 +11,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { ReportPropertyDialog } from "./ReportPropertyDialog"; 
 import { formatDisplayPrice } from '@/lib/utils';
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 
 interface PropertyCardProps {
   property: Property;
@@ -36,42 +35,6 @@ const propertyTypeShortTranslations: Record<PropertyTypeEnum, string> = {
 export function PropertyCard({ property }: PropertyCardProps) {
   const { user, isAdmin } = useAuth();
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
-
-  const handleShare = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const fullUrl = `${window.location.origin}/properties/${property.id}`;
-    const shareTitle = property.title;
-    const shareText = `تحقق من هذا العقار: ${property.title}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: fullUrl,
-        });
-      } catch (error) {
-        console.log('Web Share API canceled.', error);
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(fullUrl);
-        setCopied(true);
-        toast({ title: "تم نسخ الرابط!" });
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        toast({
-          title: "خطأ",
-          description: "لم نتمكن من نسخ الرابط.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
   const canReport = user && !isAdmin && property.userId !== user.uid;
 
@@ -102,21 +65,6 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 {property.propertyType === 'other' && property.otherPropertyType ? ` (${property.otherPropertyType.substring(0,10)})` : ''}
               </Badge>
             )}
-          </div>
-          <div className="absolute top-2 left-2 z-10">
-            <Button
-                onClick={handleShare}
-                variant="secondary"
-                size="icon"
-                className="h-8 w-8 rounded-full bg-black/30 text-white hover:bg-black/60 border-none"
-                aria-label="مشاركة العقار"
-              >
-              {copied ? (
-                <Check className="h-4 w-4 text-green-400" />
-              ) : (
-                <Share2 className="h-4 w-4" />
-              )}
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-3 flex-grow flex flex-col">
