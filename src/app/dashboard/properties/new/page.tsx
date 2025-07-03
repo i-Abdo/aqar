@@ -1,4 +1,3 @@
-
 "use client";
 
 import { PropertyForm, PropertyFormValues } from "@/components/dashboard/PropertyForm";
@@ -236,16 +235,17 @@ export default function NewPropertyPage() {
     <div className="max-w-5xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold font-headline">
-          {isEditMode ? "تعديل العقار" : "إضافة عقار جديد"}
+          إضافة عقار جديد
         </h1>
         <p className="text-muted-foreground mt-1">
-          املأ التفاصيل أدناه ل{isEditMode ? "تعديل" : "نشر"} عقارك. الحقول المميزة بـ * إلزامية.
+          املأ التفاصيل أدناه لنشر عقارك. الحقول المميزة بـ * إلزامية.
         </p>
       </div>
       <PropertyForm 
         onSubmit={handleSubmit} 
         isLoading={isSubmitting} 
-        initialData={{filters: currentPlan?.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined}} 
+        initialData={{filters: currentPlan?.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined}}
+        isEditMode={false}
       />
     </div>
   );
