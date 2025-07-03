@@ -4,7 +4,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2 } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2, CalendarDays } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -43,6 +43,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatDisplayPrice } from '@/lib/utils';
 import { siteConfig } from '@/config/site';
+import { Badge } from '@/components/ui/badge';
 
 
 // Helper function to convert ISO string back to Date object
@@ -376,7 +377,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, length, width, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, googleMapsLink } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, googleMapsLink } = property;
   
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
@@ -397,315 +398,222 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
         />
       )}
      <div className="container mx-auto py-8">
-      <Card className="shadow-2xl overflow-hidden max-w-5xl mx-auto">
-        <CardHeader className="p-0">
-            {selectedImageUrl ? (
-                <div className="relative aspect-[2/1] md:aspect-[5/2] w-full rounded-t-lg overflow-hidden bg-muted">
-                    <Image 
-                        src={selectedImageUrl} 
-                        alt={`${title} - الصورة الرئيسية`} 
-                        fill 
-                        style={{objectFit: "contain"}}
-                        data-ai-hint="property interior room"
-                        priority 
-                    />
-                </div>
-            ) : imageUrls && imageUrls.length > 0 && imageUrls[0] ? ( 
-                 <div className="relative aspect-[2/1] md:aspect-[5/2] w-full rounded-t-lg overflow-hidden bg-muted">
-                    <Image 
-                        src={imageUrls[0]} 
-                        alt={`${title} - الصورة الرئيسية`} 
-                        fill 
-                        style={{objectFit: "contain"}}
-                        data-ai-hint="property interior room"
-                        priority 
-                    />
-                </div>
-            ) : (
-                <div className="relative aspect-[2/1] md:aspect-[5/2] w-full bg-muted flex items-center justify-center rounded-t-lg">
-                    <ImageIcon size={64} className="text-muted-foreground" />
-                </div>
-            )}
-            
-            {imageUrls && imageUrls.length > 1 && (
-                <div className="flex justify-center space-x-2 rtl:space-x-reverse p-2 bg-background/50 overflow-x-auto">
-                    {imageUrls.map((url, index) => (
-                        <button 
-                            key={index} 
-                            onClick={() => setSelectedImageUrl(url)}
-                            className={cn(
-                                "w-20 h-16 md:w-24 md:h-20 relative rounded-md overflow-hidden cursor-pointer border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary",
-                                selectedImageUrl === url ? "border-primary scale-105" : "border-transparent hover:border-primary/70"
-                            )}
-                        >
-                            <Image 
-                                src={url} 
-                                alt={`صورة مصغرة ${index + 1}`} 
-                                fill 
-                                style={{objectFit: "cover"}}
-                                data-ai-hint="property detail"
-                            />
-                        </button>
-                    ))}
-                </div>
-            )}
-        </CardHeader>
-        
-        <CardContent className="p-6 md:p-8">
-          <div className="flex flex-col md:flex-row justify-between items-start mb-4">
-            <CardTitle className="font-headline text-3xl md:text-4xl text-primary mb-2 md:mb-0">
-              {title}
-            </CardTitle>
-            <div className="text-2xl md:text-3xl font-bold text-green-600 flex items-center gap-1 whitespace-nowrap">
-               {formatDisplayPrice(price)}
-            </div>
-          </div>
-
-          <CardDescription className="text-sm text-muted-foreground mb-6">
-            نشر بتاريخ: {new Date(createdAt).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' })}
-            {property.status !== 'active' && (
-                <span className={`font-bold mx-2 ${property.status === 'deleted' ? 'text-destructive' : property.status === 'archived' ? 'text-orange-500' : 'text-yellow-600'}`}>
-                    (الحالة: {property.status === 'pending' ? 'قيد المراجعة' : property.status === 'archived' ? 'مؤرشف' : 'محذوف'})
-                    {property.status === 'deleted' && property.deletionReason && ` - السبب: ${property.deletionReason}`}
-                    {property.status === 'archived' && property.archivalReason && ` - السبب: ${property.archivalReason}`}
-                </span>
-            )}
-          </CardDescription>
-
-          <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
-            <div>
-              <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">المواصفات الأساسية</h3>
-              <div className="space-y-2 text-muted-foreground">
-                <p className="flex items-center gap-2"><Tag size={18} /> <strong>نوع المعاملة:</strong> {transactionTypeTranslations[transactionType]}</p>
-                <p className="flex items-center gap-2"><Home size={18} /> <strong>نوع العقار:</strong> {propertyTypeTranslations[propertyType]} {propertyType === 'other' && otherPropertyType ? ` (${otherPropertyType})` : ''}</p>
-                <p className="flex items-center gap-2"><BedDouble size={18} /> <strong>عدد الغرف:</strong> {rooms}</p>
-                <p className="flex items-center gap-2"><Bath size={18} /> <strong>عدد الحمامات:</strong> {bathrooms}</p>
-                {length && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>الطول:</strong> {length} متر</p>}
-                {width && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>العرض:</strong> {width} متر</p>}
-                {area && <p className="flex items-center gap-2"><Ruler size={18} /> <strong>المساحة:</strong> {area} م²</p>}
-                {phoneNumber && <p className="flex items-center gap-2"><Phone size={18} /> <strong>رقم الهاتف:</strong> <a href={`tel:${phoneNumber}`} className="text-primary hover:underline" dir="ltr">{phoneNumber}</a></p>}
-              </div>
-            </div>
-             <div>
-              <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">الموقع</h3>
-              <div className="space-y-2 text-muted-foreground">
-                <p className="flex items-center gap-2"><MapPin size={18} /> <strong>الولاية:</strong> {wilaya}</p>
-                <p className="flex items-center gap-2"><MapPin size={18} /> <strong>المدينة/البلدية:</strong> {city}</p>
-                {neighborhood && <p className="flex items-center gap-2"><MapPin size={18} /> <strong>الحي:</strong> {neighborhood}</p>}
-                {address && <p className="flex items-center gap-2"><MapPin size={18} /> <strong>العنوان:</strong> {address}</p>}
-              </div>
-            </div>
-          </div>
-          
-          {isAdmin && ownerDetailsForAdmin && (
-            <div className="mb-8 p-4 border rounded-md bg-secondary/50">
-              <h3 className="text-lg font-semibold mb-2 font-headline flex items-center gap-2 text-primary">
-                <UserCircle size={20} />
-                معلومات المالك (للمسؤول فقط)
-              </h3>
-              <div className="space-y-1 text-sm">
-                <p><strong>UID:</strong> {ownerDetailsForAdmin.uid}</p>
-                <p className="flex items-center gap-1">
-                  <Mail size={16} />
-                  <strong>البريد الإلكتروني:</strong> {ownerDetailsForAdmin.email || "غير متوفر"}
-                </p>
-                <p><strong>التصنيف الحالي:</strong> {trustLevelTranslations[ownerDetailsForAdmin.trustLevel]}</p>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">الوصف التفصيلي</h3>
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-              {description || "لا يوجد وصف تفصيلي لهذا العقار."}
-            </p>
-          </div>
-
-          {filters && Object.values(filters).some(val => val === true) && (
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2">الميزات والخدمات</h3>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                {Object.entries(filters).map(([key, value]) => 
-                  value && (
-                    <li key={key} className="flex items-center gap-2 text-muted-foreground">
-                      <CheckCircle size={18} className="text-green-500" />
-                      {featureLabels[key as keyof Property['filters']]}
-                    </li>
-                  )
-                )}
-              </ul>
-            </div>
-          )}
-
-          {property?.googleMapsLink && (
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold mb-3 font-headline border-b pb-2 flex items-center gap-2"><Map size={18}/>الموقع على Google Map</h3>
-              {mapEmbedUrl ? (
-                <div className="aspect-video w-full rounded-md overflow-hidden border">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    src={mapEmbedUrl}
-                    title="موقع العقار على الخريطة"
-                  ></iframe>
-                </div>
-              ) : (
-                <div className="p-4 border border-dashed rounded-md bg-secondary/50 text-center">
-                  <p className="text-muted-foreground">تعذر عرض الخريطة المضمنة. حاول فتح الرابط مباشرة.</p>
-                  <Button asChild variant="link" className="mt-2">
-                    <a href={property.googleMapsLink} target="_blank" rel="noopener noreferrer">
-                      عرض الموقع في علامة تبويب جديدة
-                    </a>
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="p-6 md:p-8 border-t bg-secondary/30">
-            <div className="w-full">
-                <h3 className="text-xl font-semibold mb-4 font-headline text-center">الإجراءات</h3>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                   <Button
-                        size="lg"
-                        variant="default"
-                        className="flex-1 transition-smooth hover:shadow-md"
-                        onClick={handleShare}
-                    >
-                        {copiedShare ? (
-                            <>
-                                <Check size={20} className="ml-2 rtl:mr-2 rtl:ml-0 text-green-400" /> تم النسخ
-                            </>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Image Gallery Column */}
+            <div className="lg:col-span-2">
+                <Card className="shadow-lg overflow-hidden sticky top-24">
+                    <CardContent className="p-0">
+                        {selectedImageUrl ? (
+                            <div className="relative aspect-video w-full bg-muted">
+                                <Image 
+                                    src={selectedImageUrl} 
+                                    alt={`${title} - الصورة الرئيسية`} 
+                                    fill 
+                                    style={{objectFit: "cover"}}
+                                    data-ai-hint="property interior room"
+                                    priority 
+                                />
+                            </div>
+                        ) : imageUrls && imageUrls.length > 0 && imageUrls[0] ? ( 
+                            <div className="relative aspect-video w-full bg-muted">
+                                <Image 
+                                    src={imageUrls[0]} 
+                                    alt={`${title} - الصورة الرئيسية`} 
+                                    fill 
+                                    style={{objectFit: "cover"}}
+                                    data-ai-hint="property interior room"
+                                    priority 
+                                />
+                            </div>
                         ) : (
+                            <div className="relative aspect-video w-full bg-muted flex items-center justify-center">
+                                <ImageIcon size={64} className="text-muted-foreground" />
+                            </div>
+                        )}
+                        
+                        {imageUrls && imageUrls.length > 1 && (
+                            <div className="flex justify-center space-x-2 rtl:space-x-reverse p-2 bg-background/50 overflow-x-auto">
+                                {imageUrls.map((url, index) => (
+                                    <button 
+                                        key={index} 
+                                        onClick={() => setSelectedImageUrl(url)}
+                                        className={cn(
+                                            "w-20 h-16 relative rounded-md overflow-hidden cursor-pointer border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary",
+                                            selectedImageUrl === url ? "border-primary scale-105" : "border-transparent hover:border-primary/70"
+                                        )}
+                                    >
+                                        <Image 
+                                            src={url} 
+                                            alt={`صورة مصغرة ${index + 1}`} 
+                                            fill 
+                                            style={{objectFit: "cover"}}
+                                            data-ai-hint="property detail"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Details Column */}
+            <div className="lg:col-span-1 space-y-6">
+                 <Card className="shadow-lg">
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                             <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="secondary">{transactionTypeTranslations[transactionType]}</Badge>
+                                    <Badge variant="outline">{propertyTypeTranslations[propertyType]}</Badge>
+                                </div>
+                                <CardTitle className="font-headline text-2xl text-primary">{title}</CardTitle>
+                             </div>
+                             {property.status !== 'active' && (
+                                <Badge variant="destructive" className="whitespace-nowrap h-fit">
+                                    {property.status === 'pending' ? 'قيد المراجعة' : property.status === 'archived' ? 'مؤرشف' : 'محذوف'}
+                                </Badge>
+                             )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground pt-2">
+                            <MapPin size={16}/>
+                            <span>{wilaya}, {city}</span>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold text-green-600 flex items-center gap-2 mb-4">
+                            {formatDisplayPrice(price)}
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-center text-sm text-muted-foreground">
+                            <div className="flex flex-col items-center gap-1">
+                                <BedDouble size={20}/>
+                                <span>{rooms} غرف</span>
+                            </div>
+                             <div className="flex flex-col items-center gap-1">
+                                <Bath size={20}/>
+                                <span>{bathrooms} حمامات</span>
+                            </div>
+                             <div className="flex flex-col items-center gap-1">
+                                <Ruler size={20}/>
+                                <span>{area} م²</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                 </Card>
+
+                 <Card className="shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-xl">الوصف التفصيلي</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                            {description || "لا يوجد وصف تفصيلي لهذا العقار."}
+                        </p>
+                    </CardContent>
+                 </Card>
+
+                {filters && Object.values(filters).some(val => val === true) && (
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                             <CardTitle className="font-headline text-xl">الميزات والخدمات</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                {Object.entries(filters).map(([key, value]) => 
+                                value && (
+                                    <li key={key} className="flex items-center gap-2 text-foreground">
+                                    <CheckCircle size={18} className="text-green-500" />
+                                    {featureLabels[key as keyof Property['filters']]}
+                                    </li>
+                                )
+                                )}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {mapEmbedUrl && (
+                     <Card className="shadow-lg">
+                        <CardHeader>
+                             <CardTitle className="font-headline text-xl flex items-center gap-2"><Map size={18}/>الموقع على الخريطة</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="aspect-video w-full rounded-md overflow-hidden border">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    loading="lazy"
+                                    allowFullScreen
+                                    src={mapEmbedUrl}
+                                    title="موقع العقار على الخريطة"
+                                ></iframe>
+                                </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Actions Card */}
+                 <Card className="shadow-lg bg-secondary/30">
+                    <CardHeader>
+                        <CardTitle className="font-headline text-xl text-center">تواصل أو قم بإجراء</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                         <a href={`tel:${phoneNumber}`} className="w-full">
+                            <Button size="lg" className="w-full text-base transition-smooth hover:shadow-md">
+                                <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
+                                اتصل الآن
+                            </Button>
+                        </a>
+                        <Button
+                            size="lg"
+                            variant="outline_primary"
+                            className="w-full text-base transition-smooth hover:shadow-md"
+                            onClick={handleShare}
+                        >
+                            {copiedShare ? (
+                                <>
+                                    <Check size={20} className="ml-2 rtl:mr-2 rtl:ml-0 text-green-500" /> تم النسخ
+                                </>
+                            ) : (
+                                <>
+                                    <Share2 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> مشاركة العقار
+                                </>
+                            )}
+                        </Button>
+                        {user && !isAdmin && !isOwner && (
+                            <Button 
+                                size="lg" 
+                                variant="destructive_outline" 
+                                className="w-full text-base transition-smooth hover:shadow-md"
+                                onClick={() => setIsReportPropertyDialogOpen(true)}
+                            >
+                                <Flag size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إبلاغ عن العقار
+                            </Button>
+                        )}
+                        {isOwner && (
                             <>
-                                <Share2 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> مشاركة العقار
+                                <Button
+                                    size="lg"
+                                    variant="outline_accent" 
+                                    className="w-full text-base transition-smooth hover:shadow-md"
+                                    onClick={() => setIsContactAdminDialogOpen(true)}
+                                >
+                                    <MessageSquareWarning size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> الإبلاغ عن مشكلة
+                                </Button>
+                                <Button asChild size="lg" variant="outline_secondary" className="w-full text-base transition-smooth hover:shadow-md">
+                                    <Link href={`/dashboard/properties/${property.id}/edit`}>
+                                        <Edit3 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> تعديل العقار
+                                    </Link>
+                                </Button>
                             </>
                         )}
-                    </Button>
-                   {user && !isAdmin && !isOwner && (
-                     <Button 
-                        size="lg" 
-                        variant="destructive_outline" 
-                        className="flex-1 transition-smooth hover:shadow-md"
-                        onClick={() => setIsReportPropertyDialogOpen(true)}
-                     >
-                        <Flag size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إبلاغ عن العقار
-                    </Button>
-                   )}
-                    {isOwner && (
-                        <>
-                            <Button
-                                size="lg"
-                                variant="outline_accent" 
-                                className="flex-1 transition-smooth hover:shadow-md"
-                                onClick={() => setIsContactAdminDialogOpen(true)}
-                            >
-                                <MessageSquareWarning size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> الإبلاغ عن مشكلة
-                            </Button>
-                            <Button asChild size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
-                                <Link href={`/dashboard/properties/${property.id}/edit`}>
-                                    <Edit3 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> تعديل العقار
-                                </Link>
-                            </Button>
-                            {property.status !== 'deleted' && (
-                                <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); if (!open) setDeletionReason(""); }}>
-                                    <AlertDialogTrigger asChild>
-                                        <Button size="lg" variant="destructive" className="flex-1 transition-smooth hover:shadow-md">
-                                            <Trash2 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> حذف العقار
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>تأكيد حذف العقار</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            هل أنت متأكد أنك تريد حذف هذا العقار؟ سيتم نقله إلى المحذوفات.
-                                            الرجاء إدخال سبب الحذف.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <Textarea
-                                            placeholder="سبب الحذف..."
-                                            value={deletionReason}
-                                            onChange={(e) => setDeletionReason(e.target.value)}
-                                            className="my-2"
-                                            rows={3}
-                                        />
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleAdminPropertyStatusChange('deleted', deletionReason)} disabled={isPropertyActionLoading || !deletionReason.trim()}>
-                                            {isPropertyActionLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-                                            تأكيد الحذف
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            )}
-                        </>
-                    )}
-                     {isAdmin && !isOwner && ownerDetailsForAdmin && ( 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button size="lg" variant="outline_primary" className="flex-1 transition-smooth hover:shadow-md">
-                                    <ShieldCheck size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> إدارة (مسؤول) <MoreVertical size={16} className="mr-1 rtl:ml-1 rtl:mr-0"/>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="center" className="w-56">
-                                <DropdownMenuLabel>إجراءات على العقار</DropdownMenuLabel>
-                                {property.status !== 'active' && (
-                                    <DropdownMenuItem onClick={() => handleAdminPropertyStatusChange('active')} disabled={isPropertyActionLoading}>
-                                        <Check size={16} className="text-green-500 ml-2 rtl:mr-2 rtl:ml-0" /> تفعيل العقار
-                                    </DropdownMenuItem>
-                                )}
-                                {property.status !== 'archived' && (
-                                    <DropdownMenuItem onClick={() => setIsArchiveDialogOpen(true)} disabled={isPropertyActionLoading}>
-                                        <Archive size={16} className="ml-2 rtl:mr-2 rtl:ml-0" /> أرشفة العقار
-                                    </DropdownMenuItem>
-                                )}
-                                {property.status !== 'deleted' && (
-                                    <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive" disabled={isPropertyActionLoading}>
-                                        <Trash2 size={16} className="ml-2 rtl:mr-2 rtl:ml-0" /> حذف العقار
-                                    </DropdownMenuItem>
-                                )}
-                                 {property.status === 'pending' && (
-                                    <DropdownMenuItem onClick={() => handleAdminPropertyStatusChange('active')} className="text-green-600 focus:text-green-700" disabled={isPropertyActionLoading}>
-                                        <RefreshCw size={16} className="ml-2 rtl:mr-2 rtl:ml-0" /> الموافقة على النشر
-                                    </DropdownMenuItem>
-                                )}
+                    </CardContent>
+                </Card>
 
-
-                                <DropdownMenuSeparator />
-                                <DropdownMenuLabel>إجراءات على المالك</DropdownMenuLabel>
-                                <DropdownMenuSub>
-                                <DropdownMenuSubTrigger disabled={isPropertyActionLoading}>
-                                    <UserCircle size={16} className="ml-2 rtl:mr-2 rtl:ml-0" /> تغيير تصنيف المالك
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuPortal>
-                                    <DropdownMenuSubContent>
-                                    {Object.entries(trustLevelTranslations).map(([levelKey, levelName]) => (
-                                        <DropdownMenuItem 
-                                            key={levelKey} 
-                                            onClick={() => handleAdminOwnerTrustLevelChange(levelKey as UserTrustLevel)}
-                                            disabled={ownerDetailsForAdmin.trustLevel === levelKey || isPropertyActionLoading}
-                                        >
-                                            {ownerDetailsForAdmin.trustLevel === levelKey && <Check size={14} className="ml-1 rtl:mr-1 rtl:ml-0"/>}
-                                            {levelName}
-                                        </DropdownMenuItem>
-                                    ))}
-                                    </DropdownMenuSubContent>
-                                </DropdownMenuPortal>
-                                </DropdownMenuSub>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
-                   {(!user && !isOwner && !isAdmin) && (
-                     <p className="text-muted-foreground text-center w-full">لإجراءات إضافية، يرجى تسجيل الدخول.</p>
-                   )}
-                </div>
             </div>
-        </CardFooter>
-      </Card>
+        </div>
+      
       {user && !isAdmin && !isOwner && (
         <ReportPropertyDialog
             isOpen={isReportPropertyDialogOpen}
@@ -724,62 +632,9 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
           propertyTitle={property.title}
         />
       )}
-
-      {/* Admin Archive Dialog */}
-      <AlertDialog open={isAdmin && isArchiveDialogOpen} onOpenChange={(open) => { setIsArchiveDialogOpen(open); if (!open) setArchiveReason(""); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>أرشفة العقار (إجراء إداري)</AlertDialogTitle>
-            <AlertDialogDescription>
-              أنت على وشك أرشفة العقار "{property.title}". الرجاء إدخال سبب الأرشفة.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Textarea
-            placeholder="سبب الأرشفة..."
-            value={archiveReason}
-            onChange={(e) => setArchiveReason(e.target.value)}
-            className="my-2"
-            rows={3}
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleAdminPropertyStatusChange('archived', archiveReason)} disabled={isPropertyActionLoading || !archiveReason.trim()}>
-              {isPropertyActionLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-              تأكيد الأرشفة
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Admin Delete Dialog (reusing for admin if !isOwner) */}
-       <AlertDialog open={isAdmin && !isOwner && isDeleteDialogOpen} onOpenChange={(open) => { setIsDeleteDialogOpen(open); if(!open) setDeletionReason(""); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف العقار (إجراء إداري)</AlertDialogTitle>
-            <AlertDialogDescription>
-              أنت على وشك حذف العقار "{property.title}" كمسؤول. الرجاء إدخال سبب الحذف.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Textarea
-            placeholder="سبب الحذف (إجراء إداري)..."
-            value={deletionReason}
-            onChange={(e) => setDeletionReason(e.target.value)}
-            className="my-2"
-            rows={3}
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleAdminPropertyStatusChange('deleted', deletionReason)} disabled={isPropertyActionLoading || !deletionReason.trim()}>
-              {isPropertyActionLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-              تأكيد الحذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
     </>
   );
 }
-
 
     
