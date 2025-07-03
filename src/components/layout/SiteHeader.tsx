@@ -19,7 +19,7 @@ export function SiteHeader() {
     >
       <div className="container flex h-full items-center justify-between">
         {/* Left side (in RTL): Logo */}
-        <div className="flex items-center">
+        <div className="hidden md:flex items-center">
           <AppLogo />
         </div>
 
