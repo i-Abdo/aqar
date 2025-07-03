@@ -558,9 +558,9 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                     <CardHeader>
                         <CardTitle className="font-headline text-xl text-center">التواصل مع صاحب العقار</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-3">
                         {phoneNumber && (
-                            <a href={`tel:${phoneNumber}`} className="w-full">
+                            <a href={`tel:${phoneNumber}`} className="block w-full">
                                 <Button size="lg" className="w-full text-base transition-smooth hover:shadow-md">
                                     <Phone size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
                                     {phoneNumber}
@@ -568,7 +568,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                             </a>
                         )}
                         {facebookUrl && (
-                            <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="w-full">
+                            <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
                                 <Button size="lg" variant="outline_primary" className="w-full text-base transition-smooth hover:shadow-md">
                                     <Facebook size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
                                     فيسبوك
@@ -576,7 +576,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                             </a>
                         )}
                         {instagramUrl && (
-                            <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="w-full">
+                            <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
                                 <Button 
                                     size="lg" 
                                     className="w-full text-base transition-smooth hover:shadow-md text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:bg-gradient-to-br">
@@ -589,7 +589,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                             <p className="text-sm text-muted-foreground text-center">لم يوفر المالك معلومات تواصل إضافية.</p>
                         )}
                     </CardContent>
-                </Card>
+                 </Card>
 
 
                 {/* Actions Card */}
@@ -669,4 +669,3 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     </>
   );
 }
-
