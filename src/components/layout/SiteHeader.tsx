@@ -9,7 +9,7 @@ import { ThemeToggleButton } from "./ThemeToggleButton";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
@@ -53,18 +53,21 @@ export function SiteHeader() {
                       <Menu className="h-6 w-6" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-[300px] p-0">
-                     <div className="flex items-center justify-between p-4 border-b">
-                        <Link href="/" onClick={() => setOpen(false)}>
-                            <AppLogo />
-                        </Link>
+                  <SheetContent side="right" className="w-[300px] p-0 flex flex-col">
+                     {/* The accessibility title is required, but can be visually hidden. */}
+                     <SheetTitle className="sr-only">القائمة</SheetTitle>
+                     <SheetDescription className="sr-only">روابط التنقل في الموقع</SheetDescription>
+                     
+                     <div className="flex items-center justify-between p-4 border-b shrink-0">
+                        <AppLogo onClick={() => setOpen(false)} />
+                        
                         <SheetClose asChild>
                            <Button variant="ghost" size="icon" aria-label="Close menu">
                               <X className="h-5 w-5" />
                            </Button>
                         </SheetClose>
                      </div>
-                     <ScrollArea className="my-4 h-[calc(100vh-8rem)] pb-10">
+                     <ScrollArea className="flex-grow">
                        <div className="flex flex-col space-y-2 p-4">
                          {siteConfig.mainNav.map((item) => {
                            if (item.adminRequired && (!user || !isAdmin)) {
