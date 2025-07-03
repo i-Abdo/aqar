@@ -2,7 +2,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, ChevronsLeft } from "lucide-react";
+import { Loader2, ShieldAlert, ChevronsLeft, Menu } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; 
@@ -94,13 +94,13 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
       <SidebarInset>
         <div className="relative flex flex-col h-full bg-background">
           <Button
-            variant="ghost"
+            variant="secondary"
             size="icon"
             onClick={toggleSidebar}
-            className="absolute top-2 right-2 z-50 h-12 w-12 rounded-full shadow-lg md:hidden"
+            className="absolute top-4 right-4 z-50 h-12 w-12 rounded-full shadow-lg md:hidden"
             aria-label="فتح القائمة"
           >
-            <ChevronsLeft className="h-6 w-6" />
+            <Menu className="h-6 w-6" />
           </Button>
           <div className="flex-1 p-2 pt-14 md:p-4 md:pt-4 overflow-y-auto">
             {children}
