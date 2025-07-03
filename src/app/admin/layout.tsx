@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Loader2, ShieldAlert, ChevronsLeft, Menu } from "lucide-react";
+import { Loader2, ShieldAlert, ChevronsLeft, Menu, ChevronsRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; 
@@ -16,7 +16,6 @@ import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator as Ui
 
 
 const adminNavItems = [
-  { title: "إدارة العقارات", href: "/admin/properties", icon: LayoutDashboard, countKey: "properties" },
   { title: "إدارة البلاغات", href: "/admin/reports", icon: Flag, countKey: "reports" },
   { title: "مشاكل المستخدمين", href: "/admin/issues", icon: MessageCircleWarning, countKey: "issues" },
   { title: "عقارات قيد المراجعة", href: "/admin/pending", icon: ListChecks, countKey: "pending" },
@@ -43,7 +42,6 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
     <SidebarMenu>
       {adminNavItems.map((item, index) => {
         const count = getCountForItem(item.countKey);
-        const isSeparatorNext = item.title === "مشاكل المستخدمين"; 
         const IconComponent = item.icon;
         return (
           <React.Fragment key={item.href + index}>
@@ -71,7 +69,7 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {isSeparatorNext && <UiSidebarSeparator />}
+            {item.title === "مشاكل المستخدمين" && <UiSidebarSeparator />}
           </React.Fragment>
         );
       })}
@@ -81,9 +79,8 @@ function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
 
 
 function AdminInternalLayout({ children, counts }: { children: React.ReactNode; counts: AdminCounts; }) {
-  const { toggleSidebar, actualSide } = useSidebar();
+  const { toggleSidebar } = useSidebar();
   const { adminNotificationCount } = useAuth(); 
-  const ChevronIcon = actualSide === 'right' ? ChevronsLeft : ChevronsRight;
 
   return (
     <>
@@ -99,12 +96,13 @@ function AdminInternalLayout({ children, counts }: { children: React.ReactNode; 
             variant="secondary"
             size="icon"
             onClick={toggleSidebar}
-            className="absolute top-3 right-4 z-50 h-10 w-10 rounded-lg shadow-lg shadow-primary/20 md:hidden"
+            className="absolute top-4 right-4 z-50 h-10 w-10 rounded-lg shadow-lg shadow-accent/30 md:hidden"
             aria-label="فتح القائمة"
           >
-            <ChevronIcon className="h-6 w-6" />
+            <Menu className="h-6 w-6" />
           </Button>
           <div className="flex-1 p-2 pt-16 md:p-4 md:pt-4 overflow-y-auto">
+            <div className="mb-6 md:hidden"></div>
             {children}
           </div>
         </div>
@@ -176,7 +174,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode; }) {
             '--sidebar-width-icon': '4rem', 
             '--sidebar-outer-padding': '0rem',
             '--sidebar-header-height': '3rem',
-            '--sidebar-inset-top': 'var(--header-height)', 
+            '--sidebar-inset-top': '0px', 
             '--sidebar-side': 'right',
             '--sidebar-collapsible': 'icon',
         } as React.CSSProperties}
@@ -208,7 +206,7 @@ export default function AdminLayout({
     if (!authLoading && authHydrated) {
       if (!user) {
         // If there's no user, redirect to login.
-        router.push("/login?redirect=/admin/properties");
+        router.push("/login?redirect=/admin/reports");
       } else if (!isAdmin) {
         // If there's a user but they are not an admin, redirect to their dashboard.
         router.push("/dashboard");

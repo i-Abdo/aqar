@@ -421,6 +421,9 @@ export default function AdminReportsPage() {
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold font-headline">إدارة البلاغات</h1>
+            <p className="text-muted-foreground">
+              قم بمراجعة البلاغات المقدمة من المستخدمين حول العقارات. يمكنك اتخاذ إجراءات على العقار أو رفض البلاغات غير الصحيحة.
+            </p>
             <Card className="shadow-xl">
                 <Table>
                     <TableHeader>
@@ -458,6 +461,9 @@ export default function AdminReportsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">إدارة البلاغات</h1>
+      <p className="text-muted-foreground">
+        قم بمراجعة البلاغات المقدمة من المستخدمين حول العقارات. يمكنك اتخاذ إجراءات على العقار أو رفض البلاغات غير الصحيحة.
+      </p>
       
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-4">

@@ -229,6 +229,9 @@ export default function AdminPropertyAppealsPage() {
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold font-headline">إدارة الطعون على العقارات</h1>
+            <p className="text-muted-foreground">
+              هنا يمكنك إدارة الطعون المقدمة من قبل أصحاب العقارات المؤرشفة. قم بمراجعة كل حالة واتخذ القرار المناسب.
+            </p>
             <Card className="shadow-xl">
                 <Table>
                     <TableHeader>
@@ -264,6 +267,9 @@ export default function AdminPropertyAppealsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">إدارة الطعون على العقارات</h1>
+      <p className="text-muted-foreground">
+        هنا يمكنك إدارة الطعون المقدمة من قبل أصحاب العقارات المؤرشفة. قم بمراجعة كل حالة واتخذ القرار المناسب.
+      </p>
 
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-4">

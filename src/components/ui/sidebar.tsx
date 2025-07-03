@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -204,17 +205,7 @@ const SidebarHeaderInternal = React.forwardRef<
         </Button>
       )}
 
-      {isMobile && (
-         <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className="h-8 w-8 ml-auto rtl:mr-auto rtl:ml-0"
-          aria-label="إغلاق القائمة"
-        >
-          <X />
-        </Button>
-      )}
+      {/* The mobile close button is now handled by the Sheet component */}
     </div>
   );
 });
@@ -246,35 +237,17 @@ export const Sidebar = React.forwardRef<
     
     if (isMobile) {
       return (
-        <>
-          {/* Click-away catcher to close sidebar */}
-          {open && (
-            <div 
-              onClick={() => setOpen(false)}
-              className="fixed inset-0 z-30" // No background color
-              aria-hidden="true"
-            />
-          )}
-          <aside 
-            ref={ref as React.Ref<HTMLDivElement>}
-            data-state={open ? "open" : "closed"}
-            className={cn(
-              "fixed z-[60] flex flex-col transition-transform duration-300 ease-in-out",
-              "top-[var(--header-height)] h-[calc(100svh-var(--header-height))]",
-              "w-[var(--sidebar-width-mobile,15rem)]",
-              "bg-sidebar text-sidebar-foreground shadow-2xl",
-              actualSide === 'right' ? 'right-0 border-l border-sidebar-border' : 'left-0 border-r border-sidebar-border',
-              open
-                ? "translate-x-0"
-                : (actualSide === 'right' ? "translate-x-full" : "-translate-x-full"),
-              className
-            )}
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent 
+            side={actualSide} 
+            className="w-[var(--sidebar-width-mobile,15rem)] p-0 flex flex-col"
             {...props}
+            ref={ref}
           >
-              <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
-              <ScrollArea className="flex-grow">{children}</ScrollArea>
-          </aside>
-        </>
+            <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
+            <ScrollArea className="flex-grow">{children}</ScrollArea>
+          </SheetContent>
+        </Sheet>
       );
     }
     

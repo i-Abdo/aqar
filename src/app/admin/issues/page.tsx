@@ -151,6 +151,9 @@ export default function AdminUserIssuesPage() {
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold font-headline">إدارة مشاكل المستخدمين</h1>
+            <p className="text-muted-foreground">
+              هذه الصفحة تعرض رسائل ومشاكل المستخدمين العامة. يمكنك مراجعتها واتخاذ الإجراءات اللازمة.
+            </p>
             <Card className="shadow-xl">
                 <Table>
                     <TableHeader>
@@ -184,6 +187,9 @@ export default function AdminUserIssuesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">إدارة مشاكل المستخدمين</h1>
+      <p className="text-muted-foreground">
+        هذه الصفحة تعرض رسائل ومشاكل المستخدمين العامة. يمكنك مراجعتها واتخاذ الإجراءات اللازمة.
+      </p>
 
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-4">

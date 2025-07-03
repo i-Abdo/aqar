@@ -271,6 +271,9 @@ export default function AdminPropertiesPage() {
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold font-headline">إدارة جميع العقارات</h1>
+            <p className="text-muted-foreground">
+              هذه الصفحة توفر نظرة شاملة على جميع العقارات في النظام. استخدمها للوصول السريع والإدارة المتقدمة.
+            </p>
             <Card className="shadow-xl">
                 <Table>
                     <TableHeader>
@@ -308,6 +311,9 @@ export default function AdminPropertiesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">إدارة جميع العقارات</h1>
+      <p className="text-muted-foreground">
+        هذه الصفحة توفر نظرة شاملة على جميع العقارات في النظام. استخدمها للوصول السريع والإدارة المتقدمة.
+      </p>
       
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-4">

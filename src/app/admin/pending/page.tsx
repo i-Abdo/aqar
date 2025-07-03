@@ -259,6 +259,9 @@ export default function AdminPendingPropertiesPage() {
     return (
         <div className="space-y-6">
             <h1 className="text-3xl font-bold font-headline">مراجعة العقارات المعلقة</h1>
+            <p className="text-muted-foreground">
+              هذه العقارات تم إضافتها من قبل مستخدمين ذوي تصنيف "غير موثوق" وتنتظر موافقتك لتظهر على الموقع.
+            </p>
             <Card className="shadow-xl">
                 <Table>
                     <TableHeader>
@@ -292,6 +295,9 @@ export default function AdminPendingPropertiesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">مراجعة العقارات المعلقة</h1>
+       <p className="text-muted-foreground">
+        هذه العقارات تم إضافتها من قبل مستخدمين ذوي تصنيف "غير موثوق" وتنتظر موافقتك لتظهر على الموقع.
+      </p>
 
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-4">
