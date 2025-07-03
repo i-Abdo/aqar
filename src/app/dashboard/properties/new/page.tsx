@@ -1,3 +1,4 @@
+
 "use client";
 
 import { PropertyForm, PropertyFormValues } from "@/components/dashboard/PropertyForm";
@@ -6,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { addDoc, collection, serverTimestamp, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
 import { plans } from "@/config/plans";
 import type { Plan, Property } from "@/types";
@@ -158,6 +159,12 @@ export default function NewPropertyPage() {
     }
   };
 
+  const initialData = useMemo(() => ({
+    filters: currentPlan?.aiAssistantAccess 
+      ? { water: false, electricity: false, internet: false, gas: false, contract: false } 
+      : undefined,
+  }), [currentPlan]);
+
   if (authLoading || isLoadingLimits) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
@@ -244,7 +251,7 @@ export default function NewPropertyPage() {
       <PropertyForm 
         onSubmit={handleSubmit} 
         isLoading={isSubmitting} 
-        initialData={{filters: currentPlan?.aiAssistantAccess ? {water:false, electricity:false, internet:false, gas:false, contract:false} : undefined}}
+        initialData={initialData}
         isEditMode={false}
       />
     </div>

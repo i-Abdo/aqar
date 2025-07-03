@@ -704,9 +704,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           <CardDescription>هذه هي المعلومات التي سيستخدمها المشترون المحتملون للتواصل معك.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
               <div>
-                  <Label htmlFor="phoneNumber">رقم الهاتف *</Label>
+                  <Label htmlFor="phoneNumber" className="flex items-center gap-1"><Phone size={16}/>رقم الهاتف *</Label>
                   <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
                   {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
               </div>
@@ -737,7 +737,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <ImageUp className="w-10 h-10 mb-2 text-muted-foreground" />
                             <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">انقر للتحميل</span> أو اسحب وأفلت الصورة هنا</p>
-                            <p className="text-xs text-muted-foreground">JPG, PNG, WEBP (الحجم الأقصى: {MAX_FILE_SIZE_MB}MB)</p>
+                            <p className="text-xs text-muted-foreground">JPG, PNG, WEBP (الحجم الأقصى: ${MAX_FILE_SIZE_MB}MB)</p>
                         </div>
                         <Input id="mainImage" type="file" onChange={handleMainImageChange} accept={ALLOWED_IMAGE_TYPES.join(",")} className="hidden" />
                     </label>
