@@ -1,9 +1,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle, MapPin } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import type { Metadata } from 'next';
 import { db as adminDb, isFirebaseAdminAppInitialized } from '@/lib/firebase/admin';
 import StatisticsSection from "@/components/home/StatisticsSection";
@@ -15,26 +14,37 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   let propertyCount = 0;
+  let userCount = 0;
 
   if (isFirebaseAdminAppInitialized) {
     try {
       const propertiesRef = adminDb.collection('properties').where('status', '==', 'active');
-      const snapshot = await propertiesRef.count().get();
-      propertyCount = snapshot.data().count;
+      const usersRef = adminDb.collection('users');
+      
+      const [propertySnapshot, userSnapshot] = await Promise.all([
+        propertiesRef.count().get(),
+        usersRef.count().get()
+      ]);
+
+      propertyCount = propertySnapshot.data().count;
+      userCount = userSnapshot.data().count;
     } catch (error) {
-      console.error("Failed to fetch property count for homepage (admin SDK might be misconfigured):", error);
-      propertyCount = 1250; // Fallback number on query error
+      console.error("Failed to fetch statistics for homepage (admin SDK might be misconfigured):", error);
+      // Use fallback numbers on query error
+      propertyCount = 1250;
+      userCount = 850;
     }
   } else {
     // Fallback if admin SDK is not initialized at all
     propertyCount = 1250;
+    userCount = 850;
   }
   
 
   return (
     <div className="flex flex-col items-center text-center space-y-12 overflow-x-hidden">
       
-      <section className="w-full py-16 md:py-24 flex items-center justify-center text-center rounded-lg bg-secondary/50 -mt-4">
+      <section className="w-full py-16 md:py-24 flex items-center justify-center text-center rounded-lg bg-primary/5 -mt-4">
         <div className="relative z-10 p-4 max-w-4xl">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-4 tracking-tight text-primary animate-in fade-in slide-in-from-bottom-4 duration-700">
             أهلاً بك في <span className="text-accent">عقاري</span>
@@ -102,7 +112,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <StatisticsSection propertyCount={propertyCount} />
+      <StatisticsSection propertyCount={propertyCount} userCount={userCount} />
 
        <section className="w-full py-12 md:py-16 bg-secondary/30 rounded-lg animate-in fade-in slide-in-from-bottom-12 duration-700">
         <h2 className="text-3xl font-bold font-headline mb-6">جاهز للبدء؟</h2>

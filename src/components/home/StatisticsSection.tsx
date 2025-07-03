@@ -45,27 +45,25 @@ function AnimatedCounter({ end, duration = 2000 }: AnimatedCounterProps) {
 
 interface StatisticsSectionProps {
   propertyCount: number;
+  userCount: number;
 }
 
-export default function StatisticsSection({ propertyCount }: StatisticsSectionProps) {
+export default function StatisticsSection({ propertyCount, userCount }: StatisticsSectionProps) {
   const stats = [
     { 
       icon: Home, 
       value: propertyCount, 
       label: "عقار متاح",
-      staticValue: false,
     },
     { 
       icon: Users, 
-      value: 850, 
-      label: "عميل راضٍ",
-      staticValue: true
+      value: userCount, 
+      label: "مستخدم مسجل",
     },
     { 
       icon: BadgeCheck, 
-      value: 1200, 
+      value: 1200, // Keep this one static for "successful operations"
       label: "عملية ناجحة",
-      staticValue: true
     },
   ];
 
@@ -74,7 +72,7 @@ export default function StatisticsSection({ propertyCount }: StatisticsSectionPr
       <h2 className="text-3xl font-bold font-headline mb-10">بالأرقام</h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
         {stats.map((stat, index) => (
-          <Card key={index} className="bg-secondary/50 p-6 shadow-lg animate-in fade-in slide-in-from-bottom-12 duration-700" style={{ animationDelay: `${200 * (index + 1)}ms` }}>
+          <Card key={index} className="bg-primary/5 p-6 shadow-lg animate-in fade-in slide-in-from-bottom-12 duration-700" style={{ animationDelay: `${200 * (index + 1)}ms` }}>
             <CardHeader className="p-0 mb-4">
               <stat.icon className="h-12 w-12 text-primary mx-auto" />
             </CardHeader>
