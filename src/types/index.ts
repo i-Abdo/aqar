@@ -72,6 +72,13 @@ export interface Property {
   firebaseStudioTestField?: string;
 }
 
+// A version of Property where Timestamps are serialized to strings
+export interface SerializableProperty extends Omit<Property, 'createdAt' | 'updatedAt'> {
+  createdAt: string;
+  updatedAt: string;
+}
+
+
 export interface LocationData {
   wilayas: { code: string; name: string }[];
 }

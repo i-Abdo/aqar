@@ -4,27 +4,40 @@
 import { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Property } from "@/types";
+import type { Property, SerializableProperty } from "@/types";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertySearchSidebar, SearchFilters } from "@/components/properties/PropertySearchSidebar";
-import { Loader2, SearchIcon, RotateCcw, Filter } from "lucide-react";
+import { Loader2, SearchIcon, RotateCcw, Filter, Sparkles } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { cn } from '@/lib/utils';
 import { PropertyCardSkeleton } from '@/components/properties/PropertyCardSkeleton';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { findProperties, FindPropertiesInput } from '@/ai/flows/find-properties-flow';
+import { Input } from '@/components/ui/input';
 
 
 const PROPERTIES_PER_PAGE = 9;
+
+// Helper to convert SerializableProperty back to Property with Date objects
+const deserializeProperties = (props: SerializableProperty[]): Property[] => {
+  return props.map(p => ({
+    ...p,
+    createdAt: new Date(p.createdAt),
+    updatedAt: new Date(p.updatedAt),
+  }));
+};
 
 export default function PropertiesPage() {
   const [allProperties, setAllProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [searchCriteria, setSearchCriteria] = useState<SearchFilters>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [smartSearchQuery, setSmartSearchQuery] = useState("");
 
   const fetchProperties = async () => {
     setIsLoading(true);
@@ -94,6 +107,26 @@ export default function PropertiesPage() {
   const handleSearch = (filters: SearchFilters) => {
     setSearchCriteria(filters);
     setIsSheetOpen(false); // Close sheet on search/reset
+  };
+
+  const handleSmartSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!smartSearchQuery.trim()) return;
+
+    setIsAiLoading(true);
+    setFilteredProperties([]); // Clear previous results
+    try {
+      const input: FindPropertiesInput = { query: smartSearchQuery };
+      const result = await findProperties(input);
+      const deserializedResult = deserializeProperties(result);
+      setFilteredProperties(deserializedResult);
+      // We are replacing the filter criteria, so we don't merge
+      setSearchCriteria({}); // Reset manual filters
+    } catch (error) {
+      console.error("Error with smart search:", error);
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
@@ -179,13 +212,42 @@ export default function PropertiesPage() {
         <p className="text-lg text-muted-foreground mt-2">جد العقار الذي يناسب احتياجاتك من بين مئات العروض.</p>
       </header>
 
+      {/* AI Smart Search Bar */}
+      <Card className="mb-8 shadow-lg bg-gradient-to-r from-primary/5 to-accent/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="text-primary" />
+            <span>البحث الذكي</span>
+          </CardTitle>
+          <CardDescription>
+            جرب البحث باللغة الطبيعية. مثال: "شقة للكراء في وهران بها 3 غرف"
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSmartSearch} className="flex flex-col sm:flex-row gap-2">
+            <Input
+              value={smartSearchQuery}
+              onChange={(e) => setSmartSearchQuery(e.target.value)}
+              placeholder="اكتب طلبك هنا..."
+              className="flex-grow text-base"
+              disabled={isAiLoading}
+            />
+            <Button type="submit" disabled={isAiLoading || !smartSearchQuery.trim()}>
+              {isAiLoading ? <Loader2 className="animate-spin" /> : <SearchIcon />}
+              <span className="ml-2">بحث ذكي</span>
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+
       {/* Mobile-only Filter Button */}
       <div className="mb-6 md:hidden">
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
             <Button variant="outline_primary" className="w-full">
               <Filter className="ml-2 rtl:mr-2 rtl:ml-0 h-5 w-5" />
-              تصفية البحث
+              تصفية البحث اليدوي
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 flex flex-col">
@@ -219,7 +281,7 @@ export default function PropertiesPage() {
         </aside>
 
         <main className="w-full md:w-2/3 lg:w-3/4">
-          {isLoading ? (
+          {isLoading || isAiLoading ? (
              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, index) => (
                 <PropertyCardSkeleton key={index} />
