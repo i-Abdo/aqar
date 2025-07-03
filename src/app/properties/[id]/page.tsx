@@ -4,8 +4,6 @@ import { db as adminDb, isFirebaseAdminAppInitialized } from '@/lib/firebase/adm
 import type { Property } from '@/types';
 import PropertyDetailClient from '@/components/properties/PropertyDetailClient';
 import { notFound } from 'next/navigation';
-import { getAuth } from 'firebase-admin/auth';
-import { app as adminApp } from '@/lib/firebase/admin';
 
 type Props = {
   params: { id: string };

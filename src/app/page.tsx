@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 import type { Metadata } from 'next';
-import { db as adminDb, isFirebaseAdminAppInitialized } from '@/lib/firebase/admin';
+import { db as adminDb } from '@/lib/firebase/admin';
 import StatisticsSection from "@/components/home/StatisticsSection";
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'عقاري - بوابتك العقارية الشاملة في الجزائر',
@@ -16,35 +17,41 @@ export default async function HomePage() {
   let propertyCount = 0;
   let userCount = 0;
 
-  if (isFirebaseAdminAppInitialized) {
-    try {
-      const propertiesRef = adminDb.collection('properties').where('status', '==', 'active');
-      const usersRef = adminDb.collection('users');
-      
-      const [propertySnapshot, userSnapshot] = await Promise.all([
-        propertiesRef.count().get(),
-        usersRef.count().get()
-      ]);
+  try {
+    // Always try to fetch, the catch block will handle initialization errors
+    const propertiesRef = adminDb.collection('properties').where('status', '==', 'active');
+    const usersRef = adminDb.collection('users');
+    
+    const [propertySnapshot, userSnapshot] = await Promise.all([
+      propertiesRef.count().get(),
+      usersRef.count().get()
+    ]);
 
-      propertyCount = propertySnapshot.data().count;
-      userCount = userSnapshot.data().count;
-    } catch (error) {
-      console.error("Failed to fetch statistics for homepage (admin SDK might be misconfigured):", error);
-      // Use fallback numbers on query error
-      propertyCount = 1250;
-      userCount = 850;
-    }
-  } else {
-    // Fallback if admin SDK is not initialized at all
+    propertyCount = propertySnapshot.data().count;
+    userCount = userSnapshot.data().count;
+  } catch (error) {
+    console.error("Failed to fetch statistics for homepage. This could be due to Firebase Admin SDK initialization issues (e.g., missing credentials in local dev) or permissions. Falling back to default values.", error);
+    // Use fallback numbers on any error
     propertyCount = 1250;
     userCount = 850;
   }
-  
 
   return (
     <div className="flex flex-col items-center text-center space-y-12 overflow-x-hidden">
       
-      <section className="w-full py-16 md:py-24 flex items-center justify-center text-center rounded-lg bg-primary/5 -mt-4">
+      <section className="relative w-full py-16 md:py-24 flex items-center justify-center text-center -mt-4">
+         <div className="absolute inset-0 bg-primary/5 overflow-hidden">
+          <Image
+            src="https://res.cloudinary.com/dgz2rwp09/image/upload/v1750762925/modern-villa-pool_i2vxqg.jpg"
+            alt="خلفية فيلا عصرية"
+            fill
+            style={{objectFit: 'cover'}}
+            className="opacity-20"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+        </div>
+
         <div className="relative z-10 p-4 max-w-4xl">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-4 tracking-tight text-primary animate-in fade-in slide-in-from-bottom-4 duration-700">
             أهلاً بك في <span className="text-accent">عقاري</span>
