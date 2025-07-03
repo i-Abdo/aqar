@@ -145,8 +145,8 @@ export default function ProfilePage() {
     },
   });
 
-  const passwordValue = form.watch("password");
-  const passwordStrength = React.useMemo(() => calculatePasswordStrength(passwordValue), [passwordValue]);
+  const newPasswordValue = form.watch("newPassword");
+  const passwordStrength = React.useMemo(() => calculatePasswordStrength(newPasswordValue || ""), [newPasswordValue]);
 
   React.useEffect(() => {
     if (user) {
@@ -323,7 +323,7 @@ export default function ProfilePage() {
               <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
               <Input id="newPassword" type="password" {...form.register("newPassword")} placeholder="••••••••" disabled={isSubmitting || isPasswordChangeDisabled} />
               {form.formState.errors.newPassword && <p className="text-sm text-destructive">{form.formState.errors.newPassword.message}</p>}
-              {passwordValue && <PasswordStrengthIndicator strength={passwordStrength} />}
+              {newPasswordValue && <PasswordStrengthIndicator strength={passwordStrength} />}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmNewPassword">تأكيد كلمة المرور الجديدة</Label>
