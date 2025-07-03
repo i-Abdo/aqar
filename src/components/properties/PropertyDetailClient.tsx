@@ -4,7 +4,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -102,6 +102,8 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  
+  const [copiedShare, setCopiedShare] = useState(false);
   
   const mapEmbedUrl = useMemo(() => {
     // Prioritize coordinates if they exist
@@ -232,6 +234,38 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     }
   }, [property, isAdmin]);
   
+    const handleShare = async () => {
+    if (!property) return;
+
+    const fullUrl = `${window.location.origin}/properties/${property.id}`;
+    const shareTitle = property.title;
+    const shareText = `تحقق من هذا العقار: ${property.title}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: fullUrl,
+        });
+      } catch (error) {
+        console.log('Web Share API canceled.', error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(fullUrl);
+        setCopiedShare(true);
+        toast({ title: "تم نسخ الرابط!", description: "يمكنك الآن لصقه ومشاركته." });
+        setTimeout(() => setCopiedShare(false), 2000);
+      } catch (err) {
+        toast({
+          title: "خطأ",
+          description: "لم نتمكن من نسخ الرابط. يرجى المحاولة يدويًا.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const handleAdminPropertyStatusChange = async (newStatus: Property['status'], reason?: string) => {
     if (!property || !isAdmin) return;
@@ -535,6 +569,22 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
             <div className="w-full">
                 <h3 className="text-xl font-semibold mb-4 font-headline text-center">الإجراءات</h3>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                   <Button
+                        size="lg"
+                        variant="default"
+                        className="flex-1 transition-smooth hover:shadow-md"
+                        onClick={handleShare}
+                    >
+                        {copiedShare ? (
+                            <>
+                                <Check size={20} className="ml-2 rtl:mr-2 rtl:ml-0 text-green-400" /> تم النسخ
+                            </>
+                        ) : (
+                            <>
+                                <Share2 size={20} className="ml-2 rtl:mr-2 rtl:ml-0" /> مشاركة العقار
+                            </>
+                        )}
+                    </Button>
                    {user && !isAdmin && !isOwner && (
                      <Button 
                         size="lg" 
