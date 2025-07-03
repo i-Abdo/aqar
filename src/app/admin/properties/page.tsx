@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Trash2, Archive, Eye, Loader2, RefreshCcwDot, UserCog, UserCheck, UserX, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { Property, UserTrustLevel, CustomUser } from "@/types";
 import Image from "next/image";
@@ -55,32 +55,54 @@ export default function AdminPropertiesPage() {
   const fetchAllProperties = async () => {
     setIsLoading(true);
     try {
-      const q = query(collection(db, "properties"), orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
-      const propsDataPromises = querySnapshot.docs.map(async (docSnap) => {
-        const data = docSnap.data() as Property;
-        let ownerEmail: string | undefined = undefined;
-        let ownerCurrentTrustLevel: UserTrustLevel | undefined = 'normal';
+      // 1. Fetch all properties
+      const propsQuery = query(collection(db, "properties"), orderBy("createdAt", "desc"));
+      const propsSnapshot = await getDocs(propsQuery);
+      const propsData = propsSnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Property));
 
-        if (data.userId) {
-          const userRef = doc(db, "users", data.userId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            const userData = userSnap.data() as CustomUser;
-            ownerEmail = userData.email;
-            ownerCurrentTrustLevel = userData.trustLevel || 'normal';
-          }
+      if (propsData.length === 0) {
+        setProperties([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // 2. Collect unique user IDs
+      const userIds = [...new Set(propsData.map(p => p.userId).filter(Boolean))];
+      const usersMap = new Map<string, { email?: string; trustLevel?: UserTrustLevel }>();
+
+      // 3. Fetch users in chunks of 30 (Firestore 'in' query limit)
+      if (userIds.length > 0) {
+        const userChunks = [];
+        for (let i = 0; i < userIds.length; i += 30) {
+          userChunks.push(userIds.slice(i, i + 30));
         }
+        
+        const userPromises = userChunks.map(chunk => 
+            getDocs(query(collection(db, "users"), where("uid", "in", chunk)))
+        );
+
+        const userSnapshots = await Promise.all(userPromises);
+        userSnapshots.forEach(snapshot => {
+          snapshot.forEach(userDoc => {
+            const userData = userDoc.data() as CustomUser;
+            usersMap.set(userDoc.id, { email: userData.email, trustLevel: userData.trustLevel || 'normal' });
+          });
+        });
+      }
+
+      // 4. Combine properties with their owner's data
+      const resolvedPropsData = propsData.map(prop => {
+        const ownerInfo = prop.userId ? usersMap.get(prop.userId) : undefined;
         return {
-          id: docSnap.id,
-          ...data,
-          createdAt: (data.createdAt as unknown as Timestamp)?.toDate ? (data.createdAt as unknown as Timestamp).toDate() : new Date(data.createdAt as any),
-          updatedAt: (data.updatedAt as unknown as Timestamp)?.toDate ? (data.updatedAt as unknown as Timestamp).toDate() : new Date(data.updatedAt as any),
-          ownerEmail,
-          ownerCurrentTrustLevel,
+          id: prop.id,
+          ...prop,
+          createdAt: (prop.createdAt as unknown as Timestamp)?.toDate ? (prop.createdAt as unknown as Timestamp).toDate() : new Date(prop.createdAt as any),
+          updatedAt: (prop.updatedAt as unknown as Timestamp)?.toDate ? (prop.updatedAt as unknown as Timestamp).toDate() : new Date(prop.updatedAt as any),
+          ownerEmail: ownerInfo?.email,
+          ownerCurrentTrustLevel: ownerInfo?.trustLevel,
         } as AdminProperty;
       });
-      const resolvedPropsData = await Promise.all(propsDataPromises);
+      
       setProperties(resolvedPropsData);
     } catch (error) {
       console.error("Error fetching all properties:", error);
@@ -93,6 +115,7 @@ export default function AdminPropertiesPage() {
 
   useEffect(() => {
     fetchAllProperties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openDeleteDialog = (property: AdminProperty) => {
@@ -398,4 +421,3 @@ export default function AdminPropertiesPage() {
     </div>
   );
 }
-

@@ -8,9 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Loader2, CheckCircle, AlertOctagon, ArchiveX, MessageSquare, Trash2, Archive, RefreshCcwDot, UserCheck, UserX, UserCog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { Report, Property, UserTrustLevel } from "@/types";
+import type { Report, Property, UserTrustLevel, CustomUser } from "@/types";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -79,53 +79,88 @@ export default function AdminReportsPage() {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-      const q = query(collection(db, "reports"), orderBy("reportedAt", "desc"));
-      const querySnapshot = await getDocs(q);
-      const reportsDataPromises = querySnapshot.docs.map(async (docSnap) => {
-        const data = docSnap.data();
-        let ownerTrustLevel: UserTrustLevel = 'normal';
-        let ownerUserId: string | undefined = undefined;
+        // 1. Fetch all reports
+        const reportsQuery = query(collection(db, "reports"), orderBy("reportedAt", "desc"));
+        const reportsSnapshot = await getDocs(reportsQuery);
+        const reportsData = reportsSnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Report));
 
-        if (data.propertyId) {
-            try {
-                const propRef = doc(db, "properties", data.propertyId);
-                const propSnap = await getDoc(propRef);
-                if (propSnap.exists()) {
-                    const propData = propSnap.data();
-                    if (propData && propData.userId) {
-                        ownerUserId = propData.userId;
-                        const userRef = doc(db, "users", ownerUserId);
-                        const userSnap = await getDoc(userRef);
-                        if (userSnap.exists()) {
-                            ownerTrustLevel = userSnap.data()?.trustLevel || 'normal';
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error("Failed to fetch owner details for report", data.id, e);
-            }
+        if (reportsData.length === 0) {
+            setReports([]);
+            setIsLoading(false);
+            return;
         }
-        return {
-          id: docSnap.id,
-          ...data,
-          ownerCurrentTrustLevel: ownerTrustLevel,
-          ownerUserId: ownerUserId,
-          reportedAt: (data.reportedAt as Timestamp)?.toDate ? (data.reportedAt as Timestamp).toDate() : new Date(data.reportedAt || Date.now()),
-          updatedAt: (data.updatedAt as Timestamp)?.toDate ? (data.updatedAt as Timestamp).toDate() : new Date(data.updatedAt || Date.now()),
-        };
-      });
-      const reportsData = await Promise.all(reportsDataPromises);
-      setReports(reportsData as EnhancedReport[]);
+
+        // 2. Collect unique property IDs from reports
+        const propertyIds = [...new Set(reportsData.map(r => r.propertyId).filter(Boolean))];
+        const propertiesMap = new Map<string, Property>();
+
+        // 3. Fetch all related properties in chunks
+        if (propertyIds.length > 0) {
+            const propChunks = [];
+            for (let i = 0; i < propertyIds.length; i += 30) {
+                propChunks.push(propertyIds.slice(i, i + 30));
+            }
+            // Use __name__ to query by document ID in the web SDK
+            const propPromises = propChunks.map(chunk =>
+                getDocs(query(collection(db, "properties"), where("__name__", "in", chunk)))
+            );
+            const propSnapshots = await Promise.all(propPromises);
+            propSnapshots.forEach(snapshot => {
+                snapshot.forEach(propDoc => {
+                    propertiesMap.set(propDoc.id, { id: propDoc.id, ...propDoc.data() } as Property);
+                });
+            });
+        }
+
+        // 4. Collect unique user IDs from the fetched properties
+        const userIds = [...new Set(Array.from(propertiesMap.values()).map(p => p.userId).filter(Boolean))];
+        const usersMap = new Map<string, { trustLevel: UserTrustLevel }>();
+
+        // 5. Fetch all related users in chunks
+        if (userIds.length > 0) {
+            const userChunks = [];
+            for (let i = 0; i < userIds.length; i += 30) {
+                userChunks.push(userIds.slice(i, i + 30));
+            }
+            const userPromises = userChunks.map(chunk =>
+                getDocs(query(collection(db, "users"), where("uid", "in", chunk)))
+            );
+            const userSnapshots = await Promise.all(userPromises);
+            userSnapshots.forEach(snapshot => {
+                snapshot.forEach(userDoc => {
+                    const userData = userDoc.data() as CustomUser;
+                    usersMap.set(userDoc.id, { trustLevel: userData.trustLevel || 'normal' });
+                });
+            });
+        }
+
+        // 6. Combine all data into enhanced reports
+        const enhancedReportsData = reportsData.map(report => {
+            const property = report.propertyId ? propertiesMap.get(report.propertyId) : undefined;
+            const ownerUserId = property?.userId;
+            const ownerInfo = ownerUserId ? usersMap.get(ownerUserId) : undefined;
+            
+            return {
+                ...report,
+                ownerCurrentTrustLevel: ownerInfo?.trustLevel || 'normal',
+                ownerUserId: ownerUserId,
+                reportedAt: (report.reportedAt as any)?.toDate ? (report.reportedAt as any).toDate() : new Date(report.reportedAt || Date.now()),
+                updatedAt: (report.updatedAt as any)?.toDate ? (report.updatedAt as any).toDate() : new Date(report.updatedAt || Date.now()),
+            } as EnhancedReport;
+        });
+
+        setReports(enhancedReportsData);
     } catch (error) {
-      console.error("Error fetching reports:", error);
-      toast({ title: "خطأ", description: "لم نتمكن من تحميل البلاغات.", variant: "destructive" });
+        console.error("Error fetching reports:", error);
+        toast({ title: "خطأ", description: "لم نتمكن من تحميل البلاغات.", variant: "destructive" });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
   useEffect(() => {
     fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openNotesDialog = (report: Report) => {
@@ -576,5 +611,3 @@ export default function AdminReportsPage() {
     </div>
   );
 }
-
-
