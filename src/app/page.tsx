@@ -1,10 +1,9 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Lightbulb, LifeBuoy } from "lucide-react";
 import type { Metadata } from 'next';
-import { db as adminDb, isFirebaseAdminAppInitialized } from '@/lib/firebase/admin';
-import StatisticsSection from "@/components/home/StatisticsSection";
 import Image from 'next/image';
 
 export const metadata: Metadata = {
@@ -13,35 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  let propertyCount = 0;
-  let userCount = 0;
-
-  if (isFirebaseAdminAppInitialized) {
-    try {
-      const propertiesRef = adminDb.collection('properties').where('status', '==', 'active');
-      const usersRef = adminDb.collection('users');
-      
-      const [propertySnapshot, userSnapshot] = await Promise.all([
-        propertiesRef.count().get(),
-        usersRef.count().get()
-      ]);
-
-      propertyCount = propertySnapshot.data().count;
-      userCount = userSnapshot.data().count;
-    } catch (error) {
-      console.error("Failed to fetch statistics for homepage. Falling back to default values.", error);
-      // Use fallback numbers on any error
-      propertyCount = 1250;
-      userCount = 850;
-    }
-  } else {
-    // Use fallback numbers if admin SDK is not initialized
-    console.warn("Firebase Admin SDK not initialized. Using fallback statistics for homepage.");
-    propertyCount = 1250;
-    userCount = 850;
-  }
   
-
   return (
     <div className="flex flex-col items-center text-center space-y-12 overflow-x-hidden">
       
@@ -51,7 +22,7 @@ export default async function HomePage() {
         </div>
 
         <div className="relative z-10 p-4 max-w-4xl">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-4 tracking-tight text-primary animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-4 tracking-tight text-primary-foreground animate-in fade-in slide-in-from-bottom-4 duration-700">
             أهلاً بك في <span className="text-accent">عقاري</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mx-auto mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
@@ -117,7 +88,45 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <StatisticsSection propertyCount={propertyCount} userCount={userCount} />
+      <section className="w-full py-12 md:py-16">
+        <h2 className="text-3xl font-bold font-headline mb-10 text-center">
+          موارد إضافية لمساعدتك
+        </h2>
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto text-right">
+          <Card className="shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="text-primary" />
+                <span>نصائح عقارية</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                سواء كنت تبيع أو تشتري، اكتشف نصائح خبرائنا لتحقيق أفضل صفقة ممكنة وتجنب الأخطاء الشائعة.
+              </p>
+              <Button asChild variant="outline_primary">
+                <Link href="#">تصفح النصائح (قريباً)</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg hover:shadow-xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-400">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LifeBuoy className="text-accent" />
+                <span>تواصل معنا</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                فريق الدعم لدينا جاهز للإجابة على جميع استفساراتك ومساعدتك في أي وقت.
+              </p>
+              <Button asChild variant="outline_accent">
+                <Link href="/dashboard/settings">اتصل بالدعم الفني</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
        <section className="w-full py-12 md:py-16 bg-secondary/30 rounded-lg animate-in fade-in slide-in-from-bottom-12 duration-700">
         <h2 className="text-3xl font-bold font-headline mb-6">جاهز للبدء؟</h2>
