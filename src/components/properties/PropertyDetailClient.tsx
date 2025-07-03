@@ -558,7 +558,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                     <CardHeader>
                         <CardTitle className="font-headline text-xl text-center">التواصل مع صاحب العقار</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-4">
                         {phoneNumber && (
                             <a href={`tel:${phoneNumber}`} className="w-full">
                                 <Button size="lg" className="w-full text-base transition-smooth hover:shadow-md">
@@ -577,7 +577,9 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                         )}
                         {instagramUrl && (
                             <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="w-full">
-                                <Button size="lg" variant="outline_accent" className="w-full text-base transition-smooth hover:shadow-md">
+                                <Button 
+                                    size="lg" 
+                                    className="w-full text-base transition-smooth hover:shadow-md text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:bg-gradient-to-br">
                                     <Instagram size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
                                     انستقرام
                                 </Button>
@@ -667,3 +669,4 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     </>
   );
 }
+
