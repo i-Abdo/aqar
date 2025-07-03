@@ -21,7 +21,7 @@ export default function HomePage() {
           </div>
 
           <div className="relative z-10 p-4 max-w-4xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-4 tracking-tight text-primary-foreground animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-6 tracking-tight text-primary animate-in fade-in slide-in-from-bottom-4 duration-700">
               أهلاً بك في <span className="text-accent">عقاري</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mx-auto mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
