@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 import { siteConfig } from '@/config/site'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticRoutes = ['', '/pricing', '/properties', '/terms', '/privacy', '/login', '/signup'].map((route) => ({
+  const staticRoutes = ['', '/pricing', '/properties', '/terms', '/privacy', '/login', '/signup', '/tips'].map((route) => ({
     url: `${siteConfig.url}${route}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,

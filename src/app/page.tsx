@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
@@ -105,7 +104,7 @@ export default async function HomePage() {
                 سواء كنت تبيع أو تشتري، اكتشف نصائح خبرائنا لتحقيق أفضل صفقة ممكنة وتجنب الأخطاء الشائعة.
               </p>
               <Button asChild variant="outline_primary">
-                <Link href="#">تصفح النصائح (قريباً)</Link>
+                <Link href="/tips">تصفح النصائح</Link>
               </Button>
             </CardContent>
           </Card>
