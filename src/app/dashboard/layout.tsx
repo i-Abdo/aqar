@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState, useRef } from "react";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
-import { Loader2, Menu } from "lucide-react";
+import { Loader2, ChevronsLeft } from "lucide-react";
 import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"; 
 import { Button } from "@/components/ui/button";
 
@@ -30,7 +30,7 @@ function DashboardInternalLayout({ children }: { children: React.ReactNode }) {
             className="absolute top-2 right-2 z-20 h-10 w-10 md:hidden"
             aria-label="فتح القائمة"
           >
-            <Menu className="h-5 w-5" />
+            <ChevronsLeft className="h-6 w-6" />
           </Button>
           <div className="flex-1 p-2 pt-14 md:pt-4 md:p-4 overflow-y-auto">
             {children}

@@ -259,7 +259,7 @@ export const Sidebar = React.forwardRef<
             ref={ref as React.Ref<HTMLDivElement>}
             data-state={open ? "open" : "closed"}
             className={cn(
-              "fixed z-40 flex flex-col transition-transform duration-300 ease-in-out",
+              "fixed z-[60] flex flex-col transition-transform duration-300 ease-in-out",
               "top-[var(--header-height)] h-[calc(100svh-var(--header-height))]",
               "w-[var(--sidebar-width-mobile,15rem)]",
               "bg-sidebar text-sidebar-foreground shadow-2xl",
