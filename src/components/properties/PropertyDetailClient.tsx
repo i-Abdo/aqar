@@ -42,6 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatDisplayPrice } from '@/lib/utils';
+import { siteConfig } from '@/config/site';
 
 
 // Helper function to convert ISO string back to Date object
@@ -270,7 +271,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     try {
       const userRef = doc(db, "users", ownerDetailsForAdmin.uid);
       await updateDoc(userRef, { trustLevel: newTrustLevel, updatedAt: serverTimestamp() });
-      toast({ title: "تم تحديث تصنيف المالك", description: `تم تغيير تصنيف المالك إلى ${trustLevelTranslations[newTrustLevel]}.`});
+      toast({ title: "تم تحديث تصنيف المالك", description: `تم تغيير تصنيف مالك العقار إلى ${trustLevelTranslations[newTrustLevel]}.`});
       setOwnerDetailsForAdmin(prev => prev ? {...prev, trustLevel: newTrustLevel } : null);
     } catch (e) {
       console.error("Error updating owner trust level by admin:", e);
@@ -279,6 +280,35 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
       setIsPropertyActionLoading(false);
     }
   };
+
+  const generateJsonLd = () => {
+    if (!property) return null;
+    
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: property.title,
+      description: property.description,
+      image: property.imageUrls && property.imageUrls.length > 0 ? property.imageUrls[0] : undefined,
+      url: `${siteConfig.url}/properties/${property.id}`,
+      offers: {
+        '@type': 'Offer',
+        price: property.price,
+        priceCurrency: 'DZD',
+        availability: property.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+        seller: {
+          '@type': 'Organization',
+          name: siteConfig.name,
+        },
+      },
+      brand: {
+        '@type': 'Brand',
+        name: siteConfig.name,
+      },
+    };
+  };
+
+  const jsonLd = generateJsonLd();
 
   if (isLoading || authLoading) {
     return (
@@ -325,6 +355,13 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   const isOwner = user && propertyOwnerId === user.uid;
 
   return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
      <div className="container mx-auto py-8">
       <Card className="shadow-2xl overflow-hidden max-w-5xl mx-auto">
         <CardHeader className="p-0">
@@ -690,5 +727,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }

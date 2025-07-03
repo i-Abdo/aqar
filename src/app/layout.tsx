@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/hooks/use-theme';
 import { Almarai, Cairo } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { siteConfig } from '@/config/site';
 
 const fontBody = Almarai({
   subsets: ['arabic'],
@@ -26,8 +27,51 @@ const fontHeadline = Cairo({
 
 
 export const metadata: Metadata = {
-  title: 'عقاري - بوابتك العقارية الشاملة',
-  description: 'عقاري - منصتك المثالية لإيجاد وبيع العقارات في الجزائر.',
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: siteConfig.name,
+    template: `%s - ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  openGraph: {
+    title: {
+      default: siteConfig.name,
+      template: `%s - ${siteConfig.name}`,
+    },
+    description: siteConfig.description,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+    images: [
+      {
+        url: siteConfig.ogImage,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.description
+      },
+    ],
+    locale: 'ar_DZ',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: {
+       default: siteConfig.name,
+      template: `%s - ${siteConfig.name}`,
+    },
+    description: siteConfig.description,
+    images: [siteConfig.ogImage],
+  },
 };
 
 export default function RootLayout({
