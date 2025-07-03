@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AiDescriptionAssistant } from "./AiDescriptionAssistant";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check, Facebook, Instagram } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check, Facebook, Instagram, PenSquare } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
@@ -22,6 +22,7 @@ import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"; 
 import { resolveGoogleMapsUrl } from "@/actions/locationActions";
+import { cn } from "@/lib/utils";
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -83,7 +84,7 @@ const propertyFormSchema = z.object({
     }),
   facebookUrl: z.string().url({ message: "الرجاء إدخال رابط فيسبوك صالح." }).optional().or(z.literal('')),
   instagramUrl: z.string().url({ message: "الرجاء إدخال رابط انستقرام صالح." }).optional().or(z.literal('')),
-  description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(1000, "الوصف يجب أن لا يتجاوز 1000 حرفًا."), // Increased max length
+  description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(1000, "الوصف يجب أن لا يتجاوز 1000 حرفًا."),
   filters: z.object({
     water: z.boolean().default(false),
     electricity: z.boolean().default(false),
@@ -474,20 +475,14 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
 
   return (
-    <Card className="w-full shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-2xl font-headline">
-          {isEditMode ? "تعديل العقار" : "إضافة عقار جديد"}
-        </CardTitle>
-        <CardDescription>
-          املأ التفاصيل أدناه ل{isEditMode ? "تعديل" : "نشر"} عقارك. الحقول المميزة بـ * إلزامية.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
-          
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold font-headline border-b pb-1">المعلومات الأساسية</h3>
+    <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+      
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><PenSquare size={24}/>المعلومات الأساسية</CardTitle>
+          <CardDescription>ابدأ بالمعلومات الرئيسية التي تجذب انتباه الباحثين.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
             <div>
               <Label htmlFor="title">عنوان الإعلان *</Label>
               <Input id="title" {...form.register("title")} placeholder="مثال: شقة فاخرة مطلة على البحر" />
@@ -536,9 +531,17 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 {form.formState.errors.otherPropertyType && <p className="text-sm text-destructive">{form.formState.errors.otherPropertyType.message}</p>}
               </div>
             )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                 <div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Ruler size={24}/>التفاصيل والمواصفات</CardTitle>
+          <CardDescription>قدم تفاصيل دقيقة حول مواصفات العقار ومساحته.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                 <div className="md:col-span-1">
                     <Label htmlFor="manualPriceInput" className="flex items-center gap-1"><DollarSign size={16}/>السعر *</Label>
                     <div className="flex gap-2">
                         <Input 
@@ -548,7 +551,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                             value={manualPriceInput}
                             onChange={(e) => {
                                 const val = e.target.value;
-                                if (/^\d*\.?\d*$/.test(val)) { // Allow numbers and one decimal point
+                                if (/^\d*\.?\d*$/.test(val)) {
                                     setManualPriceInput(val);
                                 }
                             }}
@@ -568,21 +571,18 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                     </div>
                     {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
                 </div>
+                 <div>
+                    <Label htmlFor="rooms" className="flex items-center gap-1"><BedDouble size={16}/>عدد الغرف *</Label>
+                    <Input lang="en" id="rooms" type="number" {...form.register("rooms")} placeholder="--" className="input-latin-numerals" />
+                    {form.formState.errors.rooms && <p className="text-sm text-destructive">{form.formState.errors.rooms.message}</p>}
+                 </div>
+                 <div>
+                    <Label htmlFor="bathrooms" className="flex items-center gap-1"><Bath size={16}/>عدد الحمامات *</Label>
+                    <Input lang="en" id="bathrooms" type="number" {...form.register("bathrooms")} placeholder="--" className="input-latin-numerals" />
+                    {form.formState.errors.bathrooms && <p className="text-sm text-destructive">{form.formState.errors.bathrooms.message}</p>}
+                 </div>
             </div>
-
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="rooms" className="flex items-center gap-1"><BedDouble size={16}/>عدد الغرف *</Label>
-                <Input lang="en" id="rooms" type="number" {...form.register("rooms")} placeholder="--" className="input-latin-numerals" />
-                {form.formState.errors.rooms && <p className="text-sm text-destructive">{form.formState.errors.rooms.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="bathrooms" className="flex items-center gap-1"><Bath size={16}/>عدد الحمامات *</Label>
-                <Input lang="en" id="bathrooms" type="number" {...form.register("bathrooms")} placeholder="--" className="input-latin-numerals" />
-                {form.formState.errors.bathrooms && <p className="text-sm text-destructive">{form.formState.errors.bathrooms.message}</p>}
-              </div>
-            </div>
+            
             <div className="grid md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="length" className="flex items-center gap-1"><Ruler size={16}/>الطول (متر) *</Label>
@@ -600,11 +600,15 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 {form.formState.errors.area && <p className="text-sm text-destructive">{form.formState.errors.area.message}</p>}
               </div>
             </div>
-          </div>
-
-          
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><MapPin size={18}/>الموقع</h3>
+        </CardContent>
+      </Card>
+      
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><MapPin size={24}/>الموقع</CardTitle>
+          <CardDescription>حدد موقع العقار بدقة لمساعدة الباحثين في العثور عليه.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
              <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="wilaya">الولاية *</Label>
@@ -638,36 +642,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                   <Input id="address" {...form.register("address")} placeholder="مثال: شارع الحرية، رقم 15" />
                 </div>
             </div>
-          </div>
-           
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><Phone size={18}/>معلومات التواصل</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <Label htmlFor="phoneNumber">رقم الهاتف *</Label>
-                    <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
-                    {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
-                </div>
-                <div>
-                    <Label htmlFor="facebookUrl">رابط فيسبوك (اختياري)</Label>
-                    <Input id="facebookUrl" {...form.register("facebookUrl")} placeholder="https://facebook.com/your-profile" />
-                    {form.formState.errors.facebookUrl && <p className="text-sm text-destructive">{form.formState.errors.facebookUrl.message}</p>}
-                </div>
-                <div>
-                    <Label htmlFor="instagramUrl">رابط انستقرام (اختياري)</Label>
-                    <Input id="instagramUrl" {...form.register("instagramUrl")} placeholder="https://instagram.com/your-profile" />
-                    {form.formState.errors.instagramUrl && <p className="text-sm text-destructive">{form.formState.errors.instagramUrl.message}</p>}
-                </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-            سيتم عرض معلومات التواصل هذه للمشترين المحتملين.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold font-headline border-b pb-1 flex items-center gap-1"><Map size={18}/>الموقع على الخريطة (اختياري)</h3>
             <div>
-                <Label htmlFor="googleMapsLink">رابط الموقع</Label>
+                <Label htmlFor="googleMapsLink" className="flex items-center gap-1"><Map size={16}/>رابط الموقع على الخريطة (اختياري)</Label>
                 <div className="relative w-full">
                     <Controller
                       name="googleMapsLink"
@@ -676,19 +652,19 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         <Input 
                           {...field}
                           id="googleMapsLink" 
-                          placeholder="الصق الرابط هنا [من google map]"
+                          placeholder="الصق الرابط هنا من خرائط جوجل"
                           dir="ltr" 
                           className="text-left flex-grow pl-10 rtl:pr-10 rtl:pl-3"
                           onChange={(e) => {
                             field.onChange(e);
-                            setUrlVerificationStatus('idle'); // Reset verification on change
+                            setUrlVerificationStatus('idle'); 
                             setGoogleMapsLinkDirty(true);
                           }}
                           onBlur={handleVerificationOnBlur}
                         />
                       )}
                     />
-                     <div className="absolute inset-y-0 left-0 rtl:right-0 rtl:left-auto flex items-center pl-3 rtl:pr-3">
+                     <div className="absolute inset-y-0 left-0 rtl:right-0 rtl:left-auto flex items-center pl-3 rtl:pr-3 pointer-events-none">
                         {isVerifyingUrl ? (
                             <Loader2 className="animate-spin text-muted-foreground" />
                         ) : urlVerificationStatus === 'success' ? (
@@ -706,7 +682,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 )}
             </div>
             
-            {mapEmbedUrl ? (
+            {mapEmbedUrl && (
                 <div className="mt-4 aspect-video w-full rounded-md overflow-hidden border">
                     <iframe
                         width="100%"
@@ -718,17 +694,107 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         title="معاينة الموقع على الخريطة"
                     ></iframe>
                 </div>
-            ) : form.getValues("googleMapsLink") && urlVerificationStatus === 'success' ? (
-                <div className="mt-4 p-3 border border-dashed border-amber-500 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-sm text-center">
-                    <p>
-                        تم التحقق من الرابط بنجاح، ولكن تعذر استخلاص الإحداثيات لعرض معاينة. سيتم حفظ الرابط فقط.
-                    </p>
-                </div>
-            ) : null}
+            )}
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Phone size={24}/>معلومات التواصل</CardTitle>
+          <CardDescription>هذه هي المعلومات التي سيستخدمها المشترون المحتملون للتواصل معك.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                  <Label htmlFor="phoneNumber">رقم الهاتف *</Label>
+                  <Input id="phoneNumber" type="tel" {...form.register("phoneNumber")} placeholder="06XXXXXXXX" />
+                  {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
+              </div>
+              <div>
+                  <Label htmlFor="facebookUrl" className="flex items-center gap-1"><Facebook size={16}/>رابط فيسبوك (اختياري)</Label>
+                  <Input id="facebookUrl" {...form.register("facebookUrl")} placeholder="https://facebook.com/your-profile" />
+                  {form.formState.errors.facebookUrl && <p className="text-sm text-destructive">{form.formState.errors.facebookUrl.message}</p>}
+              </div>
+              <div>
+                  <Label htmlFor="instagramUrl" className="flex items-center gap-1"><Instagram size={16}/>رابط انستقرام (اختياري)</Label>
+                  <Input id="instagramUrl" {...form.register("instagramUrl")} placeholder="https://instagram.com/your-profile" />
+                  {form.formState.errors.instagramUrl && <p className="text-sm text-destructive">{form.formState.errors.instagramUrl.message}</p>}
+              </div>
           </div>
-          
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold font-headline border-b pb-1">الميزات والخدمات</h3>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><ImageUp size={24}/>صور العقار</CardTitle>
+          <CardDescription>الصور الجيدة هي أول ما يجذب المشاهدين. ابدأ بالصورة الرئيسية.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+            <div>
+                <Label className="text-lg font-semibold flex items-center gap-1 mb-2"><ImageIcon size={18}/>صورة العقار الرئيسية *</Label>
+                {!mainImagePreview ? (
+                    <label htmlFor="mainImage" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <ImageUp className="w-10 h-10 mb-2 text-muted-foreground" />
+                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">انقر للتحميل</span> أو اسحب وأفلت الصورة هنا</p>
+                            <p className="text-xs text-muted-foreground">JPG, PNG, WEBP (الحجم الأقصى: {MAX_FILE_SIZE_MB}MB)</p>
+                        </div>
+                        <Input id="mainImage" type="file" onChange={handleMainImageChange} accept={ALLOWED_IMAGE_TYPES.join(",")} className="hidden" />
+                    </label>
+                ) : (
+                    <div className="relative group w-full max-w-sm">
+                        <Image src={mainImagePreview} alt="معاينة الصورة الرئيسية" width={400} height={300} className="rounded-md object-cover aspect-[4/3] border" data-ai-hint="property interior room" />
+                        <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={removeMainImage} aria-label="إزالة الصورة الرئيسية">
+                            <Trash2 size={16} />
+                        </Button>
+                    </div>
+                )}
+                 {!mainImagePreview && <p className="text-sm text-accent mt-2">يجب تحميل صورة رئيسية.</p>}
+            </div>
+            <div>
+                <Label className="text-lg font-semibold flex items-center gap-1 mb-2"><ImageUp size={18}/>الصور التوضيحية الإضافية</Label>
+                 <p className="text-sm text-muted-foreground mb-4">
+                    {maxAdditionalImages > 0 ?
+                        <span>{`يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية. (${additionalImagePreviews.length}/${maxAdditionalImages} محملة)`}</span> :
+                        <span className="text-accent">لا تسمح خطتك الحالية بتحميل صور إضافية. <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link> للاستفادة منها.</span>
+                    }
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+                  {additionalImagePreviews.map((preview, index) => (
+                      <div key={preview + index} className="relative group">
+                          <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3] border" data-ai-hint="property room detail" />
+                          <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAdditionalImage(index)} aria-label="إزالة الصورة الإضافية">
+                              <Trash2 size={16} />
+                          </Button>
+                      </div>
+                  ))}
+                </div>
+                
+                {additionalImagePreviews.length < maxAdditionalImages && (
+                    <label htmlFor="additionalImages" className={cn(
+                        "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                        "hover:bg-muted/50"
+                    )}>
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <ImageUp className="w-8 h-8 mb-2 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground"><span className="font-semibold">إضافة المزيد من الصور</span></p>
+                        </div>
+                        <Input id="additionalImages" type="file" multiple onChange={handleAdditionalImagesChange} accept={ALLOWED_IMAGE_TYPES.join(",")} className="hidden" />
+                    </label>
+                )}
+            </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">الميزات والوصف *</CardTitle>
+          <CardDescription>أضف تفاصيل حول الخدمات المتوفرة ووصفًا جذابًا لعقارك.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-3">الميزات والخدمات المتوفرة</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {(Object.keys(form.getValues().filters || {}) as Array<keyof PropertyFormValues['filters']>).map((key) => {
                 const Icon = key === 'water' ? Droplet : key === 'electricity' ? Zap : key === 'internet' ? Wifi : key === 'gas' ? UtilityPole : FileText;
@@ -750,73 +816,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
               })}
             </div>
           </div>
-
-          
-          <div className="space-y-6">
-            <div>
-                <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageIcon size={18}/>صورة العقار الرئيسية *</h3>
-                <Input id="mainImage" type="file" onChange={handleMainImageChange} accept={ALLOWED_IMAGE_TYPES.join(",")} />
-                <p className="text-xs text-muted-foreground mt-1">الأنواع المسموح بها: JPG, PNG, WEBP. الحجم الأقصى: ${MAX_FILE_SIZE_MB}MB.</p>
-                {mainImagePreview && (
-                    <div className="mt-4 relative group w-48">
-                    <Image src={mainImagePreview} alt="معاينة الصورة الرئيسية" width={200} height={150} className="rounded-md object-cover aspect-[4/3]" data-ai-hint="property interior room" />
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={removeMainImage}
-                        aria-label="إزالة الصورة الرئيسية"
-                    >
-                        <Trash2 size={16} />
-                    </Button>
-                    </div>
-                )}
-                 {!mainImagePreview && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
-            </div>
-            <div>
-                <h3 className="text-lg font-semibold font-headline border-b pb-2 mb-2 flex items-center gap-1"><ImageUp size={18}/>الصور التوضيحية الإضافية</h3>
-                <Input 
-                    id="additionalImages" 
-                    type="file" 
-                    multiple 
-                    onChange={handleAdditionalImagesChange} 
-                    accept={ALLOWED_IMAGE_TYPES.join(",")}
-                    disabled={additionalImagePreviews.length >= maxAdditionalImages || maxAdditionalImages === 0} 
-                />
-                <p className="text-xs text-muted-foreground mt-1">الأنواع المسموح بها: JPG, PNG, WEBP. الحجم الأقصى لكل صورة: ${MAX_FILE_SIZE_MB}MB.</p>
-                <p className="text-sm mt-1">
-                    {maxAdditionalImages > 0 ?
-                        <span className="text-muted-foreground">{`يمكنك تحميل ما يصل إلى ${maxAdditionalImages} صور إضافية. (${additionalImagePreviews.length}/${maxAdditionalImages} محملة)`}</span> :
-                        <span className="text-accent">لا تسمح خطتك الحالية بتحميل صور إضافية.</span>
-                    }
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-                {additionalImagePreviews.map((preview, index) => {
-                    return (
-                        <div key={preview + index} className="relative group">
-                            <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3]" data-ai-hint="property room detail" />
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removeAdditionalImage(index)}
-                                aria-label="إزالة الصورة الإضافية"
-                            >
-                                <Trash2 size={16} />
-                            </Button>
-                        </div>
-                    );
-                 })}
-                </div>
-            </div>
-          </div>
-
-
-          
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold font-headline border-b pb-1">وصف العقار *</h3>
+          <div>
+            <h3 className="text-lg font-semibold mb-3">وصف العقار</h3>
             <Controller
                 name="description"
                 control={form.control}
@@ -846,33 +847,35 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 </Card>
             )}
           </div>
+        </CardContent>
+      </Card>
           
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button 
-              type="submit" 
-              variant={isSaveButtonDisabled ? "secondary" : "default"}
-              className="w-full sm:w-auto transition-smooth hover:shadow-md" 
-              disabled={isSaveButtonDisabled}
-            >
-              {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
-            </Button>
-            {isEditMode && (
-              <Button 
-                type="button" 
-                variant="destructive_outline" 
-                className="w-full sm:w-auto transition-smooth"
-                onClick={() => router.back()} 
-              >
-                <XCircle size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>
-                إلغاء
-              </Button>
-            )}
-          </div>
-          {!mainImagePreview && !isEditMode && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية.</p>}
-          {isEditMode && !mainImagePreview && <p className="text-sm text-accent mt-1">يجب أن يكون هناك صورة رئيسية. إذا قمت بإزالتها، الرجاء تحميل واحدة جديدة.</p>}
-        </form>
-      </CardContent>
-    </Card>
+      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+        <Button 
+          type="submit" 
+          size="lg"
+          variant={isSaveButtonDisabled ? "secondary" : "default"}
+          className="w-full sm:w-auto transition-smooth hover:shadow-md" 
+          disabled={isSaveButtonDisabled}
+        >
+          {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
+        </Button>
+        {isEditMode && (
+          <Button 
+            type="button" 
+            variant="destructive_outline" 
+            size="lg"
+            className="w-full sm:w-auto transition-smooth"
+            onClick={() => router.back()} 
+          >
+            <XCircle size={18} className="ml-1 rtl:ml-0 rtl:mr-1"/>
+            إلغاء
+          </Button>
+        )}
+      </div>
+      {!mainImagePreview && !isEditMode && <p className="text-sm text-accent mt-1">يجب تحميل صورة رئيسية لإتمام عملية النشر.</p>}
+      {isEditMode && !mainImagePreview && <p className="text-sm text-accent mt-1">يجب أن يكون هناك صورة رئيسية. إذا قمت بإزالتها، الرجاء تحميل واحدة جديدة.</p>}
+    </form>
   );
 }

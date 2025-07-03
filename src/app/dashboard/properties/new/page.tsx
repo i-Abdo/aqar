@@ -171,7 +171,7 @@ export default function NewPropertyPage() {
   if (trustLevel === 'blacklisted') {
     return (
       <>
-        <Card className="text-center py-12 shadow-md">
+        <Card className="text-center py-12 shadow-md max-w-lg mx-auto">
           <CardHeader>
             <ShieldX className="mx-auto h-16 w-16 text-destructive" />
             <CardTitle className="mt-4 text-2xl text-destructive">حساب محظور</CardTitle>
@@ -203,13 +203,13 @@ export default function NewPropertyPage() {
 
   if (!canAddProperty && currentPlan && trustLevel !== 'blacklisted') {
     return (
-      <Card className="text-center py-12 shadow-md">
+      <Card className="text-center py-12 shadow-md max-w-lg mx-auto">
         <CardHeader>
           <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
           <CardTitle className="mt-4 text-destructive">تم الوصول للحد الأقصى للعقارات</CardTitle>
         </CardHeader>
         <CardContent>
-          <CardDescription>
+          <CardDescription className="text-lg">
             لقد وصلت إلى الحد الأقصى لعدد العقارات ({currentPlan.maxListings}) المسموح به في خطتك الحالية ({currentPlan.name}).
             <br />
             لإضافة المزيد من العقارات، يرجى ترقية خطتك.
@@ -233,7 +233,15 @@ export default function NewPropertyPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold font-headline">
+          {isEditMode ? "تعديل العقار" : "إضافة عقار جديد"}
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          املأ التفاصيل أدناه ل{isEditMode ? "تعديل" : "نشر"} عقارك. الحقول المميزة بـ * إلزامية.
+        </p>
+      </div>
       <PropertyForm 
         onSubmit={handleSubmit} 
         isLoading={isSubmitting} 

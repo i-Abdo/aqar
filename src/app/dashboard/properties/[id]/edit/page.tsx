@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react"; // Added React
+import React, { useEffect, useState } from "react";
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -215,7 +215,7 @@ export default function EditPropertyPage() {
 
   if (authError) {
     return (
-      <Card className="text-center py-12 shadow-md">
+      <Card className="text-center py-12 shadow-md max-w-lg mx-auto">
         <CardHeader>
           <ShieldAlert className="mx-auto h-12 w-12 text-destructive" />
           <CardTitle className="mt-4 text-destructive">وصول غير مصرح به</CardTitle>
@@ -243,7 +243,15 @@ export default function EditPropertyPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold font-headline">
+          تعديل العقار
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          املأ التفاصيل أدناه لتعديل عقارك. الحقول المميزة بـ * إلزامية.
+        </p>
+      </div>
       <PropertyForm 
         onSubmit={handleSubmit} 
         initialData={initialPropertyData} 
