@@ -8,6 +8,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { ThemeProvider } from '@/hooks/use-theme'; 
 import { Almarai, Cairo } from 'next/font/google';
 import { cn } from '@/lib/utils';
+import { MobileNav } from '@/components/layout/MobileNav';
 
 const fontBody = Almarai({
   subsets: ['arabic'],
@@ -61,6 +62,7 @@ export default function RootLayout({
         <ThemeProvider> 
           <AuthProvider>
             <SiteHeader />
+            <MobileNav />
             <main className="flex-grow container mx-auto px-4 py-8">
               {children}
             </main>
