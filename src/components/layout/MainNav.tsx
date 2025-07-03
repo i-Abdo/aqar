@@ -14,16 +14,14 @@ export function MainNav() {
 
   return (
     <nav className={cn(
-      "flex items-center space-x-4 rtl:space-x-reverse text-sm font-medium",
-      "overflow-x-auto whitespace-nowrap py-2 md:py-0", // For mobile: scrollable, some padding
-      "md:overflow-visible md:whitespace-normal md:space-x-6" // For desktop: normal flow
+      "flex items-center space-x-6 rtl:space-x-reverse text-sm font-medium"
     )}>
       {siteConfig.mainNav.map((item) => {
-        // By mapping over all items and not filtering, we keep the number of nav items constant, preventing CLS.
-        // The layouts for /dashboard and /admin will handle redirecting unauthorized users.
-        // We only hide the admin link from non-admin users for better UX, this doesn't affect initial load CLS.
-        if (item.adminRequired && user && !isAdmin) {
+        if (item.adminRequired && (!user || !isAdmin)) {
           return null;
+        }
+        if (item.authRequired && !user) {
+            return null;
         }
 
         let showBadge = false;
@@ -42,7 +40,7 @@ export function MainNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "transition-colors hover:text-primary relative flex items-center gap-1.5 px-3 py-2 rounded-md", // Increased padding for touch targets
+              "transition-colors hover:text-primary relative flex items-center gap-1.5 px-1 py-2 rounded-md",
               pathname === item.href ? "text-primary" : "text-foreground/60"
             )}
           >

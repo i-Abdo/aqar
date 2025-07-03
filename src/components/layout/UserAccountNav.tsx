@@ -22,14 +22,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 export function UserAccountNav() {
   const { user, signOut, isAdmin, loading: authLoading } = useAuth();
   const [hasMounted, setHasMounted] = React.useState(false);
-  const isMobile = useIsMobile();
-
+  
   React.useEffect(() => {
     setHasMounted(true);
   }, []);
 
   if (!hasMounted || authLoading) {
-    return <Skeleton className="h-12 w-12 rounded-full" />;
+    return <Skeleton className="h-10 w-24 rounded-md" />;
   }
 
   if (!user) {
@@ -52,7 +51,7 @@ export function UserAccountNav() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-12 w-12 rounded-full">
-          <Avatar className="h-12 w-12">
+          <Avatar className="h-10 w-10">
             <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User Avatar"} />
             <AvatarFallback>{userInitials}</AvatarFallback>
           </Avatar>

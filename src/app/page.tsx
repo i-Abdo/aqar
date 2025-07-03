@@ -39,7 +39,7 @@ export default async function HomePage() {
           src="https://res.cloudinary.com/dgz2rwp09/image/upload/v1716568168/modern_villa_pool_aouiss.jpg"
           alt="فيلا عصرية مع مسبح"
           fill
-          className="object-cover -z-10"
+          className="object-cover"
           priority
           data-ai-hint="modern villa pool"
         />
