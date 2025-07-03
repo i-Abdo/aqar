@@ -428,7 +428,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
             )}
             
             {imageUrls && imageUrls.length > 1 && (
-                <div className="flex space-x-2 rtl:space-x-reverse p-2 bg-background/50 overflow-x-auto">
+                <div className="flex justify-center space-x-2 rtl:space-x-reverse p-2 bg-background/50 overflow-x-auto">
                     {imageUrls.map((url, index) => (
                         <button 
                             key={index} 
@@ -780,3 +780,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     </>
   );
 }
+
+
+    
