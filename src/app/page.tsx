@@ -34,28 +34,19 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col items-center text-center space-y-12 overflow-x-hidden">
       
-      <section className="relative w-full h-[60vh] md:h-[70vh] flex items-center justify-center text-center rounded-lg overflow-hidden -mt-4">
-        <Image
-          src="https://res.cloudinary.com/dgz2rwp09/image/upload/v1716568168/modern_villa_pool_aouiss.jpg"
-          alt="فيلا عصرية مع مسبح"
-          fill
-          className="object-cover"
-          priority
-          data-ai-hint="modern villa pool"
-        />
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="relative z-10 text-primary-foreground p-4 max-w-4xl">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-4 tracking-tight animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <section className="w-full py-16 md:py-24 flex items-center justify-center text-center rounded-lg bg-secondary/50 -mt-4">
+        <div className="relative z-10 p-4 max-w-4xl">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline mb-4 tracking-tight text-primary animate-in fade-in slide-in-from-bottom-4 duration-700">
             أهلاً بك في <span className="text-accent">عقاري</span>
           </h1>
-          <p className="text-lg md:text-xl mx-auto mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
+          <p className="text-lg md:text-xl text-muted-foreground mx-auto mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
             منصتك المثالية لإيجار وبيع العقارات في الجزائر. ابحث عن منزلك المثالي أو اعرض عقارك بكل سهولة.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
             <Button size="lg" asChild className="transition-smooth hover:shadow-lg transform hover:scale-105">
               <Link href="/dashboard/properties/new">أضف عقارك الآن</Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="transition-smooth hover:shadow-lg transform hover:scale-105 border-white text-white hover:bg-white hover:text-primary">
+            <Button size="lg" variant="outline_primary" asChild className="transition-smooth hover:shadow-lg transform hover:scale-105">
               <Link href="/properties">تصفح العقارات</Link>
             </Button>
           </div>
@@ -109,18 +100,6 @@ export default async function HomePage() {
             </CardContent>
           </Card>
         </div>
-      </section>
-
-      <section className="w-full py-12 md:py-16">
-         <Image 
-            src="https://res.cloudinary.com/dgz2rwp09/image/upload/v1716568168/modern_apartment_building_exterior_nuvocs.jpg" 
-            alt="Featured Property Showcase" 
-            width={1200} 
-            height={400} 
-            className="rounded-lg shadow-xl object-cover animate-in fade-in zoom-in-95 duration-1000"
-            data-ai-hint="modern apartment building"
-            priority
-          />
       </section>
 
       <StatisticsSection propertyCount={propertyCount} />
