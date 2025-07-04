@@ -13,8 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth as firebaseAuth, db } from '@/lib/firebase/client';
 import { doc, setDoc, serverTimestamp, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import type { UserTrustLevel } from "@/types";
@@ -30,6 +30,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { Separator } from "../ui/separator";
+
+const GoogleIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px">
+        <path fill="#fbc02d" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12	s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20	s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+        <path fill="#e53935" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657	C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+        <path fill="#4caf50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36	c-5.222,0-9.641-3.219-11.303-7.553l-6.571,4.819C9.656,39.663,16.318,44,24,44z"></path>
+        <path fill="#1565c0" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238	C42.018,35.258,44,30.036,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+    </svg>
+);
+
 
 const baseSchema = z.object({
   email: z.string().email({ message: "البريد الإلكتروني غير صالح." }),
@@ -165,7 +176,29 @@ export function AuthForm({ mode }: AuthFormProps) {
   
   const passwordValue = form.watch("password");
   const passwordStrength = React.useMemo(() => calculatePasswordStrength(passwordValue), [passwordValue]);
-  const agreeToTermsValue = form.watch("agreeToTerms");
+
+  const handleAuthError = (error: any) => {
+    console.error("Authentication error:", error);
+    let errorMessage = "حدث خطأ ما. الرجاء المحاولة مرة أخرى.";
+    switch (error.code) {
+      case 'auth/email-already-in-use':
+        errorMessage = 'هذا البريد الإلكتروني مستخدم بالفعل.';
+        break;
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+        break;
+       case 'auth/popup-closed-by-user':
+        errorMessage = 'تم إغلاق نافذة تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+        break;
+    }
+    toast({
+      title: "خطأ في المصادقة",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  };
 
   const performSignup = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
@@ -204,35 +237,53 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
   };
 
-  const handleAuthError = (error: any) => {
-    console.error("Authentication error:", error);
-    let errorMessage = "حدث خطأ ما. الرجاء المحاولة مرة أخرى.";
-    switch (error.code) {
-      case 'auth/email-already-in-use':
-        errorMessage = 'هذا البريد الإلكتروني مستخدم بالفعل.';
-        break;
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential':
-        errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-        break;
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+        const userCredential = await signInWithPopup(firebaseAuth, provider);
+        const gUser = userCredential.user;
+
+        const userDocRef = doc(db, "users", gUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+            // New user, create document
+            await setDoc(userDocRef, {
+                uid: gUser.uid,
+                email: gUser.email,
+                displayName: gUser.displayName,
+                photoURL: gUser.photoURL,
+                planId: "free",
+                isAdmin: false,
+                trustLevel: 'normal' as UserTrustLevel,
+                newsletter: true,
+                createdAt: serverTimestamp(),
+            });
+            await setDoc(doc(db, "all-emails", gUser.uid), { email: gUser.email, createdAt: serverTimestamp() });
+            await setDoc(doc(db, "subscribers", gUser.uid), { email: gUser.email, createdAt: serverTimestamp() });
+        }
+        
+        toast({ title: "تم تسجيل الدخول بنجاح!" });
+        const redirectPath = new URLSearchParams(window.location.search).get('redirect') || "/dashboard";
+        router.push(redirectPath);
+    } catch (error: any) {
+        handleAuthError(error);
+    } finally {
+        setIsLoading(false);
     }
-    toast({
-      title: "خطأ في المصادقة",
-      description: errorMessage,
-      variant: "destructive",
-    });
-  }
+  };
+
 
   const onSubmit = async (values: AuthFormValues) => {
     if (mode === "signup") {
       const signupValues = values as z.infer<typeof signupSchema>;
-      if (passwordStrength.score < 2) { // Weak password threshold (score 0 or 1)
+      if (passwordStrength.score < 2) { 
         setIsWeakPasswordDialogOpen(true);
         return;
       }
       await performSignup(signupValues);
-    } else { // Login mode
+    } else { 
         setIsLoading(true);
         try {
             const loginValues = values as z.infer<typeof loginSchema>;
@@ -242,7 +293,6 @@ export function AuthForm({ mode }: AuthFormProps) {
             const allEmailsRef = doc(db, "all-emails", userCredential.user.uid);
             const subscriberRef = doc(db, "subscribers", userCredential.user.uid);
 
-            // Add email to all-emails if not present
             const allEmailsSnap = await getDoc(allEmailsRef);
             if (!allEmailsSnap.exists()) {
                 await setDoc(allEmailsRef, { email: loginValues.email, createdAt: serverTimestamp() });
@@ -286,180 +336,196 @@ export function AuthForm({ mode }: AuthFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">البريد الإلكتروني</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="example@mail.com"
-              {...form.register("email")}
-              className="text-right"
-              aria-invalid={form.formState.errors.email ? "true" : "false"}
-            />
-            {form.formState.errors.email && (
-              <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">كلمة المرور</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="********"
-                {...form.register("password")}
-                className="text-right pl-10"
-                aria-invalid={form.formState.errors.password ? "true" : "false"}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={togglePasswordVisibility}
-                className="absolute inset-y-0 left-0 h-full px-3 text-muted-foreground"
-                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-            {form.formState.errors.password && (
-              <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
-            )}
-            {mode === "signup" && passwordValue && (
-              <PasswordStrengthIndicator strength={passwordStrength} />
-            )}
-          </div>
+        <div className="space-y-4">
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                <span className="ml-2">متابعة باستخدام جوجل</span>
+            </Button>
 
-          {mode === "signup" && (
-            <>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">أو</span>
+                </div>
+            </div>
+
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
-                 <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="********"
-                      {...form.register("confirmPassword")}
-                      className="text-right pl-10"
-                      aria-invalid={form.formState.errors.confirmPassword ? "true" : "false"}
-                    />
-                     <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={togglePasswordVisibility}
-                        className="absolute inset-y-0 left-0 h-full px-3 text-muted-foreground"
-                        aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                 </div>
-                {form.formState.errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{form.formState.errors.confirmPassword?.message}</p>
+                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="example@mail.com"
+                  {...form.register("email")}
+                  className="text-right"
+                  aria-invalid={form.formState.errors.email ? "true" : "false"}
+                />
+                {form.formState.errors.email && (
+                  <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
                 )}
               </div>
-              <div className="items-top flex space-x-2 rtl:space-x-reverse">
-                <Controller
-                  name="subscribeToNewsletter"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="subscribeToNewsletter"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <Label
-                    htmlFor="subscribeToNewsletter"
-                    className="text-sm font-normal cursor-pointer"
+              <div className="space-y-2">
+                <Label htmlFor="password">كلمة المرور</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="********"
+                    {...form.register("password")}
+                    className="text-right pl-10"
+                    aria-invalid={form.formState.errors.password ? "true" : "false"}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 left-0 h-full px-3 text-muted-foreground"
+                    aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
                   >
-                    أوافق على استلام رسائل بريد إلكتروني حول التحديثات والعروض.
-                  </Label>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
                 </div>
+                {form.formState.errors.password && (
+                  <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+                )}
+                {mode === "signup" && passwordValue && (
+                  <PasswordStrengthIndicator strength={passwordStrength} />
+                )}
               </div>
-              <div className="items-top flex space-x-2 rtl:space-x-reverse">
-                <Controller
-                  name="agreeToTerms"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="agreeToTerms"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      aria-invalid={!!form.formState.errors.agreeToTerms}
-                    />
-                  )}
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <Label
-                    htmlFor="agreeToTerms"
-                    className={cn(
-                      "text-sm font-normal cursor-pointer",
-                      !!form.formState.errors.agreeToTerms && "text-destructive"
+
+              {mode === "signup" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
+                     <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="********"
+                          {...form.register("confirmPassword")}
+                          className="text-right pl-10"
+                          aria-invalid={form.formState.errors.confirmPassword ? "true" : "false"}
+                        />
+                         <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={togglePasswordVisibility}
+                            className="absolute inset-y-0 left-0 h-full px-3 text-muted-foreground"
+                            aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                     </div>
+                    {form.formState.errors.confirmPassword && (
+                      <p className="text-sm text-destructive">{form.formState.errors.confirmPassword?.message}</p>
                     )}
-                  >
-                    أوافق على{" "}
-                    <Link
-                      href="/terms"
-                      className="underline hover:text-primary"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      الشروط والأحكام
+                  </div>
+                  <div className="items-top flex space-x-2 rtl:space-x-reverse">
+                    <Controller
+                      name="subscribeToNewsletter"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="subscribeToNewsletter"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      )}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label
+                        htmlFor="subscribeToNewsletter"
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        أوافق على استلام رسائل بريد إلكتروني حول التحديثات والعروض.
+                      </Label>
+                    </div>
+                  </div>
+                  <div className="items-top flex space-x-2 rtl:space-x-reverse">
+                    <Controller
+                      name="agreeToTerms"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="agreeToTerms"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          aria-invalid={!!form.formState.errors.agreeToTerms}
+                        />
+                      )}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label
+                        htmlFor="agreeToTerms"
+                        className={cn(
+                          "text-sm font-normal cursor-pointer",
+                          !!form.formState.errors.agreeToTerms && "text-destructive"
+                        )}
+                      >
+                        أوافق على{" "}
+                        <Link
+                          href="/terms"
+                          className="underline hover:text-primary"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          الشروط والأحكام
+                        </Link>
+                      </Label>
+                      {form.formState.errors.agreeToTerms && (
+                        <p className="text-sm text-destructive">
+                          {form.formState.errors.agreeToTerms?.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {mode === "login" && (
+                <div className="items-top flex space-x-2 rtl:space-x-reverse">
+                    <Controller
+                        name="subscribeToNewsletter"
+                        control={form.control}
+                        render={({ field }) => (
+                        <Checkbox
+                            id="subscribeToNewsletterLogin"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                        )}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label
+                        htmlFor="subscribeToNewsletterLogin"
+                        className="text-sm font-normal cursor-pointer"
+                        >
+                        أوافق على استلام رسائل بريد إلكتروني حول التحديثات والعروض.
+                        </Label>
+                    </div>
+                </div>
+              )}
+
+              {mode === 'login' && (
+                <p className="text-center text-xs text-muted-foreground pt-2">
+                    بالنقر على "تسجيل الدخول"، فإنك توافق على{" "}
+                    <Link href="/terms" className="underline hover:text-primary">
+                        شروط الاستخدام
                     </Link>
-                  </Label>
-                  {form.formState.errors.agreeToTerms && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.agreeToTerms?.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+                    .
+                </p>
+              )}
 
-          {mode === "login" && (
-            <div className="items-top flex space-x-2 rtl:space-x-reverse">
-                <Controller
-                    name="subscribeToNewsletter"
-                    control={form.control}
-                    render={({ field }) => (
-                    <Checkbox
-                        id="subscribeToNewsletterLogin"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                    />
-                    )}
-                />
-                <div className="grid gap-1.5 leading-none">
-                    <Label
-                    htmlFor="subscribeToNewsletterLogin"
-                    className="text-sm font-normal cursor-pointer"
-                    >
-                    أوافق على استلام رسائل بريد إلكتروني حول التحديثات والعروض.
-                    </Label>
-                </div>
-            </div>
-          )}
-
-          {mode === 'login' && (
-            <p className="text-center text-xs text-muted-foreground pt-2">
-                بالنقر على "تسجيل الدخول"، فإنك توافق على{" "}
-                <Link href="/terms" className="underline hover:text-primary">
-                    شروط الاستخدام
-                </Link>
-                .
-            </p>
-          )}
-
-          <Button type="submit" className="w-full transition-smooth hover:shadow-md" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {mode === "login" ? "تسجيل الدخول" : "إنشاء الحساب"}
-          </Button>
-        </form>
+              <Button type="submit" className="w-full transition-smooth hover:shadow-md" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {mode === "login" ? "تسجيل الدخول" : "إنشاء الحساب"}
+              </Button>
+            </form>
+        </div>
       </CardContent>
       <CardFooter className="flex flex-col items-center space-y-2">
         <p className="text-sm text-muted-foreground">

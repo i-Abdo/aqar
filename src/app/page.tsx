@@ -2,12 +2,17 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
-import { Feather, SlidersHorizontal, Sparkles, Search, Phone, KeyRound, LifeBuoy, Lightbulb } from "lucide-react";
-import { useState } from "react";
+import { Feather, SlidersHorizontal, Sparkles, Search, Phone, KeyRound, LifeBuoy, Lightbulb, TrendingUp, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
+import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
+import type { Property } from "@/types";
+import { PropertyCard } from "@/components/properties/PropertyCard";
+import { PropertyCardSkeleton } from "@/components/properties/PropertyCardSkeleton";
 
 const ContactDialog = dynamic(() =>
   import('@/components/layout/ContactDialog').then((mod) => mod.ContactDialog)
@@ -15,7 +20,37 @@ const ContactDialog = dynamic(() =>
 
 export default function HomePage() {
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+  const [popularProperties, setPopularProperties] = useState<Property[]>([]);
+  const [isLoadingPopular, setIsLoadingPopular] = useState(true);
   
+  useEffect(() => {
+    const fetchPopularProperties = async () => {
+      setIsLoadingPopular(true);
+      try {
+        const q = query(
+          collection(db, "properties"),
+          where("status", "==", "active"),
+          orderBy("viewCount", "desc"),
+          limit(3)
+        );
+        const querySnapshot = await getDocs(q);
+        const propsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt),
+          updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date(doc.data().updatedAt),
+        } as Property));
+        setPopularProperties(propsData);
+      } catch (error) {
+        console.error("Error fetching popular properties:", error);
+      } finally {
+        setIsLoadingPopular(false);
+      }
+    };
+
+    fetchPopularProperties();
+  }, []);
+
   const features = [
     {
       icon: Feather,
@@ -106,6 +141,24 @@ export default function HomePage() {
                 </Card>
               ))}
             </div>
+          </section>
+
+           <section className="w-full">
+            <h2 className="text-3xl font-bold font-headline mb-4 text-center flex items-center justify-center gap-2">
+              <TrendingUp className="text-accent"/>
+              <span>العقارات الأكثر رواجًا</span>
+            </h2>
+            <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+              اكتشف العقارات التي تحظى بأكبر قدر من الاهتمام من المستخدمين الآخرين.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingPopular
+                ? Array.from({ length: 3 }).map((_, i) => <PropertyCardSkeleton key={i} />)
+                : popularProperties.map(prop => <PropertyCard key={prop.id} property={prop} />)}
+            </div>
+            {(!isLoadingPopular && popularProperties.length === 0) && (
+              <p className="text-center text-muted-foreground mt-4">لا توجد عقارات رائجة لعرضها حاليًا.</p>
+            )}
           </section>
 
           <section className="w-full py-16 bg-secondary/30 rounded-lg">

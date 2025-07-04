@@ -48,6 +48,7 @@ export interface Property {
   neighborhood?: string;
   address?: string;
   phoneNumber?: string;
+  whatsappNumber?: string;
   facebookUrl?: string;
   instagramUrl?: string;
   filters: {
@@ -145,9 +146,9 @@ export const propertyFormSchema = z.object({
   transactionType: z.enum(['sale', 'rent'], { required_error: "نوع المعاملة مطلوب." }),
   propertyType: z.enum(['land', 'villa', 'house', 'apartment', 'office', 'warehouse', 'shop', 'other'], { required_error: "نوع العقار مطلوب." }),
   otherPropertyType: z.string().max(50, "نوع العقار الآخر طويل جدًا.").optional(),
-  price: z.coerce.number({invalid_type_error: "السعر يجب أن يكون رقمًا."}).positive("السعر يجب أن يكون رقمًا موجبًا.").min(1, "السعر لا يمكن أن يكون صفرًا.").max(1_000_000_000_000, "السعر كبير جدًا."), // 1 Trillion DA limit
-  rooms: z.coerce.number().int().min(0, "عدد الغرف لا يمكن أن يكون سالبًا.").max(100, "عدد الغرف كبير جدًا."), // Allow 0 for land
-  bathrooms: z.coerce.number().int().min(0, "عدد الحمامات لا يمكن أن يكون سالبًا.").max(50, "عدد الحمامات كبير جدًا."), // Allow 0 for land
+  price: z.coerce.number({invalid_type_error: "السعر يجب أن يكون رقمًا."}).positive("السعر يجب أن يكون رقمًا موجبًا.").min(1, "السعر لا يمكن أن يكون صفرًا."),
+  rooms: z.coerce.number().int().min(0, "عدد الغرف لا يمكن أن يكون سالبًا."),
+  bathrooms: z.coerce.number().int().min(0, "عدد الحمامات لا يمكن أن يكون سالبًا."),
   length: z.coerce.number().positive("الطول يجب أن يكون رقمًا موجبًا.").min(0.1, "الطول يجب أن يكون أكبر من صفر.").max(10000, "الطول كبير جدًا."),
   width: z.coerce.number().positive("العرض يجب أن يكون رقمًا موجبًا.").min(0.1, "العرض يجب أن يكون أكبر من صفر.").max(10000, "العرض كبير جدًا."),
   area: z.coerce.number().positive("المساحة يجب أن تكون رقمًا موجبًا.").max(1000000, "المساحة كبيرة جدًا."), // Max 1 million m^2
@@ -160,6 +161,7 @@ export const propertyFormSchema = z.object({
     .regex(algerianPhoneNumberRegex, {
         message: "رقم الهاتف غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.",
     }),
+  whatsappNumber: z.string().regex(algerianPhoneNumberRegex, "رقم الواتساب غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.").optional().or(z.literal('')),
   facebookUrl: z.string().url({ message: "الرجاء إدخال رابط فيسبوك صالح." }).optional().or(z.literal('')),
   instagramUrl: z.string().url({ message: "الرجاء إدخال رابط انستقرام صالح." }).optional().or(z.literal('')),
   description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(1000, "الوصف يجب أن لا يتجاوز 1000 حرفًا."),
