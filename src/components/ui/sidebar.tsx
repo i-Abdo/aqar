@@ -242,18 +242,14 @@ export const Sidebar = React.forwardRef<
             {...props}
             ref={ref}
           >
-            <div className="flex items-center justify-between p-4 border-b">
+            {/* The SheetContent from ui/sheet.tsx already provides an absolute-positioned close button */}
+            <div className="flex items-center p-4 border-b">
                <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
                 <span>{title}</span>
                   {notificationCount !== undefined && notificationCount > 0 && (
                     <Badge variant="destructive">{notificationCount > 9 ? '9+' : notificationCount}</Badge>
                   )}
               </SheetTitle>
-              <SheetClose asChild>
-                <Button variant="ghost" size="icon" aria-label="إغلاق القائمة">
-                  <X className="h-5 w-5" />
-                </Button>
-              </SheetClose>
             </div>
             <ScrollArea className="flex-grow">{children}</ScrollArea>
           </SheetContent>
