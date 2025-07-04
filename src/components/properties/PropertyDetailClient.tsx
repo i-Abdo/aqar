@@ -112,29 +112,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   
   const [copiedShare, setCopiedShare] = useState(false);
   
-  const mapEmbedUrl = useMemo(() => {
-    // Prioritize coordinates if they exist
-    if (property?.googleMapsLocation && property.googleMapsLocation.lat != null && property.googleMapsLocation.lng != null) {
-        const { lat, lng } = property.googleMapsLocation;
-        return `https://www.google.com/maps?q=${lat},${lng}&hl=ar&z=15&output=embed`;
-    }
-
-    // Fallback for old data: try to parse the link
-    const googleMapsLink = property?.googleMapsLink;
-    if (!googleMapsLink) return null;
-
-    const coordRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const match = googleMapsLink.match(coordRegex);
-
-    if (match && match[1] && match[2]) {
-      const lat = match[1];
-      const lon = match[2];
-      return `https://www.google.com/maps?q=${lat},${lon}&hl=ar&z=15&output=embed`;
-    }
-    
-    return null;
-  }, [property?.googleMapsLocation, property?.googleMapsLink]);
-
   const fetchPropertyAndRefresh = useCallback(async () => {
     if (!propertyId) return;
     setIsLoading(true);
@@ -544,23 +521,18 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                     </Card>
                 )}
 
-                {mapEmbedUrl && (
-                     <Card className="shadow-lg">
+                {googleMapsLink && (
+                    <Card className="shadow-lg">
                         <CardHeader>
                              <CardTitle className="font-headline text-xl flex items-center gap-2"><Map size={18}/>الموقع على الخريطة</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <div className="aspect-video w-full rounded-md overflow-hidden border">
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    style={{ border: 0 }}
-                                    loading="lazy"
-                                    allowFullScreen
-                                    src={mapEmbedUrl}
-                                    title="موقع العقار على الخريطة"
-                                ></iframe>
-                                </div>
+                            <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="block w-full">
+                                <Button size="lg" className="w-full text-base transition-smooth hover:shadow-md">
+                                    <MapPin size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
+                                    عرض الموقع على خرائط جوجل
+                                </Button>
+                            </a>
                         </CardContent>
                     </Card>
                 )}

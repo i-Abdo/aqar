@@ -177,7 +177,6 @@ export default function EditPropertyPage() {
         phoneNumber: formData.phoneNumber, 
         imageUrls: finalImageUrls,
         updatedAt: serverTimestamp() as Timestamp,
-        googleMapsLocation: formData.googleMapsLocation || null,
       };
       
       delete (propertyUpdateData as any).id; 

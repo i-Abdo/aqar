@@ -92,10 +92,6 @@ const propertyFormSchema = z.object({
     contract: z.boolean().default(false),
   }),
   googleMapsLink: z.string().url({ message: "الرجاء إدخال رابط خرائط جوجل صالح." }).optional().or(z.literal('')),
-  googleMapsLocation: z.object({
-    lat: z.number(),
-    lng: z.number(),
-  }).nullable().optional(),
 }).superRefine((data, ctx) => {
   if (data.propertyType === 'other' && (!data.otherPropertyType || data.otherPropertyType.trim().length < 2)) {
     ctx.addIssue({
@@ -181,19 +177,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const [manualPriceInput, setManualPriceInput] = React.useState<string>(initialPriceFormat.displayValue);
   const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey || "THOUSAND_DA");
   
-  const [googleMapsLinkDirty, setGoogleMapsLinkDirty] = React.useState(false);
-
-  const [isVerifyingUrl, setIsVerifyingUrl] = React.useState(false);
-  const [urlVerificationStatus, setUrlVerificationStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
-
-
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: initialData 
       ? { 
           ...initialData,
           googleMapsLink: initialData.googleMapsLink || "",
-          googleMapsLocation: initialData.googleMapsLocation || null,
           price: initialData.price || undefined,
           transactionType: initialData.transactionType || undefined,
           propertyType: initialData.propertyType || undefined,
@@ -205,7 +194,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", facebookUrl: "", instagramUrl: "", description: "",
           filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
           googleMapsLink: "",
-          googleMapsLocation: null,
         },
   });
   
@@ -222,7 +210,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         propertyType: initialData.propertyType || undefined,
         otherPropertyType: initialData.otherPropertyType || "",
         googleMapsLink: initialData.googleMapsLink || "",
-        googleMapsLocation: initialData.googleMapsLocation || null,
         facebookUrl: initialData.facebookUrl || "",
         instagramUrl: initialData.instagramUrl || "",
       });
@@ -233,8 +220,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setMainImagePreview(null);
         setAdditionalImagePreviews([]);
       }
-      setGoogleMapsLinkDirty(false); // Reset dirty state on new initial data
-      setUrlVerificationStatus(initialData.googleMapsLocation ? 'success' : 'idle');
     }
   }, [initialData, form]);
 
@@ -252,58 +237,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const lengthValue = form.watch("length");
   const widthValue = form.watch("width");
   const watchedPropertyType = form.watch("propertyType");
-  const watchedGoogleMapsLocation = form.watch("googleMapsLocation");
-
-  const mapEmbedUrl = React.useMemo(() => {
-    if (watchedGoogleMapsLocation && watchedGoogleMapsLocation.lat != null && watchedGoogleMapsLocation.lng != null) {
-      const { lat, lng } = watchedGoogleMapsLocation;
-      return `https://www.google.com/maps?q=${lat},${lng}&hl=ar&z=15&output=embed`;
-    }
-    return null;
-  }, [watchedGoogleMapsLocation]);
-
-  const handleVerificationOnBlur = async () => {
-    const url = form.getValues("googleMapsLink");
-    
-    if (!googleMapsLinkDirty || !url || url.trim() === "") {
-        if (!url || url.trim() === "") {
-            setUrlVerificationStatus('idle');
-            form.setValue("googleMapsLocation", null);
-            form.clearErrors("googleMapsLink");
-        }
-        return;
-    }
-
-    if (!url.includes("google.com/maps")) {
-        setUrlVerificationStatus('error');
-        form.setError("googleMapsLink", { type: "manual", message: "الرابط لا يبدو كرابط خرائط جوجل صالح." });
-        return;
-    }
-
-    setIsVerifyingUrl(true);
-    // Simulate a brief check
-    await new Promise(res => setTimeout(res, 300));
-
-    const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const match = url.match(regex);
-
-    if (match && match[1] && match[2]) {
-        const lat = parseFloat(match[1]);
-        const lng = parseFloat(match[2]);
-        form.setValue("googleMapsLocation", { lat, lng }, { shouldValidate: true, shouldDirty: true });
-        setUrlVerificationStatus('success');
-        toast({ title: "تم التحقق بنجاح!", description: "تم استخلاص الإحداثيات من الرابط." });
-    } else {
-        setUrlVerificationStatus('error');
-        form.setValue("googleMapsLocation", null, { shouldValidate: true, shouldDirty: true });
-        form.setError("googleMapsLink", { type: "manual", message: "تعذر استخلاص الإحداثيات. تأكد من أن الرابط يحتوي على '@lat,lng'." });
-        toast({ title: "فشل التحقق", description: "تأكد من أن الرابط يحتوي على الإحداثيات بالشكل الصحيح (مثال: .../@36.7,3.0/...).", variant: "destructive" });
-    }
-
-    setIsVerifyingUrl(false);
-    setGoogleMapsLinkDirty(false);
-  };
-
 
   React.useEffect(() => {
     const lengthNum = parseFloat(String(lengthValue));
@@ -473,7 +406,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     return !initialUrls.every((url, index) => url === currentUrls[index]);
   }, [isEditMode, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews, initialData]);
 
-  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged && !googleMapsLinkDirty);
+  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged);
 
 
   return (
@@ -646,57 +579,20 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
             </div>
             <div>
                 <Label htmlFor="googleMapsLink" className="flex items-center gap-1"><Map size={16}/>رابط الموقع على الخريطة (اختياري)</Label>
-                <div className="relative w-full">
-                    <Controller
-                      name="googleMapsLink"
-                      control={form.control}
-                      render={({ field }) => (
-                        <Input 
-                          {...field}
-                          id="googleMapsLink" 
-                          placeholder="الصق الرابط هنا من خرائط جوجل"
-                          dir="ltr" 
-                          className="text-left flex-grow pl-10 rtl:pr-10 rtl:pl-3"
-                          onChange={(e) => {
-                            field.onChange(e);
-                            setUrlVerificationStatus('idle'); 
-                            setGoogleMapsLinkDirty(true);
-                          }}
-                          onBlur={handleVerificationOnBlur}
-                        />
-                      )}
-                    />
-                     <div className="absolute inset-y-0 left-0 rtl:right-0 rtl:left-auto flex items-center pl-3 rtl:pr-3 pointer-events-none">
-                        {isVerifyingUrl ? (
-                            <Loader2 className="animate-spin text-muted-foreground" />
-                        ) : urlVerificationStatus === 'success' ? (
-                            <Check className="text-green-500" />
-                        ) : urlVerificationStatus === 'error' ? (
-                            <XCircle className="text-destructive" />
-                        ) : null}
-                    </div>
-                </div>
+                <Input
+                    id="googleMapsLink"
+                    {...form.register("googleMapsLink")}
+                    placeholder="الصق الرابط هنا من خرائط جوجل"
+                    dir="ltr"
+                    className="text-left"
+                />
                 <p className="text-xs text-muted-foreground mt-1">
                     افتح خرائط جوجل، ابحث عن الموقع، انقر على "مشاركة" ثم "نسخ الرابط".
                 </p>
                 {form.formState.errors.googleMapsLink && (
-                     <p className="text-sm text-destructive mt-1">{form.formState.errors.googleMapsLink.message}</p>
+                    <p className="text-sm text-destructive mt-1">{form.formState.errors.googleMapsLink.message}</p>
                 )}
             </div>
-            
-            {mapEmbedUrl && (
-                <div className="mt-4 aspect-video w-full rounded-md overflow-hidden border">
-                    <iframe
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={mapEmbedUrl}
-                        title="معاينة الموقع على الخريطة"
-                    ></iframe>
-                </div>
-            )}
         </CardContent>
       </Card>
 

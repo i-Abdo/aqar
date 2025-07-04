@@ -65,10 +65,6 @@ export interface Property {
   updatedAt: Date;
   viewCount?: number;
   googleMapsLink?: string;
-  googleMapsLocation?: {
-    lat: number;
-    lng: number;
-  } | null;
   firebaseStudioTestField?: string;
 }
 
