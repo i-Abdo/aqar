@@ -29,7 +29,7 @@
     --accent: 34 79% 60%; /* Yellow-orange #E8A54B */
     --accent-foreground: 0 0% 100%; /* White text on accent */
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 51%; /* Was 0 84.2% 60.2% - Adjusted for better contrast */
     --destructive-foreground: 0 0% 98%;
 
     --border: 210 40% 89.8%;

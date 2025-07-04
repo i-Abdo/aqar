@@ -15,11 +15,11 @@ export function AppLogo({ onClick }: AppLogoProps) {
       className="flex items-center p-2 -m-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Image
-        src="https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1750759328/74751946173_upgo4n.png"
+        src="https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1751599256/c5278e5396324266aff8c48d47f2026c_debzqz.png"
         alt="شعار عقاري"
         width={1024} // Original width for aspect ratio calculation
         height={1024} // Original height for aspect ratio calculation
-        className="h-12 w-auto"
+        className="h-12 w-12"
         priority // Good to add for LCP elements like logos
       />
     </Link>
