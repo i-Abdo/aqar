@@ -42,15 +42,10 @@ export function MobileNav() {
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-[300px] p-0 flex flex-col">
-        <SheetHeader className="flex flex-row items-center justify-between p-4 border-b shrink-0">
+        <SheetHeader className="p-4 border-b shrink-0">
           <SheetTitle className="font-headline text-lg font-semibold">
             القائمة
           </SheetTitle>
-          <SheetClose asChild>
-            <Button variant="ghost" size="icon" aria-label="Close menu">
-              <X className="h-5 w-5" />
-            </Button>
-          </SheetClose>
         </SheetHeader>
         <ScrollArea className="flex-grow">
           <nav className="flex flex-col space-y-2 p-4">
