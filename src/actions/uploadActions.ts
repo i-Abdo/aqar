@@ -1,4 +1,3 @@
-
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
@@ -52,15 +51,11 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
         },
         (error, result) => {
           if (error) {
+            // Simplified error handling: Assume any upload error is an auth/config issue on Vercel.
+            // This is the most common failure point in a serverless environment.
             console.error('Cloudinary Upload Stream Error:', error);
-            // This is the key change to provide a user-friendly and actionable error.
-            // It's now case-insensitive and more robust.
-            if (error.message && error.message.toLowerCase().includes("invalid json response")) {
-                const userFriendlyError = "حدث خطأ في المصادقة مع خدمة الصور. يرجى التحقق من صحة إعدادات (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME) في Vercel.";
-                reject(new Error(userFriendlyError));
-            } else {
-                reject(new Error(`فشل رفع الصورة: ${error.message || 'خطأ غير معروف'}`));
-            }
+            const userFriendlyError = "حدث خطأ في المصادقة مع خدمة الصور. يرجى التحقق من صحة إعدادات (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME) في Vercel. تأكد من عدم وجود مسافات إضافية وقم بإعادة النشر.";
+            reject(new Error(userFriendlyError));
           } else if (result) {
             resolve(result.secure_url);
           } else {
