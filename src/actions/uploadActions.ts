@@ -54,7 +54,8 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
           if (error) {
             console.error('Cloudinary Upload Stream Error:', error);
             // This is the key change to provide a user-friendly and actionable error.
-            if (error.message.includes("Invalid JSON response")) {
+            // It's now case-insensitive and more robust.
+            if (error.message && error.message.toLowerCase().includes("invalid json response")) {
                 const userFriendlyError = "حدث خطأ في المصادقة مع خدمة الصور. يرجى التحقق من صحة إعدادات (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME) في Vercel.";
                 reject(new Error(userFriendlyError));
             } else {
