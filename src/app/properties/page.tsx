@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -194,7 +195,7 @@ export default function PropertiesPage() {
 
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto px-4 py-8">
       <header className="mb-8 text-center">
         <h1 className="text-4xl font-bold font-headline text-primary">تصفح العقارات</h1>
         <p className="text-lg text-muted-foreground mt-2">جد العقار الذي يناسب احتياجاتك من بين مئات العروض.</p>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -77,7 +78,7 @@ export default function PricingPage() {
 
 
   return (
-    <div className="container mx-auto py-12 px-4">
+    <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4 text-primary">
           خطة لكل احتياج

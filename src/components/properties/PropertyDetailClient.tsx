@@ -353,20 +353,24 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
   if (isLoading || authLoading) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center">
-        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">جاري تحميل بيانات العقار...</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center">
+          <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+          <p className="text-lg text-muted-foreground">جاري تحميل بيانات العقار...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
      return (
-      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center p-4">
-        <AlertCircle size={64} className="text-destructive mb-4" /> 
-        <h2 className="text-2xl font-bold text-destructive mb-2">خطأ في عرض العقار</h2>
-        <p className="text-muted-foreground mb-6">{error}</p>
-        <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> 
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center p-4">
+          <AlertCircle size={64} className="text-destructive mb-4" /> 
+          <h2 className="text-2xl font-bold text-destructive mb-2">خطأ في عرض العقار</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> 
+        </div>
       </div>
     );
   }
@@ -374,12 +378,14 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   if (!property) {
     // This case should be handled by the server component, but as a fallback:
     return (
+      <div className="container mx-auto px-4 py-8">
          <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center p-4">
             <MapPin size={64} className="text-muted-foreground mb-4" />
             <h2 className="text-2xl font-bold mb-2">العقار غير متوفر</h2>
             <p className="text-muted-foreground mb-6">لم نتمكن من العثور على تفاصيل هذا العقار. قد يكون تم حذفه أو أن الرابط غير صحيح.</p>
             <Button onClick={() => router.back()} variant="outline">العودة للخلف</Button> 
         </div>
+      </div>
     );
   }
 
@@ -403,7 +409,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       )}
-     <div className="container mx-auto py-8">
+     <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Image Gallery Column */}
             <div className="lg:col-span-2">
@@ -652,7 +658,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
             </div>
         </div>
-      
+      </div>
       {user && !isAdmin && !isOwner && (
         <ReportPropertyDialog
             isOpen={isReportPropertyDialogOpen}
@@ -671,7 +677,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
           propertyTitle={property.title}
         />
       )}
-    </div>
     </>
   );
 }
