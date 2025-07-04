@@ -238,11 +238,10 @@ export const Sidebar = React.forwardRef<
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent 
             side={actualSide} 
-            className="w-[var(--sidebar-width-mobile,15rem)] p-0 flex flex-col top-[var(--header-height)] h-[calc(100vh-var(--header-height))] rounded-none border-none"
+            className="w-[var(--sidebar-width-mobile,15rem)] p-0 flex flex-col top-[var(--sidebar-inset-top,var(--header-height))] h-[calc(100vh-var(--sidebar-inset-top,var(--header-height)))] rounded-none border-none"
             {...props}
             ref={ref}
           >
-            {/* The SheetContent from ui/sheet.tsx already provides an absolute-positioned close button */}
             <div className="flex items-center p-4 border-b">
                <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
                 <span>{title}</span>
