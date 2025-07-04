@@ -4,7 +4,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { ChevronsRight, ChevronsLeft, type LucideIcon, X } from "lucide-react"
+import { ChevronsRight, ChevronsLeft, type LucideIcon, X, Menu } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -238,18 +238,23 @@ export const Sidebar = React.forwardRef<
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent 
             side={actualSide} 
-            className="w-[var(--sidebar-width-mobile,15rem)] p-0 flex flex-col"
+            className="w-[var(--sidebar-width-mobile,15rem)] p-0 flex flex-col top-[var(--header-height)] h-[calc(100vh-var(--header-height))] rounded-none border-none"
             {...props}
             ref={ref}
           >
-            <SheetHeader className="p-4 border-b text-left rtl:text-right">
-              <SheetTitle className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-4 border-b">
+               <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
                 <span>{title}</span>
                   {notificationCount !== undefined && notificationCount > 0 && (
                     <Badge variant="destructive">{notificationCount > 9 ? '9+' : notificationCount}</Badge>
                   )}
               </SheetTitle>
-            </SheetHeader>
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon" aria-label="إغلاق القائمة">
+                  <X className="h-5 w-5" />
+                </Button>
+              </SheetClose>
+            </div>
             <ScrollArea className="flex-grow">{children}</ScrollArea>
           </SheetContent>
         </Sheet>
