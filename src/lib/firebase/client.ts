@@ -4,7 +4,6 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAnalytics, type Analytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,27 +15,38 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
-let analytics: Analytics | undefined = undefined;
+let auth: Auth;
+let db: Firestore;
+let analytics: Analytics | undefined;
 
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-  if (typeof window !== 'undefined') { // Initialize Analytics only on client side
-    analytics = getAnalytics(app);
-  }
-} else {
-  app = getApp();
-  if (typeof window !== 'undefined') {
-    // Check if analytics is already initialized for this app instance
-    try {
-      analytics = getAnalytics(app);
-    } catch (e) {
-      // Analytics might not have been initialized yet
-      console.warn("Firebase Analytics could not be retrieved, it might not have been initialized for this app instance yet.", e);
+// Check if all required Firebase config keys are present.
+// This prevents initialization on the server during build if env vars are missing.
+if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+    if (typeof window !== 'undefined') {
+      try {
+        analytics = getAnalytics(app);
+      } catch (e) {
+        console.warn("Firebase Analytics could not be initialized.", e);
+      }
     }
+  } else {
+    app = getApp();
   }
+
+  auth = getAuth(app);
+  db = getFirestore(app);
+
+} else {
+  // If config is not set (e.g., during server-side build without env vars),
+  // provide dummy objects to prevent the app from crashing.
+  console.warn("Firebase client config missing. Skipping client initialization. This is normal during build.");
+  app = {} as FirebaseApp;
+  auth = {} as Auth;
+  db = {} as Firestore;
+  analytics = undefined;
 }
 
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
 
 export { app, auth, db, analytics };
