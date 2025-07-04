@@ -17,10 +17,10 @@ export function AppLogo({ onClick }: AppLogoProps) {
       <Image
         src="https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1751599256/c5278e5396324266aff8c48d47f2026c_debzqz.png"
         alt="شعار عقاري"
-        width={1024} // Original width for aspect ratio calculation
-        height={1024} // Original height for aspect ratio calculation
+        width={48} 
+        height={48}
         className="h-12 w-12"
-        priority // Good to add for LCP elements like logos
+        priority 
       />
     </Link>
   );

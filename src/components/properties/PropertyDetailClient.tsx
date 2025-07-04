@@ -9,7 +9,7 @@ import Image from 'next/image';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrustLevel } from '@/types';
+import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrustLevel, SerializableProperty } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { incrementPropertyView } from '@/actions/viewActions';
 import {
@@ -53,12 +53,12 @@ const ContactAdminDialog = dynamic(() =>
 
 
 // Helper function to convert ISO string back to Date object
-const parsePropertyDates = (prop: any): Property => {
-  if (!prop) return prop;
+const parsePropertyDates = (prop: SerializableProperty | null): Property | null => {
+  if (!prop) return null;
   return {
     ...prop,
-    createdAt: prop.createdAt?.toDate ? prop.createdAt.toDate() : new Date(prop.createdAt),
-    updatedAt: prop.updatedAt?.toDate ? prop.updatedAt.toDate() : new Date(prop.updatedAt),
+    createdAt: new Date(prop.createdAt),
+    updatedAt: new Date(prop.updatedAt),
   };
 };
 
@@ -85,7 +85,7 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
 };
 
 interface PropertyDetailClientProps {
-    initialProperty: any | null;
+    initialProperty: SerializableProperty | null;
     propertyId: string;
 }
 
@@ -108,7 +108,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   const [deletionReason, setDeletionReason] = useState("");
 
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(initialProperty?.imageUrls?.[0] || null);
   
   const [copiedShare, setCopiedShare] = useState(false);
   
@@ -120,22 +120,22 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
       const docSnap = await getDoc(propRef);
       if (docSnap.exists()) {
         const data = docSnap.data() as Omit<Property, 'id'>;
-        const fetchedProperty = parsePropertyDates({id: docSnap.id, ...data});
+        const fetchedProperty = parsePropertyDates({id: docSnap.id, ...data, createdAt: data.createdAt?.toDate().toISOString(), updatedAt: data.updatedAt?.toDate().toISOString() } as SerializableProperty);
         setProperty(fetchedProperty);
 
         // Authorization check
-        const isOwnerViewing = user && fetchedProperty.userId === user.uid;
+        const isOwnerViewing = user && fetchedProperty?.userId === user.uid;
         const canViewNonActive = isOwnerViewing || isAdmin;
 
-        if (fetchedProperty.status === 'deleted' && !canViewNonActive) {
+        if (fetchedProperty?.status === 'deleted' && !canViewNonActive) {
           setError("هذا العقار تم حذفه وغير متاح للعرض.");
-        } else if (fetchedProperty.status !== 'active' && fetchedProperty.status !== 'deleted' && !canViewNonActive) {
+        } else if (fetchedProperty?.status !== 'active' && fetchedProperty?.status !== 'deleted' && !canViewNonActive) {
           setError("هذا العقار غير متاح للعرض حاليًا.");
         } else {
           setError(null); // Clear any previous error
         }
 
-        if (fetchedProperty.imageUrls && fetchedProperty.imageUrls.length > 0) {
+        if (fetchedProperty?.imageUrls && fetchedProperty.imageUrls.length > 0) {
             setSelectedImageUrl(fetchedProperty.imageUrls[0]);
         }
 
@@ -165,9 +165,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
       } else {
         setError(null);
       }
-       if (initialProperty.imageUrls && initialProperty.imageUrls.length > 0) {
-            setSelectedImageUrl(initialProperty.imageUrls[0]);
-        }
     }
   }, [initialProperty, fetchPropertyAndRefresh, user, isAdmin]);
 
@@ -301,14 +298,45 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
   const generateJsonLd = () => {
     if (!property) return null;
+
+    const propertyTypeSchema = {
+      'apartment': 'Apartment',
+      'house': 'House',
+      'villa': 'House',
+      'land': 'LandPlot',
+      'office': 'OfficeBuilding',
+      'warehouse': 'Place',
+      'shop': 'Store',
+      'other': 'RealEstateListing'
+    }[property.propertyType] || 'RealEstateListing';
     
     return {
       '@context': 'https://schema.org',
-      '@type': 'Product',
+      '@type': propertyTypeSchema,
       name: property.title,
       description: property.description,
-      image: property.imageUrls && property.imageUrls.length > 0 ? property.imageUrls[0] : undefined,
+      image: property.imageUrls && property.imageUrls.length > 0 ? property.imageUrls : undefined,
       url: `${siteConfig.url}/properties/${property.id}`,
+      ...(property.area && {
+        floorSize: {
+          '@type': 'QuantitativeValue',
+          value: property.area,
+          unitCode: 'MTK' // Square meter
+        }
+      }),
+      ...(propertyTypeSchema !== 'LandPlot' && {
+        numberOfRooms: property.rooms,
+        ...(property.bathrooms && {
+           numberOfBathroomsTotal: property.bathrooms,
+        })
+      }),
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: property.address || property.neighborhood,
+        addressLocality: property.city,
+        addressRegion: property.wilaya,
+        addressCountry: 'DZ'
+      },
       offers: {
         '@type': 'Offer',
         price: property.price,
@@ -318,10 +346,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
           '@type': 'Organization',
           name: siteConfig.name,
         },
-      },
-      brand: {
-        '@type': 'Brand',
-        name: siteConfig.name,
       },
     };
   };
@@ -353,7 +377,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   }
 
   if (!property) {
-    // This case should be handled by the server component, but as a fallback:
     return (
       <div className="container mx-auto px-4 py-8">
          <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center p-4">
