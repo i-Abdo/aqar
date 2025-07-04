@@ -82,7 +82,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="https://res.cloudinary.com/dgz2rwp09/image/upload/v1750759328/74751946173_upgo4n.png" type="image/png" />
+        <link rel="icon" href="https://res.cloudinary.com/dgz2rwp09/image/upload/v1751599256/c5278e5396324266aff8c48d47f2026c_debzqz.png" type="image/png" />
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <script
             dangerouslySetInnerHTML={{
