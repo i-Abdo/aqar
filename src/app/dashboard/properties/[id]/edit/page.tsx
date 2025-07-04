@@ -7,14 +7,27 @@ import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/fir
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { PropertyForm, PropertyFormValues } from "@/components/dashboard/PropertyForm";
 import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
-import type { Property, Plan } from "@/types";
+import type { Property, Plan, PropertyFormValues } from "@/types";
 import { plans } from "@/config/plans";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const PropertyForm = dynamic(() => 
+  import('@/components/dashboard/PropertyForm').then((mod) => mod.PropertyForm),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">جاري تحميل النموذج...</p>
+      </div>
+    )
+  }
+);
 
 export default function EditPropertyPage() {
   const params = useParams();

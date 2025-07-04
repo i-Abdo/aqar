@@ -1,4 +1,5 @@
 
+import { z } from "zod";
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export type UserTrustLevel = 'normal' | 'untrusted' | 'blacklisted';
@@ -135,3 +136,56 @@ export interface PropertyAppeal {
   dismissedByOwner?: boolean; // Added
   updatedAt?: Date; // Added
 }
+
+
+const algerianPhoneNumberRegex = /^0[567]\d{8}$/;
+
+export const propertyFormSchema = z.object({
+  title: z.string().min(5, "العنوان يجب أن لا يقل عن 5 أحرف.").max(150, "العنوان طويل جدًا (الحد الأقصى 150 حرفًا)."),
+  transactionType: z.enum(['sale', 'rent'], { required_error: "نوع المعاملة مطلوب." }),
+  propertyType: z.enum(['land', 'villa', 'house', 'apartment', 'office', 'warehouse', 'shop', 'other'], { required_error: "نوع العقار مطلوب." }),
+  otherPropertyType: z.string().max(50, "نوع العقار الآخر طويل جدًا.").optional(),
+  price: z.coerce.number({invalid_type_error: "السعر يجب أن يكون رقمًا."}).positive("السعر يجب أن يكون رقمًا موجبًا.").min(1, "السعر لا يمكن أن يكون صفرًا.").max(1_000_000_000_000, "السعر كبير جدًا."), // 1 Trillion DA limit
+  rooms: z.coerce.number().int().min(0, "عدد الغرف لا يمكن أن يكون سالبًا.").max(100, "عدد الغرف كبير جدًا."), // Allow 0 for land
+  bathrooms: z.coerce.number().int().min(0, "عدد الحمامات لا يمكن أن يكون سالبًا.").max(50, "عدد الحمامات كبير جدًا."), // Allow 0 for land
+  length: z.coerce.number().positive("الطول يجب أن يكون رقمًا موجبًا.").min(0.1, "الطول يجب أن يكون أكبر من صفر.").max(10000, "الطول كبير جدًا."),
+  width: z.coerce.number().positive("العرض يجب أن يكون رقمًا موجبًا.").min(0.1, "العرض يجب أن يكون أكبر من صفر.").max(10000, "العرض كبير جدًا."),
+  area: z.coerce.number().positive("المساحة يجب أن تكون رقمًا موجبًا.").max(1000000, "المساحة كبيرة جدًا."), // Max 1 million m^2
+  wilaya: z.string().min(1, "الولاية مطلوبة."),
+  city: z.string().min(2, "المدينة مطلوبة.").max(100, "اسم المدينة طويل جدًا."),
+  neighborhood: z.string().max(100, "اسم الحي طويل جدًا.").optional(),
+  address: z.string().max(250, "العنوان التفصيلي طويل جدًا.").optional(),
+  phoneNumber: z.string()
+    .min(1, "رقم الهاتف مطلوب.")
+    .regex(algerianPhoneNumberRegex, {
+        message: "رقم الهاتف غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.",
+    }),
+  facebookUrl: z.string().url({ message: "الرجاء إدخال رابط فيسبوك صالح." }).optional().or(z.literal('')),
+  instagramUrl: z.string().url({ message: "الرجاء إدخال رابط انستقرام صالح." }).optional().or(z.literal('')),
+  description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(1000, "الوصف يجب أن لا يتجاوز 1000 حرفًا."),
+  filters: z.object({
+    water: z.boolean().default(false),
+    electricity: z.boolean().default(false),
+    internet: z.boolean().default(false),
+    gas: z.boolean().default(false),
+    contract: z.boolean().default(false),
+  }),
+  googleMapsLink: z.string().url({ message: "الرجاء إدخال رابط خرائط جوجل صالح." }).optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if (data.propertyType === 'other' && (!data.otherPropertyType || data.otherPropertyType.trim().length < 2)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "الرجاء تحديد نوع العقار الآخر (حرفين على الأقل).",
+      path: ["otherPropertyType"],
+    });
+  }
+  if (data.propertyType !== 'other' && data.otherPropertyType) {
+    data.otherPropertyType = undefined;
+  }
+  if (data.propertyType === 'land' && (data.rooms > 0 || data.bathrooms > 0)) {
+    if(data.rooms > 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "الأرض لا تحتوي على غرف.", path: ["rooms"]});
+    if(data.bathrooms > 0) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "الأرض لا تحتوي على حمامات.", path: ["bathrooms"]});
+  }
+});
+
+export type PropertyFormValues = z.infer<typeof propertyFormSchema>;

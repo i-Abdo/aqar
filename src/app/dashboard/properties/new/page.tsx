@@ -1,7 +1,6 @@
 
 "use client";
 
-import { PropertyForm, PropertyFormValues } from "@/components/dashboard/PropertyForm";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation"; 
 import { useAuth } from "@/hooks/use-auth";
@@ -10,7 +9,7 @@ import { db } from "@/lib/firebase/client";
 import { useState, useEffect, useMemo } from "react";
 import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
 import { plans } from "@/config/plans";
-import type { Plan, Property } from "@/types";
+import type { Plan, Property, PropertyFormValues } from "@/types";
 import { Loader2, AlertTriangle, ShieldX, MessageSquareWarning } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,19 @@ import dynamic from 'next/dynamic';
 
 const ContactAdminDialog = dynamic(() =>
   import('@/components/dashboard/ContactAdminDialog').then((mod) => mod.ContactAdminDialog)
+);
+
+const PropertyForm = dynamic(() => 
+  import('@/components/dashboard/PropertyForm').then((mod) => mod.PropertyForm),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">جاري تحميل النموذج...</p>
+      </div>
+    )
+  }
 );
 
 
