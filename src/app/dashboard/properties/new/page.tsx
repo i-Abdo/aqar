@@ -164,10 +164,8 @@ export default function NewPropertyPage() {
   };
 
   const initialData = useMemo(() => ({
-    filters: currentPlan?.aiAssistantAccess 
-      ? { water: false, electricity: false, internet: false, gas: false, contract: false } 
-      : undefined,
-  }), [currentPlan]);
+    filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
+  }), []);
 
   if (authLoading || isLoadingLimits) {
     return (
