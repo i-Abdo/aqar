@@ -35,6 +35,8 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   icons: {
     icon: "https://res.cloudinary.com/dgz2rwp09/image/upload/v1751599256/c5278e5396324266aff8c48d47f2026c_debzqz.png",
+    shortcut: "https://res.cloudinary.com/dgz2rwp09/image/upload/v1751599256/c5278e5396324266aff8c48d47f2026c_debzqz.png",
+    apple: "https://res.cloudinary.com/dgz2rwp09/image/upload/v1751599256/c5278e5396324266aff8c48d47f2026c_debzqz.png",
   },
   openGraph: {
     title: {
