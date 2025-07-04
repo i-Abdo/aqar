@@ -22,7 +22,7 @@ export const siteConfig: SiteConfig = {
   name: "عقاري",
   description: "عقاري هو منصتك المثالية لإيجاد وبيع وتأجير العقارات في الجزائر.",
   url: "https://my-aqar.vercel.app", // Replace with actual URL
-  ogImage: "https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1751600494/photo_2024-05-27_02-00-59_g47ynz.png",
+  ogImage: "https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1751404879/aqari_properties/s732todiszp2m1nkkjif.png",
   mainNav: [
     {
       title: "الرئيسية", // Home
