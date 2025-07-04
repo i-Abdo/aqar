@@ -21,7 +21,6 @@ import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
 import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"; 
-import { resolveGoogleMapsUrl } from "@/actions/locationActions";
 import { cn } from "@/lib/utils";
 
 const MAX_FILE_SIZE_MB = 5;
@@ -267,39 +266,42 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     const url = form.getValues("googleMapsLink");
     
     if (!googleMapsLinkDirty || !url || url.trim() === "") {
-      if (!url || url.trim() === "") {
-        setUrlVerificationStatus('idle');
-        form.setValue("googleMapsLocation", null);
-        form.clearErrors("googleMapsLink");
-      }
-      return;
+        if (!url || url.trim() === "") {
+            setUrlVerificationStatus('idle');
+            form.setValue("googleMapsLocation", null);
+            form.clearErrors("googleMapsLink");
+        }
+        return;
     }
 
-    if (!url.trim().startsWith('http')) {
-      setUrlVerificationStatus('error');
-      form.setError("googleMapsLink", { type: "manual", message: "الرابط يجب أن يبدأ بـ http." });
-      return;
+    if (!url.includes("google.com/maps")) {
+        setUrlVerificationStatus('error');
+        form.setError("googleMapsLink", { type: "manual", message: "الرابط لا يبدو كرابط خرائط جوجل صالح." });
+        return;
     }
 
     setIsVerifyingUrl(true);
-    setUrlVerificationStatus('idle');
-    form.clearErrors("googleMapsLink");
+    // Simulate a brief check
+    await new Promise(res => setTimeout(res, 300));
 
-    const result = await resolveGoogleMapsUrl(url);
+    const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const match = url.match(regex);
 
-    if (result.success && result.finalUrl && result.coordinates) {
-      form.setValue("googleMapsLink", result.finalUrl, { shouldValidate: true, shouldDirty: true });
-      form.setValue("googleMapsLocation", result.coordinates, { shouldValidate: true, shouldDirty: true });
-      setUrlVerificationStatus('success');
-      toast({ title: "تم التحقق بنجاح!", description: "تم استخلاص الإحداثيات من الرابط." });
+    if (match && match[1] && match[2]) {
+        const lat = parseFloat(match[1]);
+        const lng = parseFloat(match[2]);
+        form.setValue("googleMapsLocation", { lat, lng }, { shouldValidate: true, shouldDirty: true });
+        setUrlVerificationStatus('success');
+        toast({ title: "تم التحقق بنجاح!", description: "تم استخلاص الإحداثيات من الرابط." });
     } else {
-      setUrlVerificationStatus('error');
-      form.setValue("googleMapsLocation", null, { shouldValidate: true, shouldDirty: true });
-      form.setError("googleMapsLink", { type: "manual", message: result.error || "فشل التحقق من الرابط." });
-      toast({ title: "فشل التحقق", description: result.error || "تعذر حل الرابط. يرجى التأكد من أنه رابط خرائط جوجل صالح.", variant: "destructive" });
+        setUrlVerificationStatus('error');
+        form.setValue("googleMapsLocation", null, { shouldValidate: true, shouldDirty: true });
+        form.setError("googleMapsLink", { type: "manual", message: "تعذر استخلاص الإحداثيات. تأكد من أن الرابط يحتوي على '@lat,lng'." });
+        toast({ title: "فشل التحقق", description: "تأكد من أن الرابط يحتوي على الإحداثيات بالشكل الصحيح (مثال: .../@36.7,3.0/...).", variant: "destructive" });
     }
+
     setIsVerifyingUrl(false);
-    setGoogleMapsLinkDirty(false); // Mark as verified/clean
+    setGoogleMapsLinkDirty(false);
   };
 
 
