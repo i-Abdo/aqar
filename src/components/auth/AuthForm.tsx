@@ -525,7 +525,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </p>
               )}
 
-              <Button type="submit" variant="secondary" className="w-full transition-smooth hover:shadow-md" disabled={isLoading}>
+              <Button type="submit" variant="default" className="w-full transition-shadow duration-300 hover:shadow-neon-primary" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {mode === "login" ? "تسجيل الدخول بالبريد الإلكتروني" : "إنشاء حساب بالبريد الإلكتروني"}
               </Button>
@@ -564,5 +564,3 @@ export function AuthForm({ mode }: AuthFormProps) {
     </>
   );
 }
-
-    

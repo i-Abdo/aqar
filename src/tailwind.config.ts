@@ -79,6 +79,9 @@ export default {
           ring: 'hsl(var(--sidebar-ring))',
         },
       },
+      boxShadow: {
+        'neon-primary': '0 0 8px hsl(var(--primary)), 0 0 12px hsl(var(--primary))',
+      },
       shadowColor: {
         accent: 'hsl(var(--accent))',
       },
