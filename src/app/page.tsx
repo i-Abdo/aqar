@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -29,9 +28,7 @@ export default function HomePage() {
       try {
         const q = query(
           collection(db, "properties"),
-          where("status", "==", "active"),
-          orderBy("viewCount", "desc"),
-          limit(3)
+          where("status", "==", "active")
         );
         const querySnapshot = await getDocs(q);
         const propsData = querySnapshot.docs.map(doc => ({
@@ -40,7 +37,12 @@ export default function HomePage() {
           createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt),
           updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date(doc.data().updatedAt),
         } as Property));
-        setPopularProperties(propsData);
+        
+        // Sort by viewCount in descending order and take the top 3
+        propsData.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+        const popularProps = propsData.slice(0, 3);
+
+        setPopularProperties(popularProps);
       } catch (error) {
         console.error("Error fetching popular properties:", error);
       } finally {
