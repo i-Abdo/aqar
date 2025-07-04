@@ -36,7 +36,7 @@ export function MobileNav() {
           variant="secondary"
           size="icon"
           aria-label="Toggle Menu"
-          className="fixed top-20 right-4 z-50 h-12 w-12 rounded-full shadow-lg md:hidden"
+          className="fixed top-16 right-4 z-50 h-12 w-12 rounded-full shadow-lg md:hidden"
         >
           <Menu className="h-6 w-6" />
         </Button>
