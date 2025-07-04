@@ -1,3 +1,4 @@
+
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
@@ -52,11 +53,13 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
         (error, result) => {
           if (error) {
             console.error('Cloudinary Upload Stream Error:', error);
-            // Provide a more specific error message if possible
-            const detailedError = error.message.includes("Invalid JSON response") 
-              ? "استجابة غير صالحة من خادم الصور. قد تكون إعدادات API غير صحيحة."
-              : `فشل رفع ${file.name}: ${error.message || 'خطأ غير معروف من Cloudinary'}`;
-            reject(new Error(detailedError));
+            // This is the key change to provide a user-friendly and actionable error.
+            if (error.message.includes("Invalid JSON response")) {
+                const userFriendlyError = "حدث خطأ في المصادقة مع خدمة الصور. يرجى التحقق من صحة إعدادات (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME) في Vercel.";
+                reject(new Error(userFriendlyError));
+            } else {
+                reject(new Error(`فشل رفع الصورة: ${error.message || 'خطأ غير معروف'}`));
+            }
           } else if (result) {
             resolve(result.secure_url);
           } else {
@@ -78,7 +81,7 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
     return { success: true, urls };
   } catch (error: any) {
     console.error('Error uploading one or more images to Cloudinary:', error);
-    // This will now return a structured error instead of crashing the server.
+    // This will now return the clear, user-friendly error message from the promise rejection.
     return { success: false, error: error.message || 'An unknown error occurred during image upload.' };
   }
 }
