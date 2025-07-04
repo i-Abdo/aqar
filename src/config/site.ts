@@ -21,8 +21,8 @@ export type SiteConfig = {
 export const siteConfig: SiteConfig = {
   name: "عقاري",
   description: "عقاري هو منصتك المثالية لإيجاد وبيع وتأجير العقارات في الجزائر.",
-  url: "https://aqari.example.com", // Replace with actual URL
-  ogImage: "https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1751599256/c5278e5396324266aff8c48d47f2026c_debzqz.png",
+  url: "https://my-aqar.vercel.app", // Replace with actual URL
+  ogImage: "https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1751600494/photo_2024-05-27_02-00-59_g47ynz.png",
   mainNav: [
     {
       title: "الرئيسية", // Home
