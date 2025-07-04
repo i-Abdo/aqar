@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { Separator } from "../ui/separator";
+import { Separator } from "@/components/ui/separator";
 
 const GoogleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px">
@@ -181,22 +181,30 @@ export function AuthForm({ mode }: AuthFormProps) {
     console.error("Authentication error:", error);
     let errorMessage = "حدث خطأ ما. الرجاء المحاولة مرة أخرى.";
     switch (error.code) {
-      case 'auth/email-already-in-use':
-        errorMessage = 'هذا البريد الإلكتروني مستخدم بالفعل.';
-        break;
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential':
-        errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-        break;
-       case 'auth/popup-closed-by-user':
-        errorMessage = 'تم إغلاق نافذة تسجيل الدخول. يرجى المحاولة مرة أخرى.';
-        break;
+        case 'auth/email-already-in-use':
+            errorMessage = 'هذا البريد الإلكتروني مستخدم بالفعل في حساب آخر.';
+            break;
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+            errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+            break;
+        case 'auth/popup-closed-by-user':
+            errorMessage = 'تم إغلاق نافذة تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+            break;
+        case 'auth/account-exists-with-different-credential':
+            errorMessage = 'يوجد حساب بالفعل بنفس البريد الإلكتروني ولكن بطريقة تسجيل دخول مختلفة (مثلاً، البريد وكلمة المرور). حاول تسجيل الدخول بالطريقة الأخرى.';
+            break;
+        default:
+            if (error.message.includes('network')) {
+                errorMessage = 'فشل الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت.';
+            }
+            break;
     }
     toast({
-      title: "خطأ في المصادقة",
-      description: errorMessage,
-      variant: "destructive",
+        title: "خطأ في المصادقة",
+        description: errorMessage,
+        variant: "destructive",
     });
   };
 
@@ -337,18 +345,15 @@ export function AuthForm({ mode }: AuthFormProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+            <Button variant="default" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
                 <span className="ml-2">متابعة باستخدام جوجل</span>
             </Button>
 
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">أو</span>
-                </div>
+            <div className="flex items-center gap-4">
+                <Separator className="flex-1" />
+                <span className="text-xs text-muted-foreground">أو</span>
+                <Separator className="flex-1" />
             </div>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -520,9 +525,9 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </p>
               )}
 
-              <Button type="submit" className="w-full transition-smooth hover:shadow-md" disabled={isLoading}>
+              <Button type="submit" variant="secondary" className="w-full transition-smooth hover:shadow-md" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === "login" ? "تسجيل الدخول" : "إنشاء الحساب"}
+                {mode === "login" ? "تسجيل الدخول بالبريد الإلكتروني" : "إنشاء حساب بالبريد الإلكتروني"}
               </Button>
             </form>
         </div>
@@ -559,3 +564,5 @@ export function AuthForm({ mode }: AuthFormProps) {
     </>
   );
 }
+
+    
