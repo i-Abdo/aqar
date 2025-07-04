@@ -15,7 +15,7 @@ export function AppLogo({ onClick }: AppLogoProps) {
       className="flex items-center p-2 -m-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Image
-        src="https://res.cloudinary.com/dgz2rwp09/image/upload/v1750759328/74751946173_upgo4n.png"
+        src="https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1750759328/74751946173_upgo4n.png"
         alt="شعار عقاري"
         width={1024} // Original width for aspect ratio calculation
         height={1024} // Original height for aspect ratio calculation
