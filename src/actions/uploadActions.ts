@@ -17,15 +17,21 @@ if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !pr
     console.log("ACTION_INFO: Cloudinary SDK configured successfully.");
 }
 
+interface UploadResult {
+  success: boolean;
+  urls?: string[];
+  error?: string;
+}
 
-export async function uploadImages(files: File[]): Promise<string[]> {
-  // Re-check config here in case module loaded but env vars were missing, then somehow set (less likely for server actions)
+export async function uploadImages(files: File[]): Promise<UploadResult> {
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    throw new Error("Cloudinary configuration is incomplete. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.");
+    const errorMessage = "إعدادات Cloudinary غير كاملة على الخادم. يرجى التأكد من إضافة متغيرات البيئة CLOUDINARY.";
+    console.error(`ACTION_ERROR: ${errorMessage}`);
+    return { success: false, error: errorMessage };
   }
 
   if (!files || files.length === 0) {
-    return [];
+    return { success: true, urls: [] };
   }
 
   const uploadPromises = files.map(async (file) => {
@@ -66,13 +72,9 @@ export async function uploadImages(files: File[]): Promise<string[]> {
   try {
     // Wait for all uploads to complete
     const urls = await Promise.all(uploadPromises);
-    return urls;
-  } catch (error) {
+    return { success: true, urls };
+  } catch (error: any) {
     console.error('Error uploading one or more images to Cloudinary:', error);
-    // Rethrow a more generic error or handle specific cases
-    if (error instanceof Error) {
-        throw new Error(`Failed to upload images: ${error.message}`);
-    }
-    throw new Error('An unknown error occurred during image upload.');
+    return { success: false, error: error.message || 'An unknown error occurred during image upload.' };
   }
 }

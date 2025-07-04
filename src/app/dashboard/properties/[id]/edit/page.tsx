@@ -134,8 +134,11 @@ export default function EditPropertyPage() {
       filesToUpload.push(...additionalImageFiles); 
 
       if (filesToUpload.length > 0) {
-        const results = await uploadImagesToServerAction(filesToUpload);
-        uploadedUrls.push(...results);
+        const uploadResult = await uploadImagesToServerAction(filesToUpload);
+        if (!uploadResult.success || !uploadResult.urls) {
+          throw new Error(uploadResult.error || "Image upload failed to return URLs.");
+        }
+        uploadedUrls.push(...uploadResult.urls);
       }
 
       let mainImageUrlToSave: string | undefined = undefined;

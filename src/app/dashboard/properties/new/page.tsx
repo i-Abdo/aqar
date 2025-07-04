@@ -135,10 +135,11 @@ export default function NewPropertyPage() {
 
 
       if (allImageFiles.length > 0) {
-        imageUrls = await uploadImagesToServerAction(allImageFiles);
-        if (imageUrls.length === 0 && allImageFiles.length > 0) {
-          throw new Error("Image upload failed to return URLs.");
+        const uploadResult = await uploadImagesToServerAction(allImageFiles);
+        if (!uploadResult.success || !uploadResult.urls) {
+          throw new Error(uploadResult.error || "Image upload failed to return URLs.");
         }
+        imageUrls = uploadResult.urls;
       }
       
       const propertyData: Omit<Property, 'id' | 'createdAt' | 'updatedAt'> = {

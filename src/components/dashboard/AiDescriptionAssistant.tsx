@@ -42,17 +42,21 @@ export function AiDescriptionAssistant({
         imageDataUri,
       };
       const result = await improvePropertyDescription(input);
-      if (result.improvedDescription) {
+      if ('improvedDescription' in result) {
         setSuggestedDescription(result.improvedDescription);
         toast({ title: 'اقتراح جديد متاح!', description: 'راجع الوصف المقترح أدناه.' });
       } else {
-        toast({ title: 'لم يتم إنشاء اقتراح', description: 'تعذر على الذكاء الاصطناعي تقديم اقتراح هذه المرة.', variant: 'default' });
+        toast({
+          title: 'خطأ في إنشاء الاقتراح',
+          description: result.error || 'تعذر على الذكاء الاصطناعي تقديم اقتراح هذه المرة.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Error improving description:', error);
       toast({
-        title: 'خطأ في إنشاء الاقتراح',
-        description: 'حدث خطأ أثناء محاولة تحسين الوصف. يرجى المحاولة مرة أخرى.',
+        title: 'خطأ فادح',
+        description: 'حدث خطأ غير متوقع أثناء محاولة تحسين الوصف. يرجى المحاولة مرة أخرى.',
         variant: 'destructive',
       });
     } finally {

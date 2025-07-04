@@ -27,8 +27,27 @@ const ImprovePropertyDescriptionOutputSchema = z.object({
 });
 export type ImprovePropertyDescriptionOutput = z.infer<typeof ImprovePropertyDescriptionOutputSchema>;
 
-export async function improvePropertyDescription(input: ImprovePropertyDescriptionInput): Promise<ImprovePropertyDescriptionOutput> {
-  return improvePropertyDescriptionFlow(input);
+
+const ImprovePropertyDescriptionResultSchema = z.union([
+  ImprovePropertyDescriptionOutputSchema,
+  z.object({ error: z.string() })
+]);
+export type ImprovePropertyDescriptionResult = z.infer<typeof ImprovePropertyDescriptionResultSchema>;
+
+
+export async function improvePropertyDescription(input: ImprovePropertyDescriptionInput): Promise<ImprovePropertyDescriptionResult> {
+  if (!process.env.GOOGLE_API_KEY) {
+     const errorMessage = 'مفتاح Google AI API غير مهيأ على الخادم. يرجى الاتصال بالدعم الفني.';
+     console.error("ACTION_ERROR: " + errorMessage);
+     return { error: errorMessage };
+  }
+  try {
+    const result = await improvePropertyDescriptionFlow(input);
+    return result;
+  } catch (e: any) {
+    console.error("Error in improvePropertyDescription wrapper:", e);
+    return { error: e.message || "An unexpected error occurred during AI description generation." };
+  }
 }
 
 const prompt = ai.definePrompt({
@@ -49,4 +68,3 @@ const improvePropertyDescriptionFlow = ai.defineFlow(
     return output!;
   }
 );
-
