@@ -1,19 +1,16 @@
-
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter, usePathname } from 'next/navigation';
 import React, { useEffect, useState, useCallback } from 'react';
-import { Loader2, Menu, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from 'lucide-react';
+import { Loader2, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from '@/components/ui/sidebar';
 import { collection, query, where, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { Badge } from '@/components/ui/badge';
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator as UiSidebarSeparator } from '@/components/ui/sidebar';
+import { Card, CardContent } from '@/components/ui/card';
 
-// Define nav items inside the layout file
 const adminNavItems = [
   { title: 'إدارة البلاغات', href: '/admin/reports', icon: Flag, countKey: 'reports' },
   { title: 'مشاكل المستخدمين', href: '/admin/issues', icon: MessageCircleWarning, countKey: 'issues' },
@@ -28,74 +25,16 @@ interface AdminCounts {
   appeals: number;
 }
 
-// Internal component for the sidebar navigation
-function AdminSidebarNav({ counts }: { counts: AdminCounts }) {
-  const pathname = usePathname();
-  const getCountForItem = (itemKey?: string): number => {
-    if (!itemKey) return 0;
-    return counts[itemKey as keyof AdminCounts] || 0;
-  };
-  return (
-    <SidebarMenu>
-      {adminNavItems.map((item, index) => {
-        const count = getCountForItem(item.countKey);
-        const IconComponent = item.icon;
-        return (
-          <React.Fragment key={item.href + index}>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)} tooltip={item.title}>
-                <Link href={item.href} className="flex items-center justify-center w-full overflow-hidden">
-                  <div className="flex items-center gap-2">
-                    {IconComponent && <IconComponent className="shrink-0" />}
-                    <span className="truncate group-data-[state=collapsed]:hidden">{item.title}</span>
-                    {count > 0 && (
-                      <Badge variant="destructive" className="shrink-0 group-data-[state=collapsed]:hidden px-1.5 py-0.5 text-[10px] leading-none h-4 rounded-full">
-                        {count > 9 ? '9+' : count}
-                      </Badge>
-                    )}
-                  </div>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            {item.title === 'مشاكل المستخدمين' && <UiSidebarSeparator />}
-          </React.Fragment>
-        );
-      })}
-    </SidebarMenu>
-  );
-}
 
-// Internal component that uses the sidebar context
-function AdminLayoutContent({ children, counts }: { children: React.ReactNode; counts: AdminCounts }) {
-  const { toggleSidebar } = useSidebar();
-  const { adminNotificationCount } = useAuth();
-  return (
-    <>
-      <Sidebar title="لوحة الإدارة" notificationCount={adminNotificationCount}>
-        <AdminSidebarNav counts={counts} />
-      </Sidebar>
-      <SidebarInset>
-        <div className="relative flex flex-col h-full bg-background">
-          <Button variant="secondary" size="icon" onClick={toggleSidebar} className="absolute top-3 right-4 z-20 h-10 w-10 rounded-lg shadow-lg shadow-primary/20 md:hidden" aria-label="فتح القائمة">
-            <Menu className="h-6 w-6" />
-          </Button>
-          <div className="flex-1 p-2 pt-16 md:pt-4 md:p-4 overflow-y-auto">{children}</div>
-        </div>
-      </SidebarInset>
-    </>
-  );
-}
-
-// Main exported layout component
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, loading: authLoading, refreshAdminNotifications } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [authHydrated, setAuthHydrated] = useState(false);
-  const [counts, setCounts] = useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
-  const [isLoadingCounts, setIsLoadingCounts] = useState(true);
+  const [authHydrated, setAuthHydrated] = React.useState(false);
+  const [counts, setCounts] = React.useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
+  const [isLoadingCounts, setIsLoadingCounts] = React.useState(true);
 
-  const fetchAdminCountsForSidebar = useCallback(async () => {
+  const fetchAdminCounts = useCallback(async () => {
     if (!isAdmin) return;
     setIsLoadingCounts(true);
     try {
@@ -118,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         appeals: appealsSnapshot.data().count,
       });
     } catch (error) {
-      console.error('Error fetching admin counts for sidebar:', error);
+      console.error('Error fetching admin counts:', error);
       setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
     } finally {
       setIsLoadingCounts(false);
@@ -137,10 +76,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, isAdmin, authLoading, router, authHydrated]);
 
-  useEffect(() => { if (isAdmin) { fetchAdminCountsForSidebar(); } }, [isAdmin, fetchAdminCountsForSidebar]);
+  useEffect(() => { if (isAdmin) { fetchAdminCounts(); } }, [isAdmin, fetchAdminCounts]);
+
+  // This will also refresh counts when navigating between admin pages
   useEffect(() => { if (isAdmin) { refreshAdminNotifications(); } }, [pathname, refreshAdminNotifications, isAdmin]);
 
-  if (authLoading || !authHydrated || !isAdmin || isLoadingCounts) {
+
+  if (authLoading || !authHydrated || !isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -149,8 +91,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <SidebarProvider defaultOpen={false} style={{ '--sidebar-width': '16rem', '--sidebar-width-mobile': '15rem', '--sidebar-width-icon': '4rem', '--sidebar-outer-padding': '0rem', '--sidebar-header-height': '3rem', '--sidebar-inset-top': 'var(--header-height)', '--sidebar-side': 'right', '--sidebar-collapsible': 'icon' } as React.CSSProperties}>
-      <AdminLayoutContent counts={counts}>{children}</AdminLayoutContent>
-    </SidebarProvider>
+    <div className="container mx-auto py-8">
+        <header className="mb-8">
+            <h1 className="text-4xl font-bold font-headline">لوحة الإدارة</h1>
+            <p className="text-muted-foreground mt-1">إدارة محتوى وتفاعلات المستخدمين في المنصة.</p>
+        </header>
+
+        <nav className="mb-8">
+            <Card className="shadow-sm">
+                <CardContent className="p-2">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        {adminNavItems.map((item) => {
+                            const count = counts[item.countKey as keyof AdminCounts] || 0;
+                            const isActive = pathname.startsWith(item.href);
+                            return (
+                                <Button key={item.href} asChild variant={isActive ? "secondary" : "ghost"} className="flex-grow sm:flex-grow-0 transition-all duration-200">
+                                    <Link href={item.href} className="flex items-center gap-2">
+                                        <item.icon className="h-4 w-4" />
+                                        <span>{item.title}</span>
+                                        {count > 0 && !isLoadingCounts && (
+                                            <Badge variant={isActive ? "default" : "destructive"} className="h-5 px-1.5">{count > 9 ? '9+' : count}</Badge>
+                                        )}
+                                        {isLoadingCounts && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    </Link>
+                                </Button>
+                            );
+                        })}
+                    </div>
+                </CardContent>
+            </Card>
+        </nav>
+
+        <main>
+            {isLoadingCounts ? (
+                <div className="flex items-center justify-center p-12">
+                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : children}
+        </main>
+    </div>
   );
 }

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -204,8 +204,6 @@ const SidebarHeaderInternal = React.forwardRef<
           <ChevronIcon />
         </Button>
       )}
-
-      {/* The mobile close button is now handled by the Sheet component */}
     </div>
   );
 });
@@ -244,7 +242,14 @@ export const Sidebar = React.forwardRef<
             {...props}
             ref={ref}
           >
-            <SidebarHeaderInternal title={title} notificationCount={notificationCount} />
+            <SheetHeader className="p-4 border-b text-left rtl:text-right">
+              <SheetTitle className="flex items-center gap-2">
+                <span>{title}</span>
+                  {notificationCount !== undefined && notificationCount > 0 && (
+                    <Badge variant="destructive">{notificationCount > 9 ? '9+' : notificationCount}</Badge>
+                  )}
+              </SheetTitle>
+            </SheetHeader>
             <ScrollArea className="flex-grow">{children}</ScrollArea>
           </SheetContent>
         </Sheet>
