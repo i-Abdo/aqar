@@ -57,17 +57,17 @@ const prompt = ai.definePrompt({
   name: 'improvePropertyDescriptionPrompt',
   input: {schema: ImprovePropertyDescriptionInputSchema},
   output: {schema: ImprovePropertyDescriptionOutputSchema},
-  prompt: `You are an expert real estate marketing copywriter.
-Your one and only task is to take the provided image and current description and rewrite it into a compelling, professional, and attractive property listing description in Arabic.
-The final output must be ONLY the rewritten description and nothing else.
-The new description MUST be in Arabic.
-The new description MUST be under 500 characters.
-Analyze the image for key features (e.g., sunny, modern, spacious, type of rooms) and incorporate them.
-Based on the provided details, generate an improved description.
+  prompt: `You are an AI assistant that rewrites real estate descriptions into professional, attractive Arabic marketing copy.
+Your task is to analyze the provided image and the current description, then generate a new, improved description in Arabic.
+The new description must be under 500 characters.
+Your response MUST ONLY contain the JSON object with the 'improvedDescription' field. Do not add any greetings, explanations, or extra text outside of the JSON structure.
 
-Current Description: {{{currentDescription}}}
+Current Description: '{{{currentDescription}}}'
 
-Image: {{media url=imageDataUri}}`,
+Analyze the following image for visual cues:
+{{media url=imageDataUri}}
+
+Generate the improved Arabic description.`,
 });
 
 const improvePropertyDescriptionFlow = ai.defineFlow(
@@ -81,4 +81,3 @@ const improvePropertyDescriptionFlow = ai.defineFlow(
     return output!;
   }
 );
-
