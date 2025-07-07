@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ import { db } from "@/lib/firebase/client";
 import type { Property } from "@/types";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyCardSkeleton } from "@/components/properties/PropertyCardSkeleton";
+import * as Sentry from "@sentry/nextjs";
+import { useToast } from "@/hooks/use-toast";
 
 const ContactDialog = dynamic(() =>
   import('@/components/layout/ContactDialog').then((mod) => mod.ContactDialog)
@@ -21,6 +24,7 @@ export default function HomePage() {
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
   const [popularProperties, setPopularProperties] = useState<Property[]>([]);
   const [isLoadingPopular, setIsLoadingPopular] = useState(true);
+  const { toast } = useToast();
   
   useEffect(() => {
     const fetchPopularProperties = async () => {
@@ -230,8 +234,12 @@ export default function HomePage() {
                 try {
                   // @ts-ignore
                   thisFunctionDoesNotExistToTriggerSentry();
-                } catch (e) {
-                  // Sentry's automatic instrumentation will capture this.
+                } catch (error) {
+                  Sentry.captureException(error);
+                  toast({
+                    title: "تم إرسال الخطأ التجريبي!",
+                    description: "إذا كانت إعداداتك صحيحة، يجب أن يظهر الخطأ في Sentry الآن.",
+                  });
                 }
               }}
             >
