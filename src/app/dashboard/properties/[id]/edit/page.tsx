@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import * as Sentry from "@sentry/nextjs";
 
 const PropertyForm = dynamic(() => 
   import('@/components/dashboard/PropertyForm').then((mod) => mod.PropertyForm),
@@ -205,6 +206,7 @@ export default function EditPropertyPage() {
       router.push("/dashboard/properties");
     } catch (error: any) {
       console.error("Error updating property:", error);
+      Sentry.captureException(error);
       let description = "حدث خطأ أثناء محاولة حفظ التعديلات. يرجى المحاولة مرة أخرى.";
       if (error.message) {
           description = error.message;

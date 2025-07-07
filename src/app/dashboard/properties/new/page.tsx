@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
+import * as Sentry from "@sentry/nextjs";
 
 const ContactAdminDialog = dynamic(() =>
   import('@/components/dashboard/ContactAdminDialog').then((mod) => mod.ContactAdminDialog)
@@ -166,6 +167,7 @@ export default function NewPropertyPage() {
       router.push(`/dashboard/properties`); 
     } catch (error: any) {
       console.error("Error creating property:", error);
+      Sentry.captureException(error);
       toast({
         title: "خطأ في إضافة العقار",
         description: error.message || "حدث خطأ أثناء محاولة حفظ العقار. يرجى المحاولة مرة أخرى.",
