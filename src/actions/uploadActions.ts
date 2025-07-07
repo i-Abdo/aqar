@@ -12,83 +12,79 @@ interface UploadResult {
 }
 
 export async function uploadImages(files: File[]): Promise<UploadResult> {
-  // 1. Centralized and specific check for environment variables.
-  const missingVars: string[] = [];
-  if (!process.env.CLOUDINARY_CLOUD_NAME) missingVars.push('CLOUDINARY_CLOUD_NAME');
-  if (!process.env.CLOUDINARY_API_KEY) missingVars.push('CLOUDINARY_API_KEY');
-  if (!process.env.CLOUDINARY_API_SECRET) missingVars.push('CLOUDINARY_API_SECRET');
-
-  if (missingVars.length > 0) {
-    const errorMessage = `إعدادات Cloudinary ناقصة على الخادم. المتغير (أو المتغيرات) التالية مفقودة: ${missingVars.join(', ')}. يرجى التحقق من إعدادات مشروعك في Vercel والتأكد من تفعيلها لبيئة Production.`;
-    Sentry.captureMessage(`Missing Cloudinary Env Vars: ${missingVars.join(', ')}`, "error");
-    console.error(`ACTION_ERROR: Missing Cloudinary credentials. Missing: ${missingVars.join(', ')}`);
-    return { success: false, error: errorMessage };
-  }
-
-
-  // 2. Configure Cloudinary inside the action, only when it's called.
   try {
+    // Configure Cloudinary inside the action. This will throw an error if vars are missing.
     cloudinary.config({
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
         api_key: process.env.CLOUDINARY_API_KEY,
         api_secret: process.env.CLOUDINARY_API_SECRET,
         secure: true,
     });
-  } catch (configError) {
-      Sentry.captureException(configError);
-      console.error("Cloudinary config error:", configError);
-      return { success: false, error: "فشل في تهيئة خدمة رفع الصور." };
-  }
 
-  if (!files || files.length === 0) {
-    return { success: true, urls: [] };
-  }
+    if (!files || files.length === 0) {
+      return { success: true, urls: [] };
+    }
 
-  // 3. Map each file to an upload promise.
-  const uploadPromises = files.map(async (file) => {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const uploadPromises = files.map(async (file) => {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
-    return new Promise<string>((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'image',
-          folder: 'aqari_properties',
-          quality: 'auto:good',
-          transformation: [
-            { width: 1920, height: 1920, crop: 'limit' }
-          ]
-        },
-        (error, result) => {
-          if (error) {
-            console.error('Cloudinary Upload Stream Error:', error);
-            Sentry.captureException(error, { extra: { file_name: file.name, cloud_name: process.env.CLOUDINARY_CLOUD_NAME }});
-            const userFriendlyError = "حدث خطأ في المصادقة مع خدمة الصور. يرجى التحقق من صحة إعدادات (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME) في Vercel. تأكد من عدم وجود مسافات إضافية وقم بإعادة النشر.";
-            reject(new Error(userFriendlyError));
-          } else if (result) {
-            resolve(result.secure_url);
-          } else {
-            const noResultError = new Error(`فشل رفع ${file.name} من Cloudinary بدون نتيجة.`);
-            Sentry.captureException(noResultError);
-            reject(noResultError);
+      return new Promise<string>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'image',
+            folder: 'aqari_properties',
+            quality: 'auto:good',
+            transformation: [
+              { width: 1920, height: 1920, crop: 'limit' }
+            ]
+          },
+          (error, result) => {
+            if (error) {
+              console.error('Cloudinary Upload Stream Error:', error);
+              // Capture the structured error from Cloudinary
+              Sentry.captureException(error, { 
+                extra: { 
+                  file_name: file.name, 
+                  error_message: error.message 
+                }
+              });
+              // Provide a more generic but still helpful error to the user
+              const userFriendlyError = `فشل رفع الصورة "${file.name}". قد تكون هناك مشكلة في الاتصال بخدمة الصور أو أن إعدادات المصادقة غير صحيحة. يرجى المحاولة مرة أخرى.`;
+              reject(new Error(userFriendlyError));
+            } else if (result) {
+              resolve(result.secure_url);
+            } else {
+              const noResultError = new Error(`فشل رفع ${file.name} من Cloudinary بدون نتيجة.`);
+              Sentry.captureException(noResultError);
+              reject(noResultError);
+            }
           }
-        }
-      );
+        );
 
-      const readableStream = new Readable();
-      readableStream.push(buffer);
-      readableStream.push(null);
-      readableStream.pipe(uploadStream);
+        const readableStream = new Readable();
+        readableStream.push(buffer);
+        readableStream.push(null);
+        readableStream.pipe(uploadStream);
+      });
     });
-  });
 
-  // 4. Await all promises and handle potential errors.
-  try {
     const urls = await Promise.all(uploadPromises);
     return { success: true, urls };
+
   } catch (error: any) {
+    // This will catch errors from cloudinary.config() if env vars are missing
+    // or any other synchronous error before the promises.
+    console.error('Error in uploadImages action:', error);
     Sentry.captureException(error);
-    console.error('Error uploading one or more images to Cloudinary (Promise.all catch):', error);
-    return { success: false, error: error.message || 'An unknown error occurred during image upload.' };
+    
+    let errorMessage = 'حدث خطأ غير متوقع أثناء عملية رفع الصور.';
+    if (error.message && error.message.includes('Missing required parameter - cloud_name')) {
+      errorMessage = 'فشل تهيئة خدمة رفع الصور. تأكد من صحة إعدادات Cloudinary على الخادم.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return { success: false, error: errorMessage };
   }
 }
