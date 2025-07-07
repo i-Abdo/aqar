@@ -220,6 +220,24 @@ export default function HomePage() {
               </Card>
             </div>
           </section>
+          
+          <section className="w-full text-center py-8 border-2 border-dashed border-destructive/50 rounded-lg">
+            <h3 className="text-xl font-semibold mb-4 text-destructive">للتحقق من Sentry فقط (مؤقت)</h3>
+            <p className="text-muted-foreground mb-4">اضغط على هذا الزر لإرسال خطأ تجريبي إلى Sentry وإكمال عملية التحقق.</p>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                try {
+                  // @ts-ignore
+                  thisFunctionDoesNotExistToTriggerSentry();
+                } catch (e) {
+                  // Sentry's automatic instrumentation will capture this.
+                }
+              }}
+            >
+              إرسال خطأ تجريبي إلى Sentry
+            </Button>
+          </section>
 
           <section className="w-full py-16 md:py-20 bg-primary text-primary-foreground rounded-lg animate-in fade-in slide-in-from-bottom-12 duration-700">
             <h2 className="text-3xl font-bold font-headline mb-6">جاهز للبدء؟</h2>
