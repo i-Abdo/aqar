@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import * as Sentry from "@sentry/nextjs";
 
 const ImprovePropertyDescriptionInputSchema = z.object({
   imageDataUri: z
@@ -39,13 +40,15 @@ export async function improvePropertyDescription(input: ImprovePropertyDescripti
   if (!process.env.GOOGLE_API_KEY) {
      const errorMessage = 'مفتاح Google AI API غير مهيأ على الخادم. يرجى الاتصال بالدعم الفني.';
      console.error("ACTION_ERROR: " + errorMessage);
+     Sentry.captureMessage(errorMessage, "error");
      return { error: errorMessage };
   }
   try {
     const result = await improvePropertyDescriptionFlow(input);
     return result;
   } catch (e: any) {
-    console.error("Error in improvePropertyDescription wrapper:", e);
+    console.error("Sentry Capture: Error in improvePropertyDescription wrapper:", e);
+    Sentry.captureException(e);
     return { error: e.message || "An unexpected error occurred during AI description generation." };
   }
 }
@@ -78,3 +81,4 @@ const improvePropertyDescriptionFlow = ai.defineFlow(
     return output!;
   }
 );
+
