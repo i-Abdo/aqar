@@ -106,12 +106,16 @@ export default function NewPropertyPage() {
       router.push("/login");
       return;
     }
+     if (!currentPlan) {
+      toast({ title: "خطأ", description: "لم يتم تحميل تفاصيل خطتك. لا يمكن الحفظ.", variant: "destructive" });
+      return;
+    }
     if (trustLevel === 'blacklisted') {
         toast({ title: "محظور", description: "حسابك محظور من إضافة عقارات جديدة. يرجى الاتصال بالإدارة.", variant: "destructive" });
         return;
     }
-    if (!canAddProperty && currentPlan?.maxListings !== Infinity) {
-         toast({ title: "تم الوصول للحد الأقصى", description: `لقد وصلت إلى الحد الأقصى لعدد العقارات المسموح به في خطة "${currentPlan?.name}". يرجى ترقية خطتك.`, variant: "destructive" });
+    if (!canAddProperty && currentPlan.maxListings !== Infinity) {
+         toast({ title: "تم الوصول للحد الأقصى", description: `لقد وصلت إلى الحد الأقصى لعدد العقارات المسموح به في خطة "${currentPlan.name}". يرجى ترقية خطتك.`, variant: "destructive" });
         return;
     }
 
@@ -143,12 +147,14 @@ export default function NewPropertyPage() {
         imageUrls = uploadResult.urls;
       }
       
+      const propertyStatus = trustLevel === 'untrusted' ? "pending" : "active";
+
       const propertyData: Omit<Property, 'id' | 'createdAt' | 'updatedAt'> = {
         ...data,
         userId: user.uid,
         phoneNumber: data.phoneNumber, 
         imageUrls,
-        status: trustLevel === 'untrusted' ? "pending" : "active", 
+        status: propertyStatus, 
         deletionReason: "",
       };
       
@@ -162,12 +168,14 @@ export default function NewPropertyPage() {
       
       toast({
         title: "تم إضافة العقار بنجاح!",
-        description: trustLevel === 'untrusted' ? `تم إرسال عقارك "${data.title}" للمراجعة.` : `تم نشر عقارك "${data.title}".`,
+        description: propertyStatus === 'pending' ? `تم إرسال عقارك "${data.title}" للمراجعة.` : `تم نشر عقارك "${data.title}".`,
       });
       router.push(`/dashboard/properties`); 
     } catch (error: any) {
       console.error("Error creating property:", error);
-      Sentry.captureException(error);
+      Sentry.captureException(error, {
+        extra: { propertyTitle: data.title, userId: user.uid }
+      });
       toast({
         title: "خطأ في إضافة العقار",
         description: error.message || "حدث خطأ أثناء محاولة حفظ العقار. يرجى المحاولة مرة أخرى.",
