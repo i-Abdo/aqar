@@ -54,7 +54,13 @@ const prompt = ai.definePrompt({
   name: 'improvePropertyDescriptionPrompt',
   input: {schema: ImprovePropertyDescriptionInputSchema},
   output: {schema: ImprovePropertyDescriptionOutputSchema},
-  prompt: `You are an expert real estate copywriter specializing in optimizing property descriptions for search engines and user engagement.\n\nGiven the current property description and an image of the property, suggest improvements to make the description more appealing to potential renters and optimized for search engines.\n\nCurrent Description: {{{currentDescription}}}\n\nImage: {{media url=imageDataUri}}\n\nFocus on highlighting key features and benefits that are visually evident in the image, and incorporate relevant keywords to improve search visibility. The improved description MUST be in Arabic. It should be concise, engaging, informative, and not exceed 500 characters, encouraging potential renters to inquire further.\n\nImproved Description: `,
+  prompt: `You are an expert real estate copywriter. Your task is to rewrite the following property description to be more engaging for potential buyers or renters, using details from the provided image. The new description must be in Arabic and under 500 characters. DO NOT give advice or instructions, only provide the rewritten, improved description in the final output.
+
+Current Description: {{{currentDescription}}}
+
+Image: {{media url=imageDataUri}}
+
+Improved Arabic Description:`,
 });
 
 const improvePropertyDescriptionFlow = ai.defineFlow(
