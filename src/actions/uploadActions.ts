@@ -1,7 +1,9 @@
+
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import * as Sentry from "@sentry/nextjs";
 
 interface UploadResult {
   success: boolean;
@@ -13,7 +15,12 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
   // 1. Centralized check for environment variables.
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
     const errorMessage = "إعدادات Cloudinary غير كاملة على الخادم. يرجى التأكد من إضافة متغيرات البيئة CLOUDINARY.";
-    console.error(`ACTION_ERROR: ${errorMessage}`);
+    Sentry.captureMessage(errorMessage, "error");
+    console.error(`ACTION_ERROR: Missing Cloudinary credentials.`, {
+        hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+        hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+        hasApiSecret: !!process.env.CLOUDINARY_API_SECRET,
+    });
     return { success: false, error: errorMessage };
   }
 
@@ -26,6 +33,7 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
         secure: true,
     });
   } catch (configError) {
+      Sentry.captureException(configError);
       console.error("Cloudinary config error:", configError);
       return { success: false, error: "فشل في تهيئة خدمة رفع الصور." };
   }
@@ -51,15 +59,16 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
         },
         (error, result) => {
           if (error) {
-            // Simplified error handling: Assume any upload error is an auth/config issue on Vercel.
-            // This is the most common failure point in a serverless environment.
             console.error('Cloudinary Upload Stream Error:', error);
+            Sentry.captureException(error);
             const userFriendlyError = "حدث خطأ في المصادقة مع خدمة الصور. يرجى التحقق من صحة إعدادات (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME) في Vercel. تأكد من عدم وجود مسافات إضافية وقم بإعادة النشر.";
             reject(new Error(userFriendlyError));
           } else if (result) {
             resolve(result.secure_url);
           } else {
-            reject(new Error(`فشل رفع ${file.name} من Cloudinary بدون نتيجة.`));
+            const noResultError = new Error(`فشل رفع ${file.name} من Cloudinary بدون نتيجة.`);
+            Sentry.captureException(noResultError);
+            reject(noResultError);
           }
         }
       );
@@ -76,8 +85,8 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
     const urls = await Promise.all(uploadPromises);
     return { success: true, urls };
   } catch (error: any) {
-    console.error('Error uploading one or more images to Cloudinary:', error);
-    // This will now return the clear, user-friendly error message from the promise rejection.
+    Sentry.captureException(error);
+    console.error('Error uploading one or more images to Cloudinary (Promise.all catch):', error);
     return { success: false, error: error.message || 'An unknown error occurred during image upload.' };
   }
 }
