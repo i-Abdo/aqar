@@ -12,17 +12,19 @@ interface UploadResult {
 }
 
 export async function uploadImages(files: File[]): Promise<UploadResult> {
-  // 1. Centralized check for environment variables.
-  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    const errorMessage = "إعدادات Cloudinary غير كاملة على الخادم. يرجى التأكد من إضافة متغيرات البيئة CLOUDINARY.";
-    Sentry.captureMessage(errorMessage, "error");
-    console.error(`ACTION_ERROR: Missing Cloudinary credentials.`, {
-        hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
-        hasApiKey: !!process.env.CLOUDINARY_API_KEY,
-        hasApiSecret: !!process.env.CLOUDINARY_API_SECRET,
-    });
+  // 1. Centralized and specific check for environment variables.
+  const missingVars: string[] = [];
+  if (!process.env.CLOUDINARY_CLOUD_NAME) missingVars.push('CLOUDINARY_CLOUD_NAME');
+  if (!process.env.CLOUDINARY_API_KEY) missingVars.push('CLOUDINARY_API_KEY');
+  if (!process.env.CLOUDINARY_API_SECRET) missingVars.push('CLOUDINARY_API_SECRET');
+
+  if (missingVars.length > 0) {
+    const errorMessage = `إعدادات Cloudinary ناقصة على الخادم. المتغير (أو المتغيرات) التالية مفقودة: ${missingVars.join(', ')}. يرجى التحقق من إعدادات مشروعك في Vercel والتأكد من تفعيلها لبيئة Production.`;
+    Sentry.captureMessage(`Missing Cloudinary Env Vars: ${missingVars.join(', ')}`, "error");
+    console.error(`ACTION_ERROR: Missing Cloudinary credentials. Missing: ${missingVars.join(', ')}`);
     return { success: false, error: errorMessage };
   }
+
 
   // 2. Configure Cloudinary inside the action, only when it's called.
   try {
@@ -60,7 +62,7 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
         (error, result) => {
           if (error) {
             console.error('Cloudinary Upload Stream Error:', error);
-            Sentry.captureException(error);
+            Sentry.captureException(error, { extra: { file_name: file.name, cloud_name: process.env.CLOUDINARY_CLOUD_NAME }});
             const userFriendlyError = "حدث خطأ في المصادقة مع خدمة الصور. يرجى التحقق من صحة إعدادات (CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME) في Vercel. تأكد من عدم وجود مسافات إضافية وقم بإعادة النشر.";
             reject(new Error(userFriendlyError));
           } else if (result) {
