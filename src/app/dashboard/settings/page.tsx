@@ -1,23 +1,59 @@
 
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { UserCog, Palette, ShieldCheck, BellDot, Trash2, Sun, Moon, Computer } from "lucide-react";
+import { UserCog, Palette, ShieldCheck, BellDot, Trash2, Sun, Moon, Computer, Server, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/hooks/use-theme";
 import React from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ThemeSetting } from "@/hooks/use-theme";
+import { checkArchiveConnection } from "@/actions/debugActions";
+import { useToast } from "@/hooks/use-toast";
+
+interface CheckResult {
+  success: boolean;
+  message: string;
+  details?: string;
+}
 
 export default function SettingsPage() {
   const { themeSetting, setThemeSetting, effectiveTheme } = useTheme();
   const [isClient, setIsClient] = React.useState(false);
+  const [isChecking, setIsChecking] = React.useState(false);
+  const [checkResult, setCheckResult] = React.useState<CheckResult | null>(null);
+  const { toast } = useToast();
 
   React.useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const handleCheckConnection = async () => {
+    setIsChecking(true);
+    setCheckResult(null);
+    try {
+      const result = await checkArchiveConnection();
+      setCheckResult(result);
+      if (!result.success) {
+        toast({
+          title: "فشل فحص الخادم",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "خطأ غير متوقع",
+        description: "حدث خطأ أثناء محاولة فحص إعدادات الخادم.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
 
   return (
     <div className="space-y-8">
@@ -120,6 +156,43 @@ export default function SettingsPage() {
                  <div key={i} className="h-12 w-32 rounded-md border animate-pulse bg-muted/50"></div>
               ))}
                <div className="h-10 w-3/4 rounded animate-pulse bg-muted/50 mt-2 basis-full"></div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      <Card className="shadow-lg hover:shadow-xl transition-smooth">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Server className="text-primary" />
+            <span>تشخيص إعدادات الخادم</span>
+          </CardTitle>
+          <CardDescription>
+            استخدم هذه الأدوات للتحقق من صحة اتصال الخادم بالخدمات الخارجية.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">فحص خدمة رفع الفيديو (Archive.org)</h3>
+            <p className="text-muted-foreground mb-3">
+              اضغط على الزر أدناه للتحقق مما إذا كان الخادم قادرًا على الاتصال بخدمة الأرشفة باستخدام متغيرات البيئة التي قدمتها.
+            </p>
+            <Button onClick={handleCheckConnection} disabled={isChecking}>
+              {isChecking && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              فحص الاتصال بخدمة الأرشفة
+            </Button>
+          </div>
+          {checkResult && (
+            <div className={`p-4 rounded-md border ${checkResult.success ? 'bg-green-500/10 border-green-500/30' : 'bg-destructive/10 border-destructive/30'}`}>
+              <div className="flex items-start gap-3">
+                {checkResult.success ? <CheckCircle className="text-green-500 mt-1" /> : <AlertTriangle className="text-destructive mt-1" />}
+                <div className="flex-1">
+                  <p className={`font-bold ${checkResult.success ? 'text-green-700' : 'text-destructive'}`}>
+                    {checkResult.message}
+                  </p>
+                  {checkResult.details && <p className="text-xs mt-1 text-muted-foreground">{checkResult.details}</p>}
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
