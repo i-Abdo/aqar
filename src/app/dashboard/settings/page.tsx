@@ -4,44 +4,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { UserCog, Palette, ShieldCheck, BellDot, Trash2, Sun, Moon, Computer, Server, Loader2, AlertCircle } from "lucide-react";
+import { UserCog, Palette, ShieldCheck, BellDot, Trash2, Sun, Moon, Computer } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/hooks/use-theme";
 import React from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ThemeSetting } from "@/hooks/use-theme";
-import { getCloudinaryConfigStatus } from "@/actions/debugActions";
-
-interface DebugInfo {
-    cloudNameExists: boolean;
-    apiKeyExists: boolean;
-    apiSecretExists: boolean;
-    envNode: string;
-}
 
 export default function SettingsPage() {
   const { themeSetting, setThemeSetting, effectiveTheme } = useTheme();
   const [isClient, setIsClient] = React.useState(false);
-  const [debugInfo, setDebugInfo] = React.useState<DebugInfo | null>(null);
-  const [isDebugging, setIsDebugging] = React.useState(false);
 
   React.useEffect(() => {
     setIsClient(true);
   }, []);
-  
-  const handleDebugClick = async () => {
-    setIsDebugging(true);
-    setDebugInfo(null);
-    try {
-        const info = await getCloudinaryConfigStatus();
-        setDebugInfo(info);
-    } catch (error) {
-        console.error("Error fetching debug info:", error);
-    } finally {
-        setIsDebugging(false);
-    }
-  };
-
 
   return (
     <div className="space-y-8">
@@ -148,51 +124,6 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
-      
-       <Card className="shadow-lg hover:shadow-xl transition-smooth border-accent">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-accent">
-            <Server />
-            <span>تشخيص إعدادات الخادم</span>
-          </CardTitle>
-          <CardDescription>
-            استخدم هذا الزر للتحقق مما إذا كان خادم Vercel يمكنه قراءة متغيرات البيئة الخاصة بـ Cloudinary بشكل صحيح.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <Button onClick={handleDebugClick} disabled={isDebugging}>
-              {isDebugging ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Server className="ml-2 h-4 w-4" />}
-              {isDebugging ? "جاري الفحص..." : "فحص إعدادات الرفع"}
-            </Button>
-            {debugInfo && (
-                <div className="p-4 bg-muted rounded-md text-sm font-mono space-y-2">
-                    <h4 className="font-bold text-base mb-2">نتيجة الفحص من خادم Vercel:</h4>
-                    <p className={debugInfo.cloudNameExists ? "text-green-500" : "text-destructive"}>
-                        CLOUDINARY_CLOUD_NAME: {debugInfo.cloudNameExists ? 'موجود' : 'مفقود'}
-                    </p>
-                    <p className={debugInfo.apiKeyExists ? "text-green-500" : "text-destructive"}>
-                        CLOUDINARY_API_KEY: {debugInfo.apiKeyExists ? 'موجود' : 'مفقود'}
-                    </p>
-                    <p className={debugInfo.apiSecretExists ? "text-green-500" : "text-destructive"}>
-                        CLOUDINARY_API_SECRET: {debugInfo.apiSecretExists ? 'موجود' : 'مفقود'}
-                    </p>
-                    <p className="text-muted-foreground pt-2">
-                        البيئة الحالية: {debugInfo.envNode}
-                    </p>
-                    {(!debugInfo.cloudNameExists || !debugInfo.apiKeyExists || !debugInfo.apiSecretExists) && (
-                        <div className="flex items-start gap-2 pt-3 text-destructive border-t border-destructive/20">
-                            <AlertCircle size={20} className="mt-1"/>
-                            <div>
-                                <p className="font-bold">مشكلة هامة:</p>
-                                <p className="text-xs">الخادم لا يستطيع قراءة واحد أو أكثر من المتغيرات المطلوبة لرفع الصور. يرجى مراجعتها بدقة في إعدادات Vercel ثم إعادة نشر المشروع.</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-        </CardContent>
-      </Card>
-
 
       <Card className="shadow-lg hover:shadow-xl transition-smooth">
         <CardHeader>
@@ -229,4 +160,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

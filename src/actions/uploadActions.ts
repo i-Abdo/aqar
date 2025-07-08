@@ -2,7 +2,6 @@
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
-import { Readable } from 'stream';
 import * as Sentry from "@sentry/nextjs";
 
 interface UploadResult {
@@ -11,9 +10,14 @@ interface UploadResult {
   error?: string;
 }
 
+// Function to convert a file buffer to a data URI, a reliable way to upload in serverless environments
+const bufferToDataURI = (buffer: Buffer, mimeType: string) => {
+    return `data:${mimeType};base64,${buffer.toString('base64')}`;
+}
+
 export async function uploadImages(files: File[]): Promise<UploadResult> {
   try {
-    // Configure Cloudinary inside the action. This will throw an error if vars are missing.
+    // Configure Cloudinary inside the action. This ensures it's always configured correctly on the server.
     cloudinary.config({
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
         api_key: process.env.CLOUDINARY_API_KEY,
@@ -28,63 +32,34 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
     const uploadPromises = files.map(async (file) => {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-
-      return new Promise<string>((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'image',
-            folder: 'aqari_properties',
-            quality: 'auto:good',
-            transformation: [
-              { width: 1920, height: 1920, crop: 'limit' }
-            ]
-          },
-          (error, result) => {
-            if (error) {
-              console.error('Cloudinary Upload Stream Error:', error);
-              // Capture the structured error from Cloudinary
-              Sentry.captureException(error, { 
-                extra: { 
-                  file_name: file.name, 
-                  error_message: error.message 
-                }
-              });
-              // Provide a more generic but still helpful error to the user
-              const userFriendlyError = `فشل رفع الصورة "${file.name}". قد تكون هناك مشكلة في الاتصال بخدمة الصور أو أن إعدادات المصادقة غير صحيحة. يرجى المحاولة مرة أخرى.`;
-              reject(new Error(userFriendlyError));
-            } else if (result) {
-              resolve(result.secure_url);
-            } else {
-              const noResultError = new Error(`فشل رفع ${file.name} من Cloudinary بدون نتيجة.`);
-              Sentry.captureException(noResultError);
-              reject(noResultError);
-            }
-          }
-        );
-
-        const readableStream = new Readable();
-        readableStream.push(buffer);
-        readableStream.push(null);
-        readableStream.pipe(uploadStream);
+      const dataUri = bufferToDataURI(buffer, file.type);
+      
+      const result = await cloudinary.uploader.upload(dataUri, {
+          resource_type: 'image',
+          folder: 'aqari_properties',
+          quality: 'auto:good',
+          transformation: [{ width: 1920, height: 1920, crop: 'limit' }]
       });
+      return result.secure_url;
     });
 
     const urls = await Promise.all(uploadPromises);
     return { success: true, urls };
 
   } catch (error: any) {
-    // This will catch errors from cloudinary.config() if env vars are missing
-    // or any other synchronous error before the promises.
     console.error('Error in uploadImages action:', error);
-    Sentry.captureException(error);
+    Sentry.captureException(error, {
+      extra: {
+        cloudNameExists: !!process.env.CLOUDINARY_CLOUD_NAME,
+        apiKeyExists: !!process.env.CLOUDINARY_API_KEY,
+        // Note: We don't log the secret for security reasons.
+        errorMessage: error.message
+      }
+    });
     
-    let errorMessage = 'حدث خطأ غير متوقع أثناء عملية رفع الصور.';
-    if (error.message && error.message.includes('Missing required parameter - cloud_name')) {
-      errorMessage = 'فشل تهيئة خدمة رفع الصور. تأكد من صحة إعدادات Cloudinary على الخادم.';
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
+    // Provide a generic but helpful error message to the user for security.
+    const userFriendlyError = "فشل رفع الصورة. قد تكون هناك مشكلة في الاتصال بخدمة الصور أو أن إعدادات المصادقة غير صحيحة. تم إبلاغ الفريق الفني.";
     
-    return { success: false, error: errorMessage };
+    return { success: false, error: userFriendlyError };
   }
 }
