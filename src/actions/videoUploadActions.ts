@@ -38,13 +38,13 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
 
   try {
     const s3Client = new S3Client({
-      region: 'us-east-1',
+      // region: 'us-east-1', // REMOVED: This is the new fix. Forcing the SDK to not assume an AWS region.
       endpoint: 'https://s3.us.archive.org',
       credentials: {
         accessKeyId: accessKey,
         secretAccessKey: secretKey,
       },
-      forcePathStyle: true, // This is the crucial fix
+      forcePathStyle: true,
     });
 
     const arrayBuffer = await file.arrayBuffer();
