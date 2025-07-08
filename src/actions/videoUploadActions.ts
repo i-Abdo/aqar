@@ -15,6 +15,15 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
   const accessKey = process.env.ARCHIVE_ORG_ACCESS_KEY;
   const secretKey = process.env.ARCHIVE_ORG_SECRET_KEY;
 
+  // Definitive check to handle the "Resolved credential object is not valid" error at its root.
+  if (!accessKey || !secretKey) {
+    const errorMessage = "فشل المصادقة مع خدمة الأرشفة. واحد أو أكثر من مفاتيح الخدمة (ARCHIVE_ORG_ACCESS_KEY, ARCHIVE_ORG_SECRET_KEY) غير معرفة على الخادم. يرجى مراجعة إعدادات البيئة في Vercel.";
+    console.error("UPLOAD_ERROR: " + errorMessage);
+    Sentry.captureMessage(errorMessage, "error");
+    return { success: false, error: errorMessage };
+  }
+  
+
   if (!file) {
     return { success: true };
   }
@@ -32,10 +41,10 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
   try {
     const s3Client = new S3Client({
       endpoint: 'https://s3.us.archive.org',
-      region: 'us-east-1', // Placeholder region to satisfy the SDK
+      region: 'us-east-1', 
       credentials: {
-        accessKeyId: accessKey!,
-        secretAccessKey: secretKey!,
+        accessKeyId: accessKey,
+        secretAccessKey: secretKey,
       },
       forcePathStyle: true,
     });
