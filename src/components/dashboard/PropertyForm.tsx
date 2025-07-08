@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check, Facebook, Instagram, PenSquare } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check, Facebook, Instagram, PenSquare, Video } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
@@ -22,6 +22,8 @@ import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"; 
 import { cn } from "@/lib/utils";
+import { uploadVideoToArchive } from "@/actions/videoUploadActions";
+
 
 const AiDescriptionAssistant = dynamic(() =>
   import('./AiDescriptionAssistant').then((mod) => mod.AiDescriptionAssistant),
@@ -52,6 +54,10 @@ const WhatsAppIcon = () => (
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+
+const MAX_VIDEO_SIZE_MB = 200;
+const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/mov"];
 
 
 const wilayas = [
@@ -90,8 +96,10 @@ interface PropertyFormProps {
     data: PropertyFormValues,
     mainImageFile: File | null,
     additionalImageFiles: File[],
+    videoFile: File | null, // Added
     mainImagePreviewFromState: string | null, 
-    additionalImagePreviewsFromState: string[] 
+    additionalImagePreviewsFromState: string[],
+    videoUrlFromState?: string, // Added
   ) => Promise<void>;
   initialData?: Partial<Property>; 
   isLoading?: boolean;
@@ -142,10 +150,15 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
   const [additionalImageFiles, setAdditionalImageFiles] = React.useState<File[]>([]);
   const [additionalImagePreviews, setAdditionalImagePreviews] = React.useState<string[]>([]);
+  
+  const [videoFile, setVideoFile] = React.useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = React.useState<string | null>(null);
 
   const [maxAdditionalImages, setMaxAdditionalImages] = React.useState(0);
   const [aiAssistantAllowed, setAiAssistantAllowed] = React.useState(false);
   const [imageLimitPerProperty, setImageLimitPerProperty] = React.useState(1);
+  const [videoAllowed, setVideoAllowed] = React.useState(false);
+
 
   const initialPriceFormat = React.useMemo(() => formatPriceForInputUIDisplay(initialData?.price), [initialData?.price]);
   const [manualPriceInput, setManualPriceInput] = React.useState<string>(initialPriceFormat.displayValue);
@@ -161,6 +174,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           transactionType: initialData.transactionType || undefined,
           propertyType: initialData.propertyType || undefined,
           otherPropertyType: initialData.otherPropertyType || "",
+          videoUrl: initialData.videoUrl || "",
         } 
       : {
           title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
@@ -168,6 +182,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", whatsappNumber: "", facebookUrl: "", instagramUrl: "", description: "",
           filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
           googleMapsLink: "",
+          videoUrl: "",
         },
   });
   
@@ -187,6 +202,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         whatsappNumber: initialData.whatsappNumber || "",
         facebookUrl: initialData.facebookUrl || "",
         instagramUrl: initialData.instagramUrl || "",
+        videoUrl: initialData.videoUrl || "",
       });
        if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
@@ -194,6 +210,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       } else {
         setMainImagePreview(null);
         setAdditionalImagePreviews([]);
+      }
+      if (initialData.videoUrl) {
+          setVideoPreview(initialData.videoUrl);
       }
     }
   }, [initialData, form]);
@@ -205,6 +224,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         setImageLimitPerProperty(planDetails.imageLimitPerProperty);
         setMaxAdditionalImages(planDetails.imageLimitPerProperty > 0 ? planDetails.imageLimitPerProperty -1 : 0);
         setAiAssistantAllowed(planDetails.aiAssistantAccess);
+        const hasVideoFeature = planDetails.features.some(f => f.includes("فيديو"));
+        setVideoAllowed(hasVideoFeature);
       }
     }
   }, [user]);
@@ -345,6 +366,34 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     form.trigger();
   };
   
+  const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+        toast({ title: "خطأ", description: `نوع الفيديو غير مدعوم. الأنواع المسموح بها: ${ALLOWED_VIDEO_TYPES.join(", ")}`, variant: "destructive" });
+        event.target.value = "";
+        return;
+      }
+      if (file.size > MAX_VIDEO_SIZE_BYTES) {
+        toast({ title: "خطأ", description: `حجم الفيديو يجب ألا يتجاوز ${MAX_VIDEO_SIZE_MB}MB.`, variant: "destructive" });
+        event.target.value = "";
+        return;
+      }
+      setVideoFile(file);
+      setVideoPreview(URL.createObjectURL(file));
+      form.trigger();
+    }
+  };
+
+  const removeVideo = () => {
+    setVideoFile(null);
+    setVideoPreview(null);
+    const videoInput = document.getElementById('video') as HTMLInputElement | null;
+    if (videoInput) videoInput.value = "";
+    form.setValue("videoUrl", ""); // Clear URL from form data
+    form.trigger();
+  };
+
   const handleFormSubmit = (data: PropertyFormValues) => {
      const totalImages = (mainImagePreview ? 1 : 0) + additionalImagePreviews.length;
 
@@ -356,7 +405,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         });
         return;
      }
-    onSubmit(data, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews);
+    onSubmit(data, mainImageFile, additionalImageFiles, videoFile, mainImagePreview, additionalImagePreviews, videoPreview || undefined);
   };
   
   const currentDescription = form.watch("description");
@@ -381,7 +430,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     return !initialUrls.every((url, index) => url === currentUrls[index]);
   }, [isEditMode, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews, initialData]);
 
-  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged);
+  const videoChanged = React.useMemo(() => {
+      if (!isEditMode) return false;
+      return !!videoFile;
+  }, [isEditMode, videoFile]);
+
+  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged && !videoChanged);
 
 
   return (
@@ -604,8 +658,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ImageUp size={24}/>صور العقار</CardTitle>
-          <CardDescription>الصور الجيدة هي أول ما يجذب المشاهدين. ابدأ بالصورة الرئيسية.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><ImageUp size={24}/>الوسائط</CardTitle>
+          <CardDescription>الوسائط المرئية هي أفضل طريقة لعرض عقارك. ابدأ بالصور ثم أضف فيديو إذا أردت.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
             <div>
@@ -641,7 +695,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
                   {additionalImagePreviews.map((preview, index) => (
                       <div key={preview + index} className="relative group">
-                          <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3] border" data-ai-hint="property room detail" />
+                          <Image src={preview} alt={`معاينة الصورة الإضافية ${index + 1}`} width={200} height={150} className="rounded-md object-cover aspect-[4/3] border" data-ai-hint="property detail" />
                           <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAdditionalImage(index)} aria-label="إزالة الصورة الإضافية">
                               <Trash2 size={16} />
                           </Button>
@@ -660,6 +714,30 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                         </div>
                         <Input id="additionalImages" type="file" multiple onChange={handleAdditionalImagesChange} accept={ALLOWED_IMAGE_TYPES.join(",")} className="hidden" />
                     </label>
+                )}
+            </div>
+             <div>
+                <Label className="text-lg font-semibold flex items-center gap-1 mb-2"><Video size={18}/>فيديو العقار (اختياري)</Label>
+                {!videoAllowed ? (
+                    <p className="text-sm text-accent">
+                        ميزة رفع الفيديو متوفرة في الخطط المدفوعة. <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link> للاستفادة منها.
+                    </p>
+                ) : !videoPreview ? (
+                    <label htmlFor="video" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Video className="w-10 h-10 mb-2 text-muted-foreground" />
+                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">انقر لتحميل الفيديو</span></p>
+                            <p className="text-xs text-muted-foreground">MP4, MOV, WEBM (الحجم الأقصى: ${MAX_VIDEO_SIZE_MB}MB)</p>
+                        </div>
+                        <Input id="video" type="file" onChange={handleVideoChange} accept={ALLOWED_VIDEO_TYPES.join(",")} className="hidden" />
+                    </label>
+                ) : (
+                    <div className="relative group w-full max-w-sm">
+                        <video src={videoPreview} controls className="rounded-md w-full aspect-video border bg-black"></video>
+                        <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={removeVideo} aria-label="إزالة الفيديو">
+                            <Trash2 size={16} />
+                        </Button>
+                    </div>
                 )}
             </div>
         </CardContent>

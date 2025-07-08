@@ -8,6 +8,7 @@ import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
+import { uploadVideoToArchive } from "@/actions/videoUploadActions";
 import type { Property, Plan, PropertyFormValues } from "@/types";
 import { plans } from "@/config/plans";
 import { Loader2, ShieldAlert } from "lucide-react";
@@ -104,8 +105,10 @@ export default function EditPropertyPage() {
     formData: PropertyFormValues,
     mainImageFile: File | null, 
     additionalImageFiles: File[], 
+    videoFile: File | null,
     currentMainImagePreviewFromState: string | null, 
-    currentAdditionalImagePreviewsFromState: string[] 
+    currentAdditionalImagePreviewsFromState: string[],
+    videoUrlFromState?: string
   ) => {
     if (!user || !initialPropertyData || authError) {
       toast({ title: "خطأ", description: "لا يمكن حفظ التعديلات.", variant: "destructive" });
@@ -189,10 +192,23 @@ export default function EditPropertyPage() {
         return;
       }
 
+      let finalVideoUrl = initialPropertyData.videoUrl;
+      if (videoFile) {
+        const videoUploadResult = await uploadVideoToArchive(videoFile);
+        if (!videoUploadResult.success || !videoUploadResult.url) {
+          throw new Error(videoUploadResult.error || "Video upload failed to return a URL.");
+        }
+        finalVideoUrl = videoUploadResult.url;
+      } else if (!videoUrlFromState) {
+          finalVideoUrl = undefined;
+      }
+
+
       const propertyUpdateData: Partial<Property> = {
         ...formData,
         phoneNumber: formData.phoneNumber, 
         imageUrls: finalImageUrls,
+        videoUrl: finalVideoUrl,
         updatedAt: serverTimestamp() as Timestamp,
       };
       

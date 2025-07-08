@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import type { User as FirebaseUser } from 'firebase/auth';
 
@@ -59,6 +58,7 @@ export interface Property {
     contract: boolean;
   };
   imageUrls: string[];
+  videoUrl?: string; // Added for video
   description: string;
   status: 'active' | 'pending' | 'deleted' | 'archived';
   deletionReason?: string;
@@ -173,6 +173,7 @@ export const propertyFormSchema = z.object({
     contract: z.boolean().default(false),
   }),
   googleMapsLink: z.string().url({ message: "الرجاء إدخال رابط خرائط جوجل صالح." }).optional().or(z.literal('')),
+  videoUrl: z.string().url({ message: "رابط الفيديو غير صالح." }).optional().or(z.literal('')),
 }).superRefine((data, ctx) => {
   if (data.propertyType === 'other' && (!data.otherPropertyType || data.otherPropertyType.trim().length < 2)) {
     ctx.addIssue({

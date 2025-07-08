@@ -8,6 +8,7 @@ import { addDoc, collection, serverTimestamp, query, where, getCountFromServer }
 import { db } from "@/lib/firebase/client";
 import { useState, useEffect, useMemo } from "react";
 import { uploadImages as uploadImagesToServerAction } from "@/actions/uploadActions";
+import { uploadVideoToArchive } from "@/actions/videoUploadActions";
 import { plans } from "@/config/plans";
 import type { Plan, Property, PropertyFormValues } from "@/types";
 import { Loader2, AlertTriangle, ShieldX, MessageSquareWarning } from "lucide-react";
@@ -100,7 +101,12 @@ export default function NewPropertyPage() {
     checkLimits();
   }, [user, authLoading, router, toast, trustLevel]);
 
-  const handleSubmit = async (data: PropertyFormValues, mainImageFile: File | null, additionalImageFiles: File[]) => {
+  const handleSubmit = async (
+    data: PropertyFormValues, 
+    mainImageFile: File | null, 
+    additionalImageFiles: File[],
+    videoFile: File | null
+  ) => {
     if (!user) {
       toast({ title: "خطأ", description: "يجب تسجيل الدخول لإضافة عقار.", variant: "destructive" });
       router.push("/login");
@@ -147,6 +153,15 @@ export default function NewPropertyPage() {
         imageUrls = uploadResult.urls;
       }
       
+      let videoUrl: string | undefined = undefined;
+      if (videoFile) {
+        const videoUploadResult = await uploadVideoToArchive(videoFile);
+        if (!videoUploadResult.success || !videoUploadResult.url) {
+            throw new Error(videoUploadResult.error || "Video upload failed to return a URL.");
+        }
+        videoUrl = videoUploadResult.url;
+      }
+
       const propertyStatus = trustLevel === 'untrusted' ? "pending" : "active";
 
       const propertyData: Omit<Property, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -154,6 +169,7 @@ export default function NewPropertyPage() {
         userId: user.uid,
         phoneNumber: data.phoneNumber, 
         imageUrls,
+        videoUrl,
         status: propertyStatus, 
         deletionReason: "",
       };

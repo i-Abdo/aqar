@@ -1,4 +1,3 @@
-
 'use server';
 
 import { v2 as cloudinary } from 'cloudinary';
@@ -10,6 +9,33 @@ interface UploadResult {
   error?: string;
 }
 
+const configureCloudinary = () => {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+        let missingVars = [];
+        if (!cloudName) missingVars.push("CLOUDINARY_CLOUD_NAME");
+        if (!apiKey) missingVars.push("CLOUDINARY_API_KEY");
+        if (!apiSecret) missingVars.push("CLOUDINARY_API_SECRET");
+        
+        const errorMessage = `إعدادات Cloudinary ناقصة على الخادم. المتغيرات المفقودة: ${missingVars.join(', ')}`;
+        console.error("ACTION_ERROR: " + errorMessage);
+        Sentry.captureMessage(errorMessage, "error");
+        
+        throw new Error(errorMessage);
+    }
+
+    cloudinary.config({
+        cloud_name: cloudName,
+        api_key: apiKey,
+        api_secret: apiSecret,
+        secure: true,
+    });
+};
+
+
 // Function to convert a file buffer to a data URI, a reliable way to upload in serverless environments
 const bufferToDataURI = (buffer: Buffer, mimeType: string) => {
     return `data:${mimeType};base64,${buffer.toString('base64')}`;
@@ -17,13 +43,7 @@ const bufferToDataURI = (buffer: Buffer, mimeType: string) => {
 
 export async function uploadImages(files: File[]): Promise<UploadResult> {
   try {
-    // Configure Cloudinary inside the action. This ensures it's always configured correctly on the server.
-    cloudinary.config({
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
-        secure: true,
-    });
+    configureCloudinary();
 
     if (!files || files.length === 0) {
       return { success: true, urls: [] };
@@ -48,17 +68,12 @@ export async function uploadImages(files: File[]): Promise<UploadResult> {
 
   } catch (error: any) {
     console.error('Error in uploadImages action:', error);
-    Sentry.captureException(error, {
-      extra: {
-        cloudNameExists: !!process.env.CLOUDINARY_CLOUD_NAME,
-        apiKeyExists: !!process.env.CLOUDINARY_API_KEY,
-        // Note: We don't log the secret for security reasons.
-        errorMessage: error.message
-      }
-    });
+    Sentry.captureException(error);
     
     // Provide a generic but helpful error message to the user for security.
-    const userFriendlyError = "فشل رفع الصورة. قد تكون هناك مشكلة في الاتصال بخدمة الصور أو أن إعدادات المصادقة غير صحيحة. تم إبلاغ الفريق الفني.";
+    const userFriendlyError = error.message.includes("Cloudinary") 
+      ? "فشل رفع الصورة بسبب خطأ في إعدادات خدمة الصور. تم إبلاغ الفريق الفني." 
+      : "فشل رفع الصورة. قد تكون هناك مشكلة في الاتصال بالخدمة.";
     
     return { success: false, error: userFriendlyError };
   }

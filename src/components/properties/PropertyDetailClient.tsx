@@ -4,7 +4,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2, CalendarDays, Facebook, Instagram } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2, CalendarDays, Facebook, Instagram, Video } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -321,6 +321,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
       name: property.title,
       description: property.description,
       image: property.imageUrls && property.imageUrls.length > 0 ? property.imageUrls : undefined,
+      ...(property.videoUrl && { video: property.videoUrl }),
       url: `${siteConfig.url}/properties/${property.id}`,
       ...(property.area && {
         floorSize: {
@@ -394,7 +395,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, area, filters, imageUrls, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, whatsappNumber, facebookUrl, instagramUrl, googleMapsLink } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, area, filters, imageUrls, videoUrl, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, whatsappNumber, facebookUrl, instagramUrl, googleMapsLink } = property;
   
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
@@ -416,11 +417,25 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
       )}
      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Image Gallery Column */}
+            {/* Image Gallery & Video Column */}
             <div className="lg:col-span-2">
                 <Card className="shadow-lg overflow-hidden sticky top-24">
                     <CardContent className="p-0">
-                        {selectedImageUrl ? (
+                        {videoUrl ? (
+                             <div className="relative aspect-video w-full bg-black">
+                                <video
+                                    key={videoUrl}
+                                    controls
+                                    preload="metadata"
+                                    className="w-full h-full"
+                                    playsInline
+                                    poster={imageUrls?.[0] || ''}
+                                >
+                                    <source src={videoUrl} type="video/mp4" />
+                                    متصفحك لا يدعم عرض الفيديو.
+                                </video>
+                            </div>
+                        ) : selectedImageUrl ? (
                             <div className="relative aspect-video w-full bg-muted">
                                 <Image 
                                     src={selectedImageUrl} 
@@ -448,8 +463,19 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                             </div>
                         )}
                         
-                        {imageUrls && imageUrls.length > 1 && (
+                        {imageUrls && imageUrls.length > 0 && (
                             <div className="flex justify-center space-x-2 rtl:space-x-reverse p-2 bg-background/50 overflow-x-auto">
+                                {videoUrl && (
+                                     <button 
+                                        onClick={() => setSelectedImageUrl(null)} // Or a specific action to show video
+                                        className={cn(
+                                            "w-20 h-16 relative rounded-md overflow-hidden cursor-pointer border-2 transition-all flex items-center justify-center bg-muted focus:outline-none focus:ring-2 focus:ring-primary",
+                                            !selectedImageUrl ? "border-primary scale-105" : "border-transparent hover:border-primary/70"
+                                        )}
+                                    >
+                                        <Video size={32} className="text-primary"/>
+                                    </button>
+                                )}
                                 {imageUrls.map((url, index) => (
                                     <button 
                                         key={index} 
