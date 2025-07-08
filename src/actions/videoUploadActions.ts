@@ -84,6 +84,6 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
     });
     
     // Return the RAW, UNMODIFIED error message from the SDK.
-    return { success: false, error: error.message };
+    return { success: false, error: `فشل الرفع. الخطأ من الخادم: ${error.message}` };
   }
 }
