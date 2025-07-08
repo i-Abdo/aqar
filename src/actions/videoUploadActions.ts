@@ -1,3 +1,4 @@
+
 'use server';
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -43,6 +44,7 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
         accessKeyId: accessKey,
         secretAccessKey: secretKey,
       },
+      forcePathStyle: true, // This is the crucial fix
     });
 
     const arrayBuffer = await file.arrayBuffer();
@@ -79,6 +81,7 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
         awsErrorName: error.name,
         awsErrorMessage: error.message,
         awsErrorStack: error.stack,
+        errorCause: error.cause,
       },
     });
     
