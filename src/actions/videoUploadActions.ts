@@ -14,12 +14,9 @@ interface UploadResult {
 export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
   const accessKey = process.env.ARCHIVE_ORG_ACCESS_KEY;
   const secretKey = process.env.ARCHIVE_ORG_SECRET_KEY;
-  
-  // As requested, the pre-check for environment variables is removed
-  // to allow the SDK to attempt the upload and return its own specific error.
 
   if (!file) {
-    return { success: true }; // No file, no problem
+    return { success: true };
   }
   
   if (file.size > 200 * 1024 * 1024) { // 200MB limit
@@ -35,8 +32,9 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
   try {
     const s3Client = new S3Client({
       endpoint: 'https://s3.us.archive.org',
+      region: 'us-east-1', // Placeholder region to satisfy the SDK
       credentials: {
-        accessKeyId: accessKey!, // Asserting that the key exists for the SDK.
+        accessKeyId: accessKey!,
         secretAccessKey: secretKey!,
       },
       forcePathStyle: true,
@@ -64,8 +62,7 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
 
     return { success: true, url: videoUrl };
   } catch (error: any) {
-    // This block now captures and returns the RAW error from the SDK, as requested.
-    console.error(`🔴 Archive.org upload failed with REAL SDK error:`, error);
+    console.error(`🔴 Archive.org upload failed with RAW SDK error:`, error);
     Sentry.captureException(error, {
       extra: {
         fileName: file.name,
@@ -77,7 +74,7 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
       },
     });
     
-    // Return the raw error message to the client.
-    return { success: false, error: `فشل الرفع. الخطأ من الخادم: ${error.message}` };
+    // Return the RAW, UNMODIFIED error message from the SDK.
+    return { success: false, error: error.message };
   }
 }
