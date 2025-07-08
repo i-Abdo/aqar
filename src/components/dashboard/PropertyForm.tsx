@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check, Facebook, Instagram, PenSquare } from "lucide-react";
+import { Loader2, Droplet, Zap, Wifi, FileText, BedDouble, Bath, MapPin, DollarSign, ImageUp, Trash2, UtilityPole, Image as ImageIcon, XCircle, Phone, Ruler, Tag, Building, Map, RefreshCw, Check, Facebook, Instagram, PenSquare, Video } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from 'next/dynamic';
@@ -161,11 +161,12 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           transactionType: initialData.transactionType || undefined,
           propertyType: initialData.propertyType || undefined,
           otherPropertyType: initialData.otherPropertyType || "",
+          videoUrl: initialData.videoUrl || "",
         } 
       : {
           title: "", price: undefined, transactionType: undefined, propertyType: undefined, otherPropertyType: "",
           rooms: undefined, bathrooms: undefined, length: undefined, width: undefined, area: undefined,
-          wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", whatsappNumber: "", facebookUrl: "", instagramUrl: "", description: "",
+          wilaya: "", city: "", neighborhood: "", address: "", phoneNumber: "", whatsappNumber: "", facebookUrl: "", instagramUrl: "", videoUrl: "", description: "",
           filters: { water: false, electricity: false, internet: false, gas: false, contract: false },
           googleMapsLink: "",
         },
@@ -187,6 +188,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         whatsappNumber: initialData.whatsappNumber || "",
         facebookUrl: initialData.facebookUrl || "",
         instagramUrl: initialData.instagramUrl || "",
+        videoUrl: initialData.videoUrl || "",
       });
        if (initialData.imageUrls && initialData.imageUrls.length > 0) {
         setMainImagePreview(initialData.imageUrls[0]);
@@ -665,6 +667,20 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         </CardContent>
       </Card>
       
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Video size={24}/>فيديو العقار (اختياري)</CardTitle>
+          <CardDescription>إذا كان عندك فيديو للعقار، فقط ضع الرابط هنا [facebook, youtube, tiktok, ...]</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div>
+                <Label htmlFor="videoUrl">رابط الفيديو</Label>
+                <Input id="videoUrl" {...form.register("videoUrl")} placeholder="https://youtube.com/watch?v=..." dir="ltr" className="text-left" />
+                {form.formState.errors.videoUrl && <p className="text-sm text-destructive">{form.formState.errors.videoUrl.message}</p>}
+            </div>
+        </CardContent>
+      </Card>
+
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">الميزات والوصف *</CardTitle>

@@ -154,6 +154,7 @@ export default function NewPropertyPage() {
         userId: user.uid,
         phoneNumber: data.phoneNumber, 
         imageUrls,
+        videoUrl: data.videoUrl,
         status: propertyStatus, 
         deletionReason: "",
       };

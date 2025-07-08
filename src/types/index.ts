@@ -51,6 +51,7 @@ export interface Property {
   whatsappNumber?: string;
   facebookUrl?: string;
   instagramUrl?: string;
+  videoUrl?: string;
   filters: {
     water: boolean;
     electricity: boolean;
@@ -164,6 +165,7 @@ export const propertyFormSchema = z.object({
   whatsappNumber: z.string().regex(algerianPhoneNumberRegex, "رقم الواتساب غير صالح. يجب أن يبدأ بـ 05، 06، أو 07 ويتبعه 8 أرقام.").optional().or(z.literal('')),
   facebookUrl: z.string().url({ message: "الرجاء إدخال رابط فيسبوك صالح." }).optional().or(z.literal('')),
   instagramUrl: z.string().url({ message: "الرجاء إدخال رابط انستقرام صالح." }).optional().or(z.literal('')),
+  videoUrl: z.string().url({ message: "الرجاء إدخال رابط فيديو صالح." }).optional().or(z.literal('')),
   description: z.string().min(20, "الوصف يجب أن لا يقل عن 20 حرفًا.").max(1000, "الوصف يجب أن لا يتجاوز 1000 حرفًا."),
   filters: z.object({
     water: z.boolean().default(false),

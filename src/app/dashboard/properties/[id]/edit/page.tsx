@@ -191,6 +191,7 @@ export default function EditPropertyPage() {
 
       const propertyUpdateData: Partial<Property> = {
         ...formData,
+        videoUrl: formData.videoUrl,
         phoneNumber: formData.phoneNumber, 
         imageUrls: finalImageUrls,
         updatedAt: serverTimestamp() as Timestamp,
