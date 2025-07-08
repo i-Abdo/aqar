@@ -31,20 +31,20 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
   if (!['video/mp4', 'video/webm', 'video/quicktime', 'video/mov'].includes(file.type.toLowerCase())) {
       return { success: false, error: "نوع ملف الفيديو غير مدعوم. يرجى استخدام MP4, WebM, أو MOV." };
   }
-
-  const s3Client = new S3Client({
-    region: 'us-east-1',
-    endpoint: 'https://s3.us.archive.org',
-    credentials: {
-      accessKeyId: accessKey,
-      secretAccessKey: secretKey,
-    },
-  });
   
   const identifier = `aqari-property-video-${uuidv4()}`;
   const fileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '');
 
   try {
+    const s3Client = new S3Client({
+      region: 'us-east-1',
+      endpoint: 'https://s3.us.archive.org',
+      credentials: {
+        accessKeyId: accessKey,
+        secretAccessKey: secretKey,
+      },
+    });
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -67,14 +67,27 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
 
     return { success: true, url: videoUrl };
   } catch (error: any) {
-    console.error('Error uploading video to Archive.org:', error);
+    // Enhanced error logging to capture the specific SDK error
+    console.error(`🔴 Archive.org upload failed for identifier: ${identifier}`, error);
     Sentry.captureException(error, {
       extra: {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
+        archiveIdentifier: identifier,
+        // The error object from AWS SDK often has useful properties
+        awsErrorName: error.name,
+        awsErrorMessage: error.message,
+        awsErrorStack: error.stack,
       },
     });
-    return { success: false, error: "فشل رفع الفيديو. قد تكون هناك مشكلة في الاتصال بخدمة الأرشفة." };
+    
+    // Provide a more specific error message if possible, otherwise keep it general
+    let userFriendlyError = "فشل رفع الفيديو. قد تكون هناك مشكلة في الاتصال بخدمة الأرشفة.";
+    if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
+        userFriendlyError = "انتهت مهلة الاتصال بخدمة الأرشفة. قد يكون الملف كبيرًا جدًا أو الاتصال بطيئًا. يرجى المحاولة مرة أخرى."
+    }
+
+    return { success: false, error: userFriendlyError };
   }
 }
