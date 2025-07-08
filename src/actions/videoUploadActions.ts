@@ -1,4 +1,3 @@
-
 'use server';
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -16,10 +15,16 @@ export async function uploadVideoToArchive(file: File): Promise<UploadResult> {
   const secretKey = process.env.ARCHIVE_ORG_SECRET_KEY;
 
   if (!accessKey || !secretKey) {
-    const errorMessage = "Archive.org credentials are not configured on the server.";
+    let missingVars = [];
+    if (!accessKey) missingVars.push("ARCHIVE_ORG_ACCESS_KEY");
+    if (!secretKey) missingVars.push("ARCHIVE_ORG_SECRET_KEY");
+    
+    const errorMessage = `Archive.org credentials are not configured on the server. Missing: ${missingVars.join(', ')}`;
     console.error("ACTION_ERROR: " + errorMessage);
     Sentry.captureMessage(errorMessage, "error");
-    return { success: false, error: "خدمة رفع الفيديو غير مهيأة حاليًا. يرجى الاتصال بالدعم الفني." };
+    
+    // Provide a more specific user-facing error.
+    return { success: false, error: `خدمة رفع الفيديو غير مهيأة بسبب نقص المتغيرات التالية: ${missingVars.join(', ')}. يرجى التحقق من إعدادات الخادم.` };
   }
 
   if (!file) {
