@@ -94,6 +94,71 @@ interface PropertyDetailClientProps {
     propertyId: string;
 }
 
+const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster?: string }) => {
+    try {
+        const urlObj = new URL(url);
+        let embedSrc: string | null = null;
+        let isIframe = true;
+
+        if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
+            const videoId = urlObj.hostname.includes('youtu.be')
+                ? urlObj.pathname.substring(1).split('?')[0]
+                : urlObj.searchParams.get('v');
+            if (videoId) embedSrc = `https://www.youtube.com/embed/${videoId}`;
+        } else if (urlObj.hostname.includes('tiktok.com')) {
+            const pathParts = urlObj.pathname.split('/');
+            const videoId = pathParts.find(p => /^\d+$/.test(p));
+            if (videoId) embedSrc = `https://www.tiktok.com/embed/v2/${videoId}`;
+        } else if (urlObj.hostname.includes('facebook.com')) {
+            return (
+                 <div className="w-full h-full" style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
+                    <iframe
+                        src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&height=476`}
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                        scrolling="no"
+                        frameBorder="0"
+                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                        allowFullScreen
+                        title={`Video Player for ${title}`}
+                    ></iframe>
+                 </div>
+            );
+        } else if (url.match(/\.(mp4|webm|mov)$/i)) {
+            embedSrc = url;
+            isIframe = false;
+        }
+
+        if (embedSrc) {
+            if (isIframe) {
+                return (
+                    <iframe src={embedSrc} title={`Video Player for ${title}`} frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen className="w-full h-full"></iframe>
+                );
+            } else {
+                return (
+                    <video key={url} controls preload="metadata" className="w-full h-full" playsInline poster={poster}>
+                        <source src={url} />
+                        متصفحك لا يدعم عرض الفيديو.
+                    </video>
+                );
+            }
+        }
+    } catch (e) {
+        // Invalid URL, fall through to unsupported link
+    }
+
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-muted p-4 text-center">
+            <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
+            <p className="font-semibold">تعذر تضمين الفيديو من هذا الرابط.</p>
+            <p className="text-sm text-muted-foreground mb-4">لكن يمكنك مشاهدته بالضغط على الزر أدناه.</p>
+            <Button asChild><a href={url} target="_blank" rel="noopener noreferrer">فتح الفيديو في صفحة جديدة</a></Button>
+        </div>
+    );
+};
+
+
 // The component now receives the initial property data as a prop
 export default function PropertyDetailClient({ initialProperty, propertyId }: PropertyDetailClientProps) {
   const router = useRouter();
@@ -421,19 +486,9 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
             <div className="lg:col-span-2">
                 <Card className="shadow-lg overflow-hidden sticky top-24">
                     <CardContent className="p-0">
-                        {videoUrl ? (
+                         {videoUrl && !selectedImageUrl ? (
                              <div className="relative aspect-video w-full bg-black">
-                                <video
-                                    key={videoUrl}
-                                    controls
-                                    preload="metadata"
-                                    className="w-full h-full"
-                                    playsInline
-                                    poster={imageUrls?.[0] || ''}
-                                >
-                                    <source src={videoUrl} type="video/mp4" />
-                                    متصفحك لا يدعم عرض الفيديو.
-                                </video>
+                                <VideoEmbed url={videoUrl} title={title} poster={imageUrls?.[0]} />
                             </div>
                         ) : selectedImageUrl ? (
                             <div className="relative aspect-video w-full bg-muted">
@@ -463,7 +518,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                             </div>
                         )}
                         
-                        {imageUrls && imageUrls.length > 0 && (
+                        {(imageUrls && imageUrls.length > 0 || videoUrl) && (
                             <div className="flex justify-center space-x-2 rtl:space-x-reverse p-2 bg-background/50 overflow-x-auto">
                                 {videoUrl && (
                                      <button 
@@ -476,7 +531,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                                         <Video size={32} className="text-primary"/>
                                     </button>
                                 )}
-                                {imageUrls.map((url, index) => (
+                                {imageUrls && imageUrls.map((url, index) => (
                                     <button 
                                         key={index} 
                                         onClick={() => setSelectedImageUrl(url)}
@@ -549,7 +604,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                         <CardTitle className="font-headline text-xl">الوصف التفصيلي</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                        <p className="text-muted-foreground leading-relaxed whitespace-pre-line break-words">
                             {description || "لا يوجد وصف تفصيلي لهذا العقار."}
                         </p>
                     </CardContent>

@@ -22,7 +22,6 @@ import { plans } from "@/config/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation"; 
 import { cn } from "@/lib/utils";
-import { uploadVideoToArchive } from "@/actions/videoUploadActions";
 
 
 const AiDescriptionAssistant = dynamic(() =>
@@ -54,11 +53,6 @@ const WhatsAppIcon = () => (
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-
-const MAX_VIDEO_SIZE_MB = 200;
-const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
-const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/mov"];
-
 
 const wilayas = [
   { code: "01", name: "أدرار" }, { code: "02", name: "الشلف" }, { code: "03", name: "الأغواط" }, { code: "04", name: "أم البواقي" },
@@ -96,10 +90,8 @@ interface PropertyFormProps {
     data: PropertyFormValues,
     mainImageFile: File | null,
     additionalImageFiles: File[],
-    videoFile: File | null, // Added
     mainImagePreviewFromState: string | null, 
-    additionalImagePreviewsFromState: string[],
-    videoUrlFromState?: string, // Added
+    additionalImagePreviewsFromState: string[]
   ) => Promise<void>;
   initialData?: Partial<Property>; 
   isLoading?: boolean;
@@ -151,9 +143,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   const [additionalImageFiles, setAdditionalImageFiles] = React.useState<File[]>([]);
   const [additionalImagePreviews, setAdditionalImagePreviews] = React.useState<string[]>([]);
   
-  const [videoFile, setVideoFile] = React.useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = React.useState<string | null>(null);
-
   const [maxAdditionalImages, setMaxAdditionalImages] = React.useState(0);
   const [aiAssistantAllowed, setAiAssistantAllowed] = React.useState(false);
   const [imageLimitPerProperty, setImageLimitPerProperty] = React.useState(1);
@@ -210,9 +199,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       } else {
         setMainImagePreview(null);
         setAdditionalImagePreviews([]);
-      }
-      if (initialData.videoUrl) {
-          setVideoPreview(initialData.videoUrl);
       }
     }
   }, [initialData, form]);
@@ -366,34 +352,6 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
     form.trigger();
   };
   
-  const handleVideoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
-        toast({ title: "خطأ", description: `نوع الفيديو غير مدعوم. الأنواع المسموح بها: ${ALLOWED_VIDEO_TYPES.join(", ")}`, variant: "destructive" });
-        event.target.value = "";
-        return;
-      }
-      if (file.size > MAX_VIDEO_SIZE_BYTES) {
-        toast({ title: "خطأ", description: `حجم الفيديو يجب ألا يتجاوز ${MAX_VIDEO_SIZE_MB}MB.`, variant: "destructive" });
-        event.target.value = "";
-        return;
-      }
-      setVideoFile(file);
-      setVideoPreview(URL.createObjectURL(file));
-      form.trigger();
-    }
-  };
-
-  const removeVideo = () => {
-    setVideoFile(null);
-    setVideoPreview(null);
-    const videoInput = document.getElementById('video') as HTMLInputElement | null;
-    if (videoInput) videoInput.value = "";
-    form.setValue("videoUrl", ""); // Clear URL from form data
-    form.trigger();
-  };
-
   const handleFormSubmit = (data: PropertyFormValues) => {
      const totalImages = (mainImagePreview ? 1 : 0) + additionalImagePreviews.length;
 
@@ -405,7 +363,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
         });
         return;
      }
-    onSubmit(data, mainImageFile, additionalImageFiles, videoFile, mainImagePreview, additionalImagePreviews, videoPreview || undefined);
+    onSubmit(data, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews);
   };
   
   const currentDescription = form.watch("description");
@@ -431,9 +389,9 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
   }, [isEditMode, mainImageFile, additionalImageFiles, mainImagePreview, additionalImagePreviews, initialData]);
 
   const videoChanged = React.useMemo(() => {
-      if (!isEditMode) return false;
-      return !!videoFile;
-  }, [isEditMode, videoFile]);
+      if (!isEditMode || !initialData) return false;
+      return initialData.videoUrl !== form.watch('videoUrl');
+  }, [isEditMode, initialData, form.watch('videoUrl')]);
 
   const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged && !videoChanged);
 
@@ -717,27 +675,27 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
                 )}
             </div>
              <div>
-                <Label className="text-lg font-semibold flex items-center gap-1 mb-2"><Video size={18}/>فيديو العقار (اختياري)</Label>
+                <Label htmlFor="videoUrl" className="text-lg font-semibold flex items-center gap-1 mb-2"><Video size={18}/>رابط فيديو العقار (اختياري)</Label>
                 {!videoAllowed ? (
                     <p className="text-sm text-accent">
-                        ميزة رفع الفيديو متوفرة في الخطط المدفوعة. <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link> للاستفادة منها.
+                        ميزة إضافة فيديو متوفرة في الخطط المدفوعة. <Link href="/pricing" className="underline text-primary">قم بترقية خطتك</Link> للاستفادة منها.
                     </p>
-                ) : !videoPreview ? (
-                    <label htmlFor="video" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Video className="w-10 h-10 mb-2 text-muted-foreground" />
-                            <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">انقر لتحميل الفيديو</span></p>
-                            <p className="text-xs text-muted-foreground">MP4, MOV, WEBM (الحجم الأقصى: ${MAX_VIDEO_SIZE_MB}MB)</p>
-                        </div>
-                        <Input id="video" type="file" onChange={handleVideoChange} accept={ALLOWED_VIDEO_TYPES.join(",")} className="hidden" />
-                    </label>
                 ) : (
-                    <div className="relative group w-full max-w-sm">
-                        <video src={videoPreview} controls className="rounded-md w-full aspect-video border bg-black"></video>
-                        <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={removeVideo} aria-label="إزالة الفيديو">
-                            <Trash2 size={16} />
-                        </Button>
-                    </div>
+                   <>
+                        <Input
+                            id="videoUrl"
+                            {...form.register("videoUrl")}
+                            placeholder="https://youtube.com/watch?v=..."
+                            dir="ltr"
+                            className="text-left"
+                        />
+                         <p className="text-xs text-muted-foreground mt-1">
+                            إذا كان عندك فيديو للعقار، فقط ضع الرابط هنا (يوتيوب، فيسبوك، تيك توك، إلخ...).
+                        </p>
+                        {form.formState.errors.videoUrl && (
+                            <p className="text-sm text-destructive mt-1">{form.formState.errors.videoUrl.message}</p>
+                        )}
+                    </>
                 )}
             </div>
         </CardContent>
