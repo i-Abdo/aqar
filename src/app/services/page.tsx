@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Metadata } from "next";
-import { Briefcase, Building, Gavel, Hammer, Home, PaintBrush, ShieldCheck, Truck, Camera, DraftingCompass } from "lucide-react";
+import { Briefcase, Building, Gavel, Hammer, PaintBrush, ShieldCheck, Truck, Camera, DraftingCompass } from "lucide-react";
 import Link from 'next/link';
 
 export const metadata: Metadata = {
@@ -100,3 +100,4 @@ export default function ServicesPage() {
     </div>
   );
 }
+
