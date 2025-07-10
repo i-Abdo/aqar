@@ -37,6 +37,10 @@ export const siteConfig: SiteConfig = {
       href: "/pricing",
     },
     {
+      title: "نصائح", // Tips
+      href: "/tips",
+    },
+    {
       title: "لوحة التحكم", // Dashboard
       href: "/dashboard",
       authRequired: true,

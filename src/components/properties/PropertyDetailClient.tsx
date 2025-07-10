@@ -626,7 +626,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                         <CardTitle className="font-headline text-xl">الوصف التفصيلي</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground leading-relaxed whitespace-pre-line break-words">
+                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
                             {description || "لا يوجد وصف تفصيلي لهذا العقار."}
                         </p>
                     </CardContent>

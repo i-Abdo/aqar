@@ -19,7 +19,7 @@ interface AuthContextType {
   adminNotificationCount: number;
   setAdminNotificationCount: React.Dispatch<React.SetStateAction<number>>;
   clearUserDashboardNotificationBadge: () => void;
-  refreshAdminNotifications: () => Promise<void>; // Added
+  refreshAdminNotifications: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -126,11 +126,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             where("status", "in", ["in_progress", "resolved"]),
             where("dismissedByOwner", "!=", true) 
           );
-          const [appealsSnapshot, issuesSnapshot] = await Promise.all([
+           const reportsQuery = query(
+            collection(db, "reports"),
+            where("reporterUserId", "==", user.uid),
+            where("status", "in", ["resolved", "dismissed"]),
+            where("dismissedByReporter", "!=", true)
+          );
+          const [appealsSnapshot, issuesSnapshot, reportsSnapshot] = await Promise.all([
             getCountFromServer(appealsQuery),
             getCountFromServer(issuesQuery),
+            getCountFromServer(reportsSnapshot)
           ]);
-          setUserDashboardNotificationCount(appealsSnapshot.data().count + issuesSnapshot.data().count);
+          setUserDashboardNotificationCount(appealsSnapshot.data().count + issuesSnapshot.data().count + reportsSnapshot.data().count);
         } catch (error) {
           console.error("Error fetching user dashboard notification counts in AuthProvider:", error);
           setUserDashboardNotificationCount(0);
@@ -177,9 +184,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchAdminNotificationsCallback();
   }, [fetchAdminNotificationsCallback]);
 
-  const refreshAdminNotifications = async () => {
+  const refreshAdminNotifications = useCallback(async () => {
     await fetchAdminNotificationsCallback();
-  };
+  }, [fetchAdminNotificationsCallback]);
 
   const signOut = async () => {
     setLoading(true);
@@ -206,7 +213,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         adminNotificationCount,
         setAdminNotificationCount,
         clearUserDashboardNotificationBadge,
-        refreshAdminNotifications, // Provide the new function
+        refreshAdminNotifications,
     }}>
       {children}
     </AuthContext.Provider>
