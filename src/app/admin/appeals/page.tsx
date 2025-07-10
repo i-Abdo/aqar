@@ -38,11 +38,11 @@ const appealStatusTranslations: Record<AppealStatus, string> = {
 };
 
 const appealStatusVariants: Record<AppealStatus, "default" | "secondary" | "outline" | "destructive"> = {
-  new: 'default',
-  under_review: 'secondary',
-  resolved_deleted: 'destructive',
-  resolved_kept_archived: 'outline',
-  resolved_published: 'default', 
+  new: 'default', // Blue for new
+  under_review: 'secondary', // Gray for under review
+  resolved_deleted: 'destructive', // Red for deleted
+  resolved_kept_archived: 'outline', // Neutral for kept
+  resolved_published: 'default', // Using default (blue) to signify a positive resolution (published)
 };
 
 export default function AdminPropertyAppealsPage() {
