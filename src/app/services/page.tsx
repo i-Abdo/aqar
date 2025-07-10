@@ -68,6 +68,8 @@ export default function ServicesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {services.map((service, index) => {
+          // The fix: Rename the icon component to a variable with a capital letter
+          // *before* using it in JSX. This is a React requirement.
           const ServiceIcon = service.icon;
           return (
             <Card key={index} className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
