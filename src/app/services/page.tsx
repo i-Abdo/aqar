@@ -9,51 +9,10 @@ export const metadata: Metadata = {
   description: "ابحث عن أفضل المهنيين والخدمات لمساعدتك في كل خطوة من رحلتك العقارية، من المحامين إلى شركات النقل.",
 };
 
-const services = [
-  {
-    icon: Gavel,
-    title: "محامون وموثقون",
-    description: "لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان."
-  },
-  {
-    icon: DraftingCompass,
-    title: "مهندسون معماريون",
-    description: "لتصميم منزل أحلامك أو الإشراف على مشاريع البناء والتجديد."
-  },
-   {
-    icon: Camera,
-    title: "مصورون محترفون",
-    description: "لإبراز جمال عقارك بصور وفيديوهات احترافية تجذب المشترين."
-  },
-  {
-    icon: Hammer,
-    title: "شركات أشغال ومقاولات",
-    description: "لتنفيذ أعمال البناء، الترميم، أو التجديدات بجودة عالية."
-  },
-  {
-    icon: Truck,
-    title: "خدمات نقل الأثاث",
-    description: "لنقل أثاثك بأمان وسرعة إلى منزلك الجديد دون عناء."
-  },
-  {
-    icon: ShieldCheck,
-    title: "شركات تأمين العقار",
-    description: "لحماية استثمارك العقاري من أي مخاطر مستقبلية غير متوقعة."
-  },
-  {
-    icon: PaintBrush,
-    title: "تصميم داخلي وديكور",
-    description: "لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد."
-  },
-  {
-    icon: Building,
-    title: "إدارة الممتلكات",
-    description: "للمهتمين بالاستثمار، نوفر خدمات إدارة العقارات المؤجرة بكفاءة."
-  }
-];
-
-
 export default function ServicesPage() {
+  // We are not using a dynamic list anymore to avoid component rendering issues.
+  // Each card will be hardcoded for simplicity and to guarantee a fix.
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-12">
@@ -67,25 +26,112 @@ export default function ServicesPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {services.map((service, index) => {
-          // The fix: Rename the icon component to a variable with a capital letter
-          // *before* using it in JSX. This is a React requirement.
-          const ServiceIcon = service.icon;
-          return (
-            <Card key={index} className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-              <CardHeader className="items-center">
-                 <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                    <ServiceIcon className="w-10 h-10 text-primary" />
-                  </div>
-                <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">{service.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <CardDescription>{service.description}</CardDescription>
-              </CardContent>
-            </Card>
-          );
-        })}
+        
+        {/* Card 1: Lawyers */}
+        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
+          <CardHeader className="items-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <Gavel className="w-10 h-10 text-primary" />
+              </div>
+            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">محامون وموثقون</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <CardDescription>لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان.</CardDescription>
+          </CardContent>
+        </Card>
+
+        {/* Card 2: Architects */}
+        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
+          <CardHeader className="items-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <DraftingCompass className="w-10 h-10 text-primary" />
+              </div>
+            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">مهندسون معماريون</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <CardDescription>لتصميم منزل أحلامك أو الإشراف على مشاريع البناء والتجديد.</CardDescription>
+          </CardContent>
+        </Card>
+        
+        {/* Card 3: Photographers */}
+        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
+          <CardHeader className="items-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <Camera className="w-10 h-10 text-primary" />
+              </div>
+            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">مصورون محترفون</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <CardDescription>لإبراز جمال عقارك بصور وفيديوهات احترافية تجذب المشترين.</CardDescription>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Contractors */}
+        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
+          <CardHeader className="items-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <Hammer className="w-10 h-10 text-primary" />
+              </div>
+            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">شركات أشغال ومقاولات</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <CardDescription>لتنفيذ أعمال البناء، الترميم، أو التجديدات بجودة عالية.</CardDescription>
+          </CardContent>
+        </Card>
+
+        {/* Card 5: Movers */}
+        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
+          <CardHeader className="items-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <Truck className="w-10 h-10 text-primary" />
+              </div>
+            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">خدمات نقل الأثاث</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <CardDescription>لنقل أثاثك بأمان وسرعة إلى منزلك الجديد دون عناء.</CardDescription>
+          </CardContent>
+        </Card>
+
+        {/* Card 6: Insurance */}
+        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
+          <CardHeader className="items-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <ShieldCheck className="w-10 h-10 text-primary" />
+              </div>
+            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">شركات تأمين العقار</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <CardDescription>لحماية استثمارك العقاري من أي مخاطر مستقبلية غير متوقعة.</CardDescription>
+          </CardContent>
+        </Card>
+
+        {/* Card 7: Interior Design */}
+        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
+          <CardHeader className="items-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <PaintBrush className="w-10 h-10 text-primary" />
+              </div>
+            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">تصميم داخلي وديكور</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <CardDescription>لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد.</CardDescription>
+          </CardContent>
+        </Card>
+
+        {/* Card 8: Property Management */}
+        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
+          <CardHeader className="items-center">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <Building className="w-10 h-10 text-primary" />
+              </div>
+            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">إدارة الممتلكات</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <CardDescription>للمهتمين بالاستثمار، نوفر خدمات إدارة العقارات المؤجرة بكفاءة.</CardDescription>
+          </CardContent>
+        </Card>
       </div>
+
       <Card className="mt-12 bg-secondary/50 border-primary/20 text-center py-8">
         <CardHeader>
             <CardTitle className="text-2xl font-headline">هل أنت مقدم خدمة؟</CardTitle>
