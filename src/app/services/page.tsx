@@ -10,9 +10,6 @@ export const metadata: Metadata = {
 };
 
 export default function ServicesPage() {
-  // We are not using a dynamic list anymore to avoid component rendering issues.
-  // Each card will be hardcoded for simplicity and to guarantee a fix.
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-12">
@@ -147,5 +144,4 @@ export default function ServicesPage() {
       </Card>
     </div>
   );
-
-    
+}
