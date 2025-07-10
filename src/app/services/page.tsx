@@ -68,12 +68,12 @@ export default function ServicesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {services.map((service, index) => {
-          const Icon = service.icon;
+          const ServiceIcon = service.icon;
           return (
             <Card key={index} className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
               <CardHeader className="items-center">
                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                    <Icon className="w-10 h-10 text-primary" />
+                    <ServiceIcon className="w-10 h-10 text-primary" />
                   </div>
                 <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">{service.title}</CardTitle>
               </CardHeader>
