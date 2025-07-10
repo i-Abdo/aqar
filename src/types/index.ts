@@ -58,16 +58,15 @@ export interface Property {
     contract: boolean;
   };
   imageUrls: string[];
-  videoUrl?: string; // Added for video
+  videoUrl?: string;
   description: string;
   status: 'active' | 'pending' | 'deleted' | 'archived';
   deletionReason?: string;
   archivalReason?: string; 
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: any; // Allow for Firestore Timestamp
+  updatedAt: any; // Allow for Firestore Timestamp
   viewCount?: number;
   googleMapsLink?: string;
-  firebaseStudioTestField?: string;
 }
 
 // A version of Property where Timestamps are serialized to strings

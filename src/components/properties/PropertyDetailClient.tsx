@@ -4,7 +4,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2, CalendarDays, Facebook, Instagram, Video } from 'lucide-react';
+import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2, CalendarDays, Facebook, Instagram, Video, Eye } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -39,6 +39,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { format, formatDistanceToNow, toDate } from 'date-fns';
+import { ar } from 'date-fns/locale';
 import { formatDisplayPrice } from '@/lib/utils';
 import { siteConfig } from '@/config/site';
 import { Badge } from '@/components/ui/badge';
@@ -189,7 +191,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
       const propRef = doc(db, "properties", propertyId);
       const docSnap = await getDoc(propRef);
       if (docSnap.exists()) {
-        const data = docSnap.data() as Omit<Property, 'id'>;
+        const data = docSnap.data();
         const fetchedProperty = parsePropertyDates({id: docSnap.id, ...data, createdAt: data.createdAt?.toDate().toISOString(), updatedAt: data.updatedAt?.toDate().toISOString() } as SerializableProperty);
         setProperty(fetchedProperty);
 
@@ -422,6 +424,13 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   };
 
   const jsonLd = generateJsonLd();
+  
+  const getFormattedDate = (date: any) => {
+    if (!date) return '';
+    const dateObj = date instanceof Timestamp ? date.toDate() : toDate(date);
+    return formatDistanceToNow(dateObj, { addSuffix: true, locale: ar });
+  };
+
 
   if (isLoading || authLoading) {
     return (
@@ -460,7 +469,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     );
   }
 
-  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, area, filters, imageUrls, videoUrl, createdAt, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, whatsappNumber, facebookUrl, instagramUrl, googleMapsLink } = property;
+  const { title, description, price, wilaya, city, neighborhood, address, rooms, bathrooms, area, filters, imageUrls, videoUrl, createdAt, updatedAt, viewCount, userId: propertyOwnerId, transactionType, propertyType, otherPropertyType, status, phoneNumber, whatsappNumber, facebookUrl, instagramUrl, googleMapsLink } = property;
   
   const featureLabels: Record<keyof Property['filters'], string> = {
     water: "ماء متوفر",
@@ -597,6 +606,19 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                             </div>
                         </div>
                     </CardContent>
+                    <CardFooter className="flex flex-wrap justify-between items-center text-xs text-muted-foreground gap-2">
+                        <div className="flex items-center gap-1">
+                            <Eye size={14}/>
+                            <span>{viewCount || 0} مشاهدات</span>
+                        </div>
+                        <div className="flex items-center gap-1" title={updatedAt ? format(toDate(updatedAt), 'PPPPp', { locale: ar }) : ''}>
+                           <CalendarDays size={14}/>
+                           <span>
+                                {updatedAt && createdAt && toDate(updatedAt).getTime() !== toDate(createdAt).getTime() ? 'آخر تحديث ' : 'نشر '}
+                                {updatedAt ? getFormattedDate(updatedAt) : ''}
+                           </span>
+                        </div>
+                    </CardFooter>
                  </Card>
 
                  <Card className="shadow-lg">

@@ -161,6 +161,7 @@ export default function NewPropertyPage() {
         videoUrl: data.videoUrl || undefined,
         status: propertyStatus, 
         deletionReason: "",
+        viewCount: 0,
       };
       
       const propertyDataWithTimestamps = {

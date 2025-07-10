@@ -1,9 +1,9 @@
-
 import { Metadata } from 'next';
 import PropertyDetailClient from '@/components/properties/PropertyDetailClient';
 import { isFirebaseAdminAppInitialized, db as adminDb } from '@/lib/firebase/admin';
 import type { Property, SerializableProperty } from '@/types';
 import { siteConfig } from '@/config/site';
+import { Timestamp } from 'firebase-admin/firestore';
 
 type Props = {
   params: { id: string };
@@ -24,8 +24,8 @@ async function getProperty(id: string): Promise<Property | null> {
       const propertyData: Property = {
         id: docSnap.id,
         ...data,
-        createdAt: data?.createdAt.toDate(),
-        updatedAt: data?.updatedAt.toDate(),
+        createdAt: (data?.createdAt as Timestamp)?.toDate(),
+        updatedAt: (data?.updatedAt as Timestamp)?.toDate(),
       } as Property;
       return propertyData;
     }
