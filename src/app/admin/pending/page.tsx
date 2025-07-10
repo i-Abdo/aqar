@@ -235,20 +235,20 @@ export default function AdminPendingPropertiesPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
               <DropdownMenuLabel>إجراءات المراجعة</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => window.open(`/properties/${prop.id}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.open(`/properties/${prop.id}`, '_blank')}><Eye className="ml-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => openApproveDialog(prop)} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                  <CheckCircle className="mr-2 h-4 w-4" /> تنشيط العقار
+                  <CheckCircle className="ml-2 h-4 w-4" /> تنشيط العقار
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openRejectDeleteDialog(prop)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                  <Trash2 className="mr-2 h-4 w-4" /> حذف العقار
+                  <Trash2 className="ml-2 h-4 w-4" /> حذف العقار
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openRejectArchiveDialog(prop)}>
-                  <Archive className="mr-2 h-4 w-4" /> أرشفة العقار
+                  <Archive className="ml-2 h-4 w-4" /> أرشفة العقار
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
-                  <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف المالك فقط
+                  <UserCog className="ml-2 h-4 w-4" /> تغيير تصنيف المالك فقط
               </DropdownMenuItem>
           </DropdownMenuContent>
       </DropdownMenu>
@@ -482,9 +482,9 @@ export default function AdminPendingPropertiesPage() {
                     <SelectValue placeholder="اختر تصنيف المالك..." />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="normal"><UserCheck className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.normal}</SelectItem>
-                    <SelectItem value="untrusted"><UserX className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.untrusted}</SelectItem>
-                    <SelectItem value="blacklisted"><UserCog className="inline-block mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4"/>{trustLevelTranslations.blacklisted}</SelectItem>
+                    <SelectItem value="normal"><UserCheck className="inline-block ml-2 h-4 w-4"/>{trustLevelTranslations.normal}</SelectItem>
+                    <SelectItem value="untrusted"><UserX className="inline-block ml-2 h-4 w-4"/>{trustLevelTranslations.untrusted}</SelectItem>
+                    <SelectItem value="blacklisted"><UserCog className="inline-block ml-2 h-4 w-4"/>{trustLevelTranslations.blacklisted}</SelectItem>
                 </SelectContent>
             </Select>
           </div>

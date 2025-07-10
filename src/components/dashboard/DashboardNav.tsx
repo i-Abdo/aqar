@@ -1,9 +1,10 @@
+
 "use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator } from "@/components/ui/sidebar" 
-import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings, Home } from "lucide-react" 
+import { LayoutDashboard, ListPlus, DollarSign, UserCircle, Settings, Home, Briefcase } from "lucide-react" 
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth"; 
 import React from "react"; 
@@ -30,6 +31,11 @@ const dashboardNavItems = [
     title: "الاشتراكات",
     href: "/dashboard/subscriptions",
     icon: DollarSign,
+  },
+   {
+    title: "خدمات عقارية",
+    href: "/services",
+    icon: Briefcase, 
   },
   {
     title: "الملف الشخصي",

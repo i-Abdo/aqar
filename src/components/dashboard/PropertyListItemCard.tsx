@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import type { Property, Plan, PropertyAppeal, TransactionType, PropertyTypeEnum } from "@/types";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye, Tag, Home as HomeIcon } from "lucide-react";
+import { Loader2, Edit3, Trash2, PlusCircle, AlertTriangle, ShieldQuestion, Eye, Tag, Home as HomeIcon, Archive } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from '@/components/ui/textarea';
 import { submitPropertyAppeal } from '@/actions/propertyAppealActions';
 import { formatDisplayPrice } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 const PROPERTY_APPEAL_COOLDOWN_MS = 24 * 60 * 60000; // 24 hours
 
@@ -120,27 +121,28 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
     setIsAppealing(false);
   };
 
+  const statusMap = {
+    active: { text: "نشط", variant: "default" },
+    pending: { text: "قيد المراجعة", variant: "secondary" },
+    deleted: { text: "محذوف", variant: "destructive" },
+    archived: { text: "متوقف", variant: "outline_destructive" },
+  } as const;
 
-  const getStatusDisplay = () => {
-    switch (property.status) {
-      case 'active': return { text: 'نشط', color: 'text-green-600' };
-      case 'pending': return { text: 'قيد المراجعة', color: 'text-yellow-600' };
-      case 'deleted': return { text: 'محذوف', color: 'text-red-600' };
-      case 'archived': return { text: 'متوقف', color: 'text-orange-600' };
-      default: return { text: property.status, color: 'text-muted-foreground' };
-    }
-  };
-  const statusDisplay = getStatusDisplay();
-
+  const statusDisplay = statusMap[property.status] || { text: property.status, variant: "outline" };
   const actionButtons = [];
+  
+  const canBeEdited = ['active', 'pending'].includes(property.status);
+  const canBeDeleted = ['active', 'pending'].includes(property.status);
 
-  if (property.status !== 'deleted' && property.status !== 'archived') {
-    actionButtons.push(
+  if (canBeEdited) {
+     actionButtons.push(
       <Button key="edit" variant="outline" size="sm" asChild className="transition-smooth w-full hover:shadow-sm">
         <Link href={`/dashboard/properties/${property.id}/edit`}> <Edit3 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> تعديل</Link>
       </Button>
     );
-    actionButtons.push(
+  }
+   if (canBeDeleted) {
+     actionButtons.push(
       <AlertDialog key="delete">
         <AlertDialogTrigger asChild>
           <Button variant="destructive_outline" size="sm" className="transition-smooth w-full hover:shadow-sm"><Trash2 size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/> حذف</Button>
@@ -169,37 +171,9 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
         </AlertDialogContent>
       </AlertDialog>
     );
-  } else if (property.status === 'deleted') {
-    actionButtons.push(
-      <AlertDialog key="archive">
-        <AlertDialogTrigger asChild>
-            <Button variant="outline_secondary" size="sm" className="w-full transition-smooth hover:shadow-sm">أرشفة العقار</Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>تأكيد الأرشفة</AlertDialogTitle>
-                <AlertDialogDescription>
-                    هل أنت متأكد أنك تريد أرشفة هذا العقار؟ الرجاء إدخال سبب الأرشفة.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <Textarea
-                placeholder="سبب الأرشفة (مثال: العقار لم يعد متاحًا مؤقتًا)"
-                value={archiveReason}
-                onChange={(e) => setArchiveReason(e.target.value)}
-                className="my-2"
-                rows={3}
-            />
-            <AlertDialogFooter>
-                <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                <AlertDialogAction onClick={handleArchiveWithReason} disabled={isArchiving || !archiveReason.trim()}>
-                    {isArchiving && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
-                    أرشفة
-                </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-    );
-  } else if (property.status === 'archived') {
+   }
+
+  if (property.status === 'archived') {
     actionButtons.push(
      <Button key="appeal" onClick={handleAppeal} variant="outline_primary" size="sm" disabled={isAppealing || !canAppeal()} className="w-full transition-smooth hover:shadow-sm">
         {isAppealing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ShieldQuestion size={16} className="ml-1 rtl:ml-0 rtl:mr-1"/>}
@@ -247,7 +221,9 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
             <CardTitle className="text-xl font-headline mb-1 truncate group-hover:text-primary transition-colors" title={property.title}>{property.title}</CardTitle>
             <p className="text-lg font-semibold text-green-600 mb-2">{formatDisplayPrice(property.price)}</p>
             <p className="text-sm text-muted-foreground mb-1 truncate">{property.wilaya}, {property.city}</p>
-            <div className="text-sm text-muted-foreground">الحالة: <span className={`font-medium ${statusDisplay.color}`}>{statusDisplay.text}</span></div>
+            <div className="text-sm text-muted-foreground">
+                <Badge variant={statusDisplay.variant as any} className="text-xs font-medium">{statusDisplay.text}</Badge>
+            </div>
             {property.status === 'archived' && (
                 <p className="text-xs text-muted-foreground mt-1">سبب التوقيف: {property.archivalReason || "---"}</p>
             )}
@@ -257,7 +233,7 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
           </CardContent>
       </Link>
       {actionButtons.length > 0 && (
-        <CardFooter className={`p-4 border-t grid ${gridColsClass} gap-2`}>
+        <CardFooter className={cn("p-4 border-t grid gap-2", gridColsClass)}>
           {actionButtons.map(button => button)}
         </CardFooter>
       )}
@@ -266,5 +242,3 @@ function PropertyListItemCard({ property, onDelete, onArchive }: { property: Pro
 }
 
 export default PropertyListItemCard;
-
-    

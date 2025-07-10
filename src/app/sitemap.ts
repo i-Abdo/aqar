@@ -4,14 +4,33 @@ import { siteConfig } from '@/config/site'
 import { isFirebaseAdminAppInitialized, db as adminDb } from '@/lib/firebase/admin';
 import type { Property } from '@/types';
 
+const wilayas = [
+  "أدرار", "الشلف", "الأغواط", "أم البواقي", "باتنة", "بجاية", "بسكرة", "بشار",
+  "البليدة", "البويرة", "تمنراست", "تبسة", "تلمسان", "تيارت", "تيزي وزو", "الجزائر",
+  "الجلفة", "جيجل", "سطيف", "سعيدة", "سكيكدة", "سيدي بلعباس", "عنابة", "قالمة",
+  "قسنطينة", "المدية", "مستغانم", "المسيلة", "معسكر", "ورقلة", "وهران", "البيض",
+  "إليزي", "برج بوعريريج", "بومرداس", "الطارف", "تندوف", "تيسمسيلت", "الوادي", "خنشلة",
+  "سوق أهراس", "تيبازة", "ميلة", "عين الدفلى", "النعامة", "عين تموشنت", "غرداية", "غليزان"
+];
+
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static routes from siteConfig
-  const staticRoutes = ['', '/pricing', '/properties', '/terms', '/privacy', '/login', '/signup', '/tips'].map((route) => ({
+  const staticRoutes = ['', '/pricing', '/properties', '/terms', '/privacy', '/login', '/signup', '/tips', '/services'].map((route) => ({
     url: `${siteConfig.url}${route}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,
     priority: route === '' ? 1 : 0.8,
   }));
+
+  // Wilaya pages
+  const wilayaRoutes = wilayas.map(wilaya => ({
+    url: `${siteConfig.url}/properties/wilaya/${encodeURIComponent(wilaya)}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }));
+
 
   let propertyRoutes: MetadataRoute.Sitemap = [];
 
@@ -29,8 +48,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }));
     } catch (error) {
       console.error("Error fetching properties for sitemap:", error);
-      // Return only static routes if there's an error
-      return staticRoutes;
     }
   } else {
     console.warn("Firebase Admin SDK not initialized. Dynamic property routes will not be included in the sitemap.");
@@ -38,6 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   
   return [
     ...staticRoutes,
+    ...wilayaRoutes,
     ...propertyRoutes,
   ];
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -27,42 +28,18 @@ interface AdminCounts {
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, loading: authLoading, refreshAdminNotifications } = useAuth();
+  const { user, isAdmin, loading: authLoading, refreshAdminNotifications, adminNotificationCount } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [authHydrated, setAuthHydrated] = React.useState(false);
-  const [counts, setCounts] = React.useState<AdminCounts>({ pending: 0, reports: 0, issues: 0, appeals: 0 });
   const [isLoadingCounts, setIsLoadingCounts] = React.useState(true);
-
-  const fetchAdminCounts = useCallback(async () => {
-    if (!isAdmin) return;
-    setIsLoadingCounts(true);
-    try {
-      const pendingPropsQuery = query(collection(db, 'properties'), where('status', '==', 'pending'));
-      const newReportsQuery = query(collection(db, 'reports'), where('status', '==', 'new'));
-      const newUserIssuesQuery = query(collection(db, 'user_issues'), where('status', '==', 'new'));
-      const newAppealsQuery = query(collection(db, 'property_appeals'), where('appealStatus', '==', 'new'));
-
-      const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
-        getCountFromServer(pendingPropsQuery),
-        getCountFromServer(newReportsQuery),
-        getCountFromServer(newUserIssuesQuery),
-        getCountFromServer(newAppealsQuery),
-      ]);
-
-      setCounts({
-        pending: pendingSnapshot.data().count,
-        reports: reportsSnapshot.data().count,
-        issues: issuesSnapshot.data().count,
-        appeals: appealsSnapshot.data().count,
-      });
-    } catch (error) {
-      console.error('Error fetching admin counts:', error);
-      setCounts({ pending: 0, reports: 0, issues: 0, appeals: 0 });
-    } finally {
-      setIsLoadingCounts(false);
-    }
-  }, [isAdmin]);
+  
+  const counts: AdminCounts = {
+    pending: adminNotificationCount.pending,
+    reports: adminNotificationCount.reports,
+    issues: adminNotificationCount.issues,
+    appeals: adminNotificationCount.appeals,
+  };
 
   useEffect(() => { setAuthHydrated(true); }, []);
 
@@ -76,10 +53,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, isAdmin, authLoading, router, authHydrated]);
 
-  useEffect(() => { if (isAdmin) { fetchAdminCounts(); } }, [isAdmin, fetchAdminCounts]);
-
-  // This will also refresh counts when navigating between admin pages
-  useEffect(() => { if (isAdmin) { refreshAdminNotifications(); } }, [pathname, refreshAdminNotifications, isAdmin]);
+  useEffect(() => {
+    if (isAdmin) {
+      refreshAdminNotifications().finally(() => setIsLoadingCounts(false));
+    }
+  }, [isAdmin, pathname, refreshAdminNotifications]);
 
 
   if (authLoading || !authHydrated || !isAdmin) {
@@ -109,10 +87,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     <Link href={item.href} className="flex items-center gap-2">
                                         <item.icon className="h-4 w-4" />
                                         <span>{item.title}</span>
-                                        {count > 0 && !isLoadingCounts && (
+                                        {count > 0 && (
                                             <Badge variant={isActive ? "default" : "destructive"} className="h-5 px-1.5">{count > 9 ? '9+' : count}</Badge>
                                         )}
-                                        {isLoadingCounts && <Loader2 className="h-4 w-4 animate-spin" />}
                                     </Link>
                                 </Button>
                             );

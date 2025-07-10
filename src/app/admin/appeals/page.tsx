@@ -198,23 +198,23 @@ export default function AdminPropertyAppealsPage() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
             <DropdownMenuLabel>خيارات الطعن</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => window.open(`/properties/${appeal.propertyId}`, '_blank')}><Eye className="mr-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.open(`/properties/${appeal.propertyId}`, '_blank')}><Eye className="ml-2 h-4 w-4" /> عرض العقار</DropdownMenuItem>
             <DropdownMenuSeparator />
             {appeal.appealStatus === 'new' && (
                 <DropdownMenuItem onClick={() => handleUpdateAppealStatusOnly(appeal, 'under_review')}>
-                    <Edit className="mr-2 h-4 w-4" /> بدء المراجعة
+                    <Edit className="ml-2 h-4 w-4" /> بدء المراجعة
                 </DropdownMenuItem>
             )}
             {(appeal.appealStatus === 'new' || appeal.appealStatus === 'under_review') && (
                 <>
                     <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'publish')} className="text-green-600 focus:text-green-700 focus:bg-green-500/10">
-                        <CheckCircle className="mr-2 h-4 w-4" /> نشر العقار
+                        <CheckCircle className="ml-2 h-4 w-4" /> نشر العقار
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'keep_archived')}>
-                        <Archive className="mr-2 h-4 w-4" /> إبقاء الأرشفة (تحديث السبب)
+                        <Archive className="ml-2 h-4 w-4" /> إبقاء الأرشفة (تحديث السبب)
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => openDecisionDialog(appeal, 'delete')} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <XCircle className="mr-2 h-4 w-4" /> حذف العقار
+                        <XCircle className="ml-2 h-4 w-4" /> حذف العقار
                     </DropdownMenuItem>
                 </>
             )}
