@@ -9,57 +9,74 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import dynamic from 'next/dynamic';
 import React from "react";
-import { Phone, Briefcase, Gavel, Ruler, Camera, Hammer, Truck, Shield, PaintBrush, Building } from "lucide-react";
-import Link from "next/link";
+import dynamic from 'next/dynamic';
 
 const ContactDialog = dynamic(() =>
   import('@/components/layout/ContactDialog').then((mod) => mod.ContactDialog)
 );
 
-const services = [
-  {
-    icon: Gavel,
-    title: "محامون وموثقون",
-    description: "خبراء لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان."
-  },
-  {
-    icon: Ruler,
-    title: "مهندسون معماريون",
-    description: "لتصميم منزل أحلامك أو الإشراف على مشاريع البناء والتجديد."
-  },
-  {
-    icon: Camera,
-    title: "مصورون محترفون",
-    description: "لإبراز جمال عقارك بصور وفيديوهات احترافية تجذب المشترين."
-  },
-  {
-    icon: Hammer,
-    title: "شركات أشغال ومقاولات",
-    description: "لتنفيذ أعمال البناء، الترميم، أو التجديدات بجودة عالية."
-  },
-  {
-    icon: Truck,
-    title: "خدمات نقل الأثاث",
-    description: "لنقل أثاثك وممتلكاتك بأمان وسرعة إلى منزلك الجديد."
-  },
-  {
-    icon: Shield,
-    title: "شركات تأمين العقار",
-    description: "لحماية استثمارك العقاري من أي مخاطر مستقبلية غير متوقعة."
-  },
-  {
-    icon: PaintBrush,
-    title: "تصميم داخلي وديكور",
-    description: "لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد."
-  },
-  {
-    icon: Building,
-    title: "إدارة الممتلكات",
-    description: "للمهتمين بالاستثمار، نوفر خدمات إدارة العقارات المؤجرة بكفاءة."
-  }
-];
+// --- SVG Icons defined as components ---
+
+const BriefcaseIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+  </svg>
+);
+
+const GavelIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m14 13-8.5 8.5"/><path d="m11 16 1.5-1.5"/><path d="M16 11s-1.5-1.5 0-3 2-4 2-2"/><path d="m22 2-3 3"/><path d="m3 21 8.5-8.5"/><path d="m16 16 3-3"/>
+  </svg>
+);
+
+const RulerIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L3 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>
+  </svg>
+);
+
+const CameraIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>
+  </svg>
+);
+
+const HammerIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5Z"/>
+  </svg>
+);
+
+const TruckIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/><circle cx="7" cy="18" r="2"/><path d="M9 18h6"/><circle cx="18" cy="18" r="2"/>
+  </svg>
+);
+
+const ShieldIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+  </svg>
+);
+
+const PaintBrushIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M18.2 3a.2.2 0 0 1 .2.2v3.3a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V3.2a.2.2 0 0 1 .2-.2Z"/><path d="m21 12-7-7"/><path d="M12 12v3a1 1 0 0 0 1 1h1"/><path d="M3 15v-3a1 1 0 0 1 1-1h9.58c.42 0 .8.21 1.05.59l2.42 4.41c.25.45.25.99 0 1.44l-2.42 4.41a1.05 1.05 0 0 1-1.05.59H4a1 1 0 0 1-1-1Z"/>
+  </svg>
+);
+
+const BuildingIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>
+  </svg>
+);
+
+const PhoneIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>
+);
 
 const ServiceCard = ({ icon: Icon, title, description, onContactClick }: { icon: React.ElementType, title: string, description: string, onContactClick: () => void }) => (
   <Card className="text-center h-full flex flex-col group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
@@ -74,7 +91,7 @@ const ServiceCard = ({ icon: Icon, title, description, onContactClick }: { icon:
        <div className="mt-4 p-3 rounded-md bg-secondary/50 text-center">
             <p className="text-sm text-muted-foreground mb-2">لإضافة خدمتكم هنا يرجى التواصل معنا</p>
             <Button onClick={onContactClick} variant="outline_primary" size="sm">
-                <Phone size={16} className="ml-2 rtl:mr-2 rtl:ml-0" />
+                <PhoneIcon className="ml-2 rtl:mr-2 rtl:ml-0 h-4 w-4" />
                 تواصل معنا
             </Button>
         </div>
@@ -82,6 +99,16 @@ const ServiceCard = ({ icon: Icon, title, description, onContactClick }: { icon:
   </Card>
 );
 
+const services = [
+  { icon: GavelIcon, title: "محامون وموثقون", description: "خبراء لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان." },
+  { icon: RulerIcon, title: "مهندسون معماريون", description: "لتصميم منزل أحلامك أو الإشراف على مشاريع البناء والتجديد." },
+  { icon: CameraIcon, title: "مصورون محترفون", description: "لإبراز جمال عقارك بصور وفيديوهات احترافية تجذب المشترين." },
+  { icon: HammerIcon, title: "شركات أشغال ومقاولات", description: "لتنفيذ أعمال البناء، الترميم، أو التجديدات بجودة عالية." },
+  { icon: TruckIcon, title: "خدمات نقل الأثاث", description: "لنقل أثاثك وممتلكاتك بأمان وسرعة إلى منزلك الجديد." },
+  { icon: ShieldIcon, title: "شركات تأمين العقار", description: "لحماية استثمارك العقاري من أي مخاطر مستقبلية غير متوقعة." },
+  { icon: PaintBrushIcon, title: "تصميم داخلي وديكور", description: "لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد." },
+  { icon: BuildingIcon, title: "إدارة الممتلكات", description: "للمهتمين بالاستثمار، نوفر خدمات إدارة العقارات المؤجرة بكفاءة." }
+];
 
 export default function ServicesPage() {
   const [isContactDialogOpen, setIsContactDialogOpen] = React.useState(false);
@@ -91,7 +118,7 @@ export default function ServicesPage() {
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-6xl mx-auto shadow-xl">
           <CardHeader className="text-center">
-            <Briefcase className="mx-auto h-12 w-12 text-primary mb-4" />
+            <BriefcaseIcon className="mx-auto h-12 w-12 text-primary mb-4" />
             <CardTitle className="text-4xl font-headline text-primary">
               دليل الخدمات العقارية
             </CardTitle>
