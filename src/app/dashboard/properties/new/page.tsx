@@ -146,7 +146,9 @@ export default function NewPropertyPage() {
       if (allImageFiles.length > 0) {
         const uploadResult = await uploadImagesToServerAction(allImageFiles);
         if (!uploadResult.success || !uploadResult.urls) {
-          throw new Error(uploadResult.error || "Image upload failed to return URLs.");
+           toast({ title: "خطأ في رفع الصور", description: uploadResult.error || "فشل رفع الصور لسبب غير معروف.", variant: "destructive"});
+           setIsSubmitting(false);
+           return;
         }
         imageUrls = uploadResult.urls;
       }
