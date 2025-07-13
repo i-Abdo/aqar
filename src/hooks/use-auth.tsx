@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const [appealsSnapshot, issuesSnapshot, reportsSnapshot] = await Promise.all([
             getCountFromServer(appealsQuery),
             getCountFromServer(issuesQuery),
-            getCountFromServer(reportsSnapshot)
+            getCountFromServer(reportsQuery)
           ]);
           setUserDashboardNotificationCount(appealsSnapshot.data().count + issuesSnapshot.data().count + reportsSnapshot.data().count);
         } catch (error) {
