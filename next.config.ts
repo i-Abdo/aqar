@@ -1,5 +1,4 @@
 
-require('dotenv').config();
 import { withSentryConfig } from "@sentry/nextjs";
 import type {NextConfig} from 'next';
 
