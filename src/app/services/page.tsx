@@ -1,8 +1,19 @@
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Metadata } from "next";
-import { Briefcase, Building, Gavel, Hammer, PaintBrush, ShieldCheck, Truck, Camera, DraftingCompass } from "lucide-react";
-import Link from 'next/link';
+import { Briefcase, Gavel, DraftingCompass, Camera, Hammer, Truck, ShieldCheck, PaintBrush, Building } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "خدمات عقارية موصى بها - عقاري",
@@ -12,134 +23,132 @@ export const metadata: Metadata = {
 export default function ServicesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-12">
-        <Briefcase className="mx-auto h-16 w-16 text-primary mb-4" />
-        <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4 text-primary">
-          دليل الخدمات العقارية
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-          كل ما تحتاجه في مكان واحد. اكتشف قائمة من المهنيين الموثوقين لمساعدتك في كل مراحل عمليتك العقارية.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        
-        {/* Card 1: Lawyers */}
-        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-          <CardHeader className="items-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                <Gavel className="w-10 h-10 text-primary" />
-              </div>
-            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">محامون وموثقون</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <CardDescription>لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان.</CardDescription>
-          </CardContent>
-        </Card>
-
-        {/* Card 2: Architects */}
-        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-          <CardHeader className="items-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                <DraftingCompass className="w-10 h-10 text-primary" />
-              </div>
-            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">مهندسون معماريون</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <CardDescription>لتصميم منزل أحلامك أو الإشراف على مشاريع البناء والتجديد.</CardDescription>
-          </CardContent>
-        </Card>
-        
-        {/* Card 3: Photographers */}
-        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-          <CardHeader className="items-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                <Camera className="w-10 h-10 text-primary" />
-              </div>
-            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">مصورون محترفون</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <CardDescription>لإبراز جمال عقارك بصور وفيديوهات احترافية تجذب المشترين.</CardDescription>
-          </CardContent>
-        </Card>
-
-        {/* Card 4: Contractors */}
-        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-          <CardHeader className="items-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                <Hammer className="w-10 h-10 text-primary" />
-              </div>
-            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">شركات أشغال ومقاولات</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <CardDescription>لتنفيذ أعمال البناء، الترميم، أو التجديدات بجودة عالية.</CardDescription>
-          </CardContent>
-        </Card>
-
-        {/* Card 5: Movers */}
-        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-          <CardHeader className="items-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                <Truck className="w-10 h-10 text-primary" />
-              </div>
-            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">خدمات نقل الأثاث</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <CardDescription>لنقل أثاثك بأمان وسرعة إلى منزلك الجديد دون عناء.</CardDescription>
-          </CardContent>
-        </Card>
-
-        {/* Card 6: Insurance */}
-        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-          <CardHeader className="items-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                <ShieldCheck className="w-10 h-10 text-primary" />
-              </div>
-            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">شركات تأمين العقار</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <CardDescription>لحماية استثمارك العقاري من أي مخاطر مستقبلية غير متوقعة.</CardDescription>
-          </CardContent>
-        </Card>
-
-        {/* Card 7: Interior Design */}
-        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-          <CardHeader className="items-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                <PaintBrush className="w-10 h-10 text-primary" />
-              </div>
-            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">تصميم داخلي وديكور</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <CardDescription>لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد.</CardDescription>
-          </CardContent>
-        </Card>
-
-        {/* Card 8: Property Management */}
-        <Card className="group shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center flex flex-col">
-          <CardHeader className="items-center">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
-                <Building className="w-10 h-10 text-primary" />
-              </div>
-            <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">إدارة الممتلكات</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <CardDescription>للمهتمين بالاستثمار، نوفر خدمات إدارة العقارات المؤجرة بكفاءة.</CardDescription>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="mt-12 bg-secondary/50 border-primary/20 text-center py-8">
-        <CardHeader>
-            <CardTitle className="text-2xl font-headline">هل أنت مقدم خدمة؟</CardTitle>
-            <CardDescription className="text-base text-muted-foreground max-w-xl mx-auto mt-2">
-                هل ترغب في عرض خدماتك أمام آلاف المستخدمين المهتمين بالعقارات؟ تواصل معنا لمعرفة كيف يمكنك الانضمام إلى دليلنا.
-            </CardDescription>
+      <Card className="max-w-4xl mx-auto shadow-xl">
+        <CardHeader className="text-center">
+          <Briefcase className="mx-auto h-12 w-12 text-primary mb-4" />
+          <CardTitle className="text-4xl font-headline text-primary">
+            دليل الخدمات العقارية
+          </CardTitle>
+          <CardDescription className="text-lg text-muted-foreground mt-2">
+            كل ما تحتاجه في مكان واحد. اكتشف قائمة من المهنيين الموثوقين لمساعدتك في كل مراحل عمليتك العقارية.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-             <Link href="/#contact-us" className="inline-block px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                تواصل معنا الآن
-            </Link>
+        <CardContent className="space-y-8 px-4 md:px-8">
+          <Accordion type="single" collapsible className="w-full">
+            
+            <AccordionItem value="lawyers">
+              <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <Gavel className="text-primary" />
+                  <span>محامون وموثقون</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 text-base leading-relaxed text-foreground/90 pr-4 border-r-2 border-primary">
+                <p className="text-muted-foreground">
+                  خبراء لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان. يساعدونك في مراجعة الأوراق الرسمية وتسجيل الممتلكات.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="architects">
+              <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <DraftingCompass className="text-primary" />
+                  <span>مهندسون معماريون</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 text-base leading-relaxed text-foreground/90 pr-4 border-r-2 border-primary">
+                <p className="text-muted-foreground">
+                  لتصميم منزل أحلامك أو الإشراف على مشاريع البناء والتجديد. يقدمون حلولاً مبتكرة لتحقيق أقصى استفادة من المساحات.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="photographers">
+              <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <Camera className="text-primary" />
+                  <span>مصورون محترفون</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 text-base leading-relaxed text-foreground/90 pr-4 border-r-2 border-primary">
+                <p className="text-muted-foreground">
+                  لإبراز جمال عقارك بصور وفيديوهات احترافية تجذب المشترين والمهتمين، وتزيد من فرص البيع أو الإيجار.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="contractors">
+              <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <Hammer className="text-primary" />
+                  <span>شركات أشغال ومقاولات</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 text-base leading-relaxed text-foreground/90 pr-4 border-r-2 border-primary">
+                <p className="text-muted-foreground">
+                  لتنفيذ أعمال البناء، الترميم، أو التجديدات بجودة عالية والتزام بالمواعيد.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            
+            <AccordionItem value="movers">
+              <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <Truck className="text-primary" />
+                  <span>خدمات نقل الأثاث</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 text-base leading-relaxed text-foreground/90 pr-4 border-r-2 border-primary">
+                <p className="text-muted-foreground">
+                  لنقل أثاثك وممتلكاتك بأمان وسرعة إلى منزلك الجديد دون عناء أو قلق.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="insurance">
+              <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="text-primary" />
+                  <span>شركات تأمين العقار</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 text-base leading-relaxed text-foreground/90 pr-4 border-r-2 border-primary">
+                <p className="text-muted-foreground">
+                  لحماية استثمارك العقاري من أي مخاطر مستقبلية غير متوقعة مثل الحرائق أو الكوارث الطبيعية.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="interior-design">
+              <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <PaintBrush className="text-primary" />
+                  <span>تصميم داخلي وديكور</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 text-base leading-relaxed text-foreground/90 pr-4 border-r-2 border-primary">
+                <p className="text-muted-foreground">
+                  لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد يعكس ذوقك الشخصي.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="management">
+              <AccordionTrigger className="text-xl font-semibold hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <Building className="text-primary" />
+                  <span>إدارة الممتلكات</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 text-base leading-relaxed text-foreground/90 pr-4 border-r-2 border-primary">
+                <p className="text-muted-foreground">
+                  للمهتمين بالاستثمار، نوفر خدمات إدارة العقارات المؤجرة بكفاءة، من تحصيل الإيجار إلى الصيانة.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            
+          </Accordion>
         </CardContent>
       </Card>
     </div>
