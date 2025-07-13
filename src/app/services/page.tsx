@@ -7,6 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import React from "react";
@@ -80,14 +81,14 @@ const PhoneIcon = ({ className }: { className?: string }) => (
 
 const ServiceCard = ({ icon: Icon, title, description, onContactClick }: { icon: React.ElementType, title: string, description: string, onContactClick: () => void }) => (
   <Card className="text-center h-full flex flex-col group hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
-    <CardHeader className="items-center flex-grow">
+    <CardHeader className="items-center">
       <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-primary/10 border-2 border-primary/20 group-hover:bg-primary/20 transition-colors">
         <Icon className="w-10 h-10 text-primary" />
       </div>
       <CardTitle className="text-xl font-headline group-hover:text-primary transition-colors">{title}</CardTitle>
-      <CardDescription className="mt-2">{description}</CardDescription>
+      <CardDescription className="mt-2 min-h-[40px]">{description}</CardDescription>
     </CardHeader>
-    <CardContent>
+    <CardContent className="flex-grow flex flex-col justify-end">
        <div className="mt-4 p-3 rounded-md bg-secondary/50 text-center">
             <p className="text-sm text-muted-foreground mb-2">لإضافة خدمتكم هنا يرجى التواصل معنا</p>
             <Button onClick={onContactClick} variant="outline_primary" size="sm">
