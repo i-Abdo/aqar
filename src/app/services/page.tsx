@@ -13,7 +13,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Metadata } from "next";
-import { Gavel, Camera, Hammer, Truck, ShieldCheck, PaintBrush, Building, Briefcase, Ruler } from "lucide-react";
+import { Gavel, Camera, Hammer, Truck, Shield, PaintBrush, Building, Briefcase, Ruler } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "خدمات عقارية موصى بها - عقاري",
@@ -109,7 +109,7 @@ export default function ServicesPage() {
             <AccordionItem value="insurance">
               <AccordionTrigger className="text-xl font-semibold hover:no-underline">
                 <div className="flex items-center gap-3">
-                  <ShieldCheck className="text-primary" />
+                  <Shield className="text-primary" />
                   <span>شركات تأمين العقار</span>
                 </div>
               </AccordionTrigger>
