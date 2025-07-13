@@ -13,7 +13,9 @@ let isFirebaseAdminAppInitialized = false;
 try {
   // Check if the app is already initialized to prevent re-initialization.
   if (!admin.apps.length) {
-    admin.initializeApp();
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
     console.log("Firebase Admin SDK initialized successfully.");
   }
   db = admin.firestore();
