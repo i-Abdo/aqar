@@ -114,7 +114,7 @@ const unitLabels: Record<PriceUnitKey, string> = {
 
 const formatPriceForInputUIDisplay = (price: number | undefined): { displayValue: string; unitKey: PriceUnitKey } => {
   if (price === undefined || price === null || isNaN(price) || price <= 0) {
-    return { displayValue: "", unitKey: "THOUSAND_DA" }; 
+    return { displayValue: "", unitKey: "MILLION_DA" }; 
   }
 
   const unitsPriority: PriceUnitKey[] = ["BILLION_DA", "MILLION_DA", "THOUSAND_DA"];
@@ -151,7 +151,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
   const initialPriceFormat = React.useMemo(() => formatPriceForInputUIDisplay(initialData?.price), [initialData?.price]);
   const [manualPriceInput, setManualPriceInput] = React.useState<string>(initialPriceFormat.displayValue);
-  const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey || "THOUSAND_DA");
+  const [selectedUnit, setSelectedUnit] = React.useState<PriceUnitKey>(initialPriceFormat.unitKey || "MILLION_DA");
   
   const form = useForm<PropertyFormValues>({
     resolver: zodResolver(propertyFormSchema),
@@ -208,7 +208,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       const planDetails = plans.find(p => p.id === user.planId);
       if (planDetails) {
         setImageLimitPerProperty(planDetails.imageLimitPerProperty);
-        setMaxAdditionalImages(planDetails.imageLimitPerProperty > 0 ? planDetails.imageLimitPerProperty -1 : 0);
+        setMaxAdditionalImages(planDetails.imageLimitPerProperty > 0 ? planDetails.imageLimitPerProperty - 1 : 0);
         setAiAssistantAllowed(planDetails.aiAssistantAccess);
         const hasVideoFeature = planDetails.features.some(f => f.includes("فيديو"));
         setVideoAllowed(hasVideoFeature);
@@ -390,7 +390,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
 
   const videoChanged = React.useMemo(() => {
       if (!isEditMode || !initialData) return false;
-      return initialData.videoUrl !== form.watch('videoUrl');
+      return (initialData.videoUrl || "") !== (form.watch('videoUrl') || "");
   }, [isEditMode, initialData, form.watch('videoUrl')]);
 
   const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged && !videoChanged);

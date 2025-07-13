@@ -1,4 +1,3 @@
-
 import type { Plan } from "@/types";
 
 export const plans: Plan[] = [
@@ -9,7 +8,7 @@ export const plans: Plan[] = [
     priceMonthly: 0,
     priceYearly: 0,
     features: [
-      "نشر أكثر من عقار ✕",
+      "نشر عقار واحد فقط",
       "صور رئيسية للعقار ✓",
       "صور تفصيلية للعقار ✕",
       "إضافة فيديو للعقار ✕",
@@ -28,14 +27,14 @@ export const plans: Plan[] = [
     priceMonthly: 0,
     priceYearly: 0,
     features: [
-      "نشر أكثر من عقار ✕",
+      "نشر حتى 5 عقارات",
       "صور رئيسية للعقار ✓",
       "صور تفصيلية للعقار ✓",
       "إضافة فيديو للعقار ✓",
       "مساعد الوصف بالذكاء الاصطناعي ✓",
       "دعم ذو اولوية ✓",
     ],
-    maxListings: 1,
+    maxListings: 5,
     imageLimitPerProperty: 5,
     aiAssistantAccess: true,
     cta: "اختر VIP",
@@ -47,7 +46,7 @@ export const plans: Plan[] = [
     priceMonthly: 0,
     priceYearly: 0,
     features: [
-      "نشر أكثر من عقار ✓",
+      "نشر عدد غير محدود من العقارات ✓",
       "صور رئيسية للعقار ✓",
       "صور تفصيلية للعقار ✓",
       "إضافة فيديو للعقار ✓",
@@ -55,7 +54,7 @@ export const plans: Plan[] = [
       "دعم ذو أولوية ✓",
     ],
     maxListings: Infinity,
-    imageLimitPerProperty: 4,
+    imageLimitPerProperty: 10,
     aiAssistantAccess: true,
     cta: "اختر VIP++",
   },

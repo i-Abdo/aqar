@@ -180,9 +180,22 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   const [deletionReason, setDeletionReason] = useState("");
 
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
+  
+  const [selectedMedia, setSelectedMedia] = useState<'image' | 'video'>('image');
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(initialProperty?.imageUrls?.[0] || null);
   
   const [copiedShare, setCopiedShare] = useState(false);
+  
+  useEffect(() => {
+    if (initialProperty) {
+      if (initialProperty.imageUrls && initialProperty.imageUrls.length > 0) {
+        setSelectedImageUrl(initialProperty.imageUrls[0]);
+        setSelectedMedia('image');
+      } else if (initialProperty.videoUrl) {
+        setSelectedMedia('video');
+      }
+    }
+  }, [initialProperty]);
   
   const fetchPropertyAndRefresh = useCallback(async () => {
     if (!propertyId) return;
@@ -207,7 +220,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
           setError(null); // Clear any previous error
         }
 
-        if (fetchedProperty?.imageUrls && fetchedProperty.imageUrls.length > 0) {
+        if (!selectedImageUrl && fetchedProperty?.imageUrls && fetchedProperty.imageUrls.length > 0) {
             setSelectedImageUrl(fetchedProperty.imageUrls[0]);
         }
 
@@ -221,7 +234,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     } finally {
         setIsLoading(false);
     }
-  }, [propertyId, toast, user, isAdmin]);
+  }, [propertyId, toast, user, isAdmin, selectedImageUrl]);
 
   useEffect(() => {
     if (!initialProperty) {
@@ -495,35 +508,26 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
             <div className="lg:col-span-2">
                 <Card className="shadow-lg overflow-hidden sticky top-24">
                     <CardContent className="p-0">
-                         {videoUrl && !selectedImageUrl ? (
+                         {selectedMedia === 'video' && videoUrl ? (
                              <div className="relative aspect-video w-full bg-black">
                                 <VideoEmbed url={videoUrl} title={title} poster={imageUrls?.[0]} />
                             </div>
-                        ) : selectedImageUrl ? (
-                            <div className="relative aspect-video w-full bg-muted">
-                                <Image 
-                                    src={selectedImageUrl} 
-                                    alt={`${title} - الصورة الرئيسية`} 
-                                    fill 
-                                    style={{objectFit: "cover"}}
-                                    data-ai-hint="property interior room"
-                                    priority 
-                                />
-                            </div>
-                        ) : imageUrls && imageUrls.length > 0 && imageUrls[0] ? ( 
-                            <div className="relative aspect-video w-full bg-muted">
-                                <Image 
-                                    src={imageUrls[0]} 
-                                    alt={`${title} - الصورة الرئيسية`} 
-                                    fill 
-                                    style={{objectFit: "cover"}}
-                                    data-ai-hint="property interior room"
-                                    priority 
-                                />
-                            </div>
                         ) : (
-                            <div className="relative aspect-video w-full bg-muted flex items-center justify-center">
-                                <ImageIcon size={64} className="text-muted-foreground" />
+                            <div className="relative aspect-video w-full bg-muted">
+                                {selectedImageUrl ? (
+                                    <Image 
+                                        src={selectedImageUrl} 
+                                        alt={`${title} - الصورة الرئيسية`} 
+                                        fill 
+                                        style={{objectFit: "cover"}}
+                                        data-ai-hint="property interior room"
+                                        priority 
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <ImageIcon size={64} className="text-muted-foreground" />
+                                    </div>
+                                )}
                             </div>
                         )}
                         
@@ -531,10 +535,13 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                             <div className="flex justify-center space-x-2 rtl:space-x-reverse p-2 bg-background/50 overflow-x-auto">
                                 {videoUrl && (
                                      <button 
-                                        onClick={() => setSelectedImageUrl(null)} // Or a specific action to show video
+                                        onClick={() => {
+                                            setSelectedMedia('video');
+                                            setSelectedImageUrl(null);
+                                        }}
                                         className={cn(
                                             "w-20 h-16 relative rounded-md overflow-hidden cursor-pointer border-2 transition-all flex items-center justify-center bg-muted focus:outline-none focus:ring-2 focus:ring-primary",
-                                            !selectedImageUrl ? "border-primary scale-105" : "border-transparent hover:border-primary/70"
+                                            selectedMedia === 'video' ? "border-primary scale-105" : "border-transparent hover:border-primary/70"
                                         )}
                                     >
                                         <Video size={32} className="text-primary"/>
@@ -543,10 +550,13 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                                 {imageUrls && imageUrls.map((url, index) => (
                                     <button 
                                         key={index} 
-                                        onClick={() => setSelectedImageUrl(url)}
+                                        onClick={() => {
+                                            setSelectedMedia('image');
+                                            setSelectedImageUrl(url);
+                                        }}
                                         className={cn(
                                             "w-20 h-16 relative rounded-md overflow-hidden cursor-pointer border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary",
-                                            selectedImageUrl === url ? "border-primary scale-105" : "border-transparent hover:border-primary/70"
+                                            selectedMedia === 'image' && selectedImageUrl === url ? "border-primary scale-105" : "border-transparent hover:border-primary/70"
                                         )}
                                     >
                                         <Image 
