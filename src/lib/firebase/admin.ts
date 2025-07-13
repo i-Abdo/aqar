@@ -11,19 +11,26 @@ let isFirebaseAdminAppInitialized = false;
 // See: https://firebase.google.com/docs/admin/setup#initialize-sdk
 
 try {
-  // Check if the app is already initialized to prevent re-initialization.
   if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
+    admin.initializeApp();
     console.log("Firebase Admin SDK initialized successfully.");
+  } else {
+    admin.app(); // If already initialized, get the default app
+    console.log("Firebase Admin SDK was already initialized.");
   }
+  
   db = admin.firestore();
   auth = admin.auth();
   isFirebaseAdminAppInitialized = true;
-} catch (error) {
+} catch (error: any) {
   isFirebaseAdminAppInitialized = false;
-  console.error("Firebase Admin SDK initialization failed. This can happen in a local environment if you haven't set up GOOGLE_APPLICATION_CREDENTIALS. Server-side features requiring admin access will be disabled.");
+  // It's better to check the error code to avoid hiding other potential issues.
+  if (error.code === 'app/no-app') {
+     console.error("Firebase Admin SDK initialization failed: App not found. This can happen in a local environment if you haven't set up GOOGLE_APPLICATION_CREDENTIALS. Server-side features requiring admin access will be disabled.");
+  } else {
+     console.error("Firebase Admin SDK initialization failed with an unexpected error:", error);
+  }
+ 
   // Assign dummy objects to prevent the app from crashing on import.
   db = {} as admin.firestore.Firestore;
   auth = {} as admin.auth.Auth;
