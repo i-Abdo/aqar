@@ -13,7 +13,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Metadata } from "next";
-import { Briefcase, Gavel, DraftingCompass, Camera, Hammer, Truck, ShieldCheck, PaintBrush, Building } from "lucide-react";
+import { Gavel, DraftingCompass, Camera, Hammer, Truck, ShieldCheck, PaintBrush, Building, Briefcase } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "خدمات عقارية موصى بها - عقاري",
