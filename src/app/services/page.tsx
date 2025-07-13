@@ -1,4 +1,6 @@
 
+"use client";
+
 import {
   Card,
   CardContent,
@@ -13,11 +15,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Metadata } from "next";
+import { Button } from "@/components/ui/button";
+import dynamic from 'next/dynamic';
+import React from "react";
+import { Phone } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "خدمات عقارية موصى بها - عقاري",
-  description: "ابحث عن أفضل المهنيين والخدمات لمساعدتك في كل خطوة من رحلتك العقارية، من المحامين إلى شركات النقل.",
-};
+const ContactDialog = dynamic(() =>
+  import('@/components/layout/ContactDialog').then((mod) => mod.ContactDialog)
+);
+
 
 // Inline SVG components
 const BriefcaseIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -48,9 +54,22 @@ const BuildingIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
 );
 
+const AddServiceCta = ({ onClick }: { onClick: () => void }) => (
+  <div className="mt-4 p-3 rounded-md bg-secondary/50 text-center">
+      <p className="text-sm text-muted-foreground mb-2">لإضافة خدمتكم هنا يرجى التواصل معنا</p>
+      <Button onClick={onClick} variant="outline_primary" size="sm">
+          <Phone size={16} className="ml-2 rtl:mr-2 rtl:ml-0" />
+          تواصل معنا
+      </Button>
+  </div>
+);
+
 
 export default function ServicesPage() {
+  const [isContactDialogOpen, setIsContactDialogOpen] = React.useState(false);
+
   return (
+    <>
     <div className="container mx-auto px-4 py-8">
       <Card className="max-w-4xl mx-auto shadow-xl">
         <CardHeader className="text-center">
@@ -76,6 +95,7 @@ export default function ServicesPage() {
                 <p className="text-muted-foreground">
                   خبراء لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان. يساعدونك في مراجعة الأوراق الرسمية وتسجيل الممتلكات.
                 </p>
+                 <AddServiceCta onClick={() => setIsContactDialogOpen(true)} />
               </AccordionContent>
             </AccordionItem>
 
@@ -90,6 +110,7 @@ export default function ServicesPage() {
                 <p className="text-muted-foreground">
                   لتصميم منزل أحلامك أو الإشراف على مشاريع البناء والتجديد. يقدمون حلولاً مبتكرة لتحقيق أقصى استفادة من المساحات.
                 </p>
+                <AddServiceCta onClick={() => setIsContactDialogOpen(true)} />
               </AccordionContent>
             </AccordionItem>
 
@@ -104,6 +125,7 @@ export default function ServicesPage() {
                 <p className="text-muted-foreground">
                   لإبراز جمال عقارك بصور وفيديوهات احترافية تجذب المشترين والمهتمين، وتزيد من فرص البيع أو الإيجار.
                 </p>
+                <AddServiceCta onClick={() => setIsContactDialogOpen(true)} />
               </AccordionContent>
             </AccordionItem>
 
@@ -118,6 +140,7 @@ export default function ServicesPage() {
                 <p className="text-muted-foreground">
                   لتنفيذ أعمال البناء، الترميم، أو التجديدات بجودة عالية والتزام بالمواعيد.
                 </p>
+                <AddServiceCta onClick={() => setIsContactDialogOpen(true)} />
               </AccordionContent>
             </AccordionItem>
             
@@ -132,6 +155,7 @@ export default function ServicesPage() {
                 <p className="text-muted-foreground">
                   لنقل أثاثك وممتلكاتك بأمان وسرعة إلى منزلك الجديد دون عناء أو قلق.
                 </p>
+                <AddServiceCta onClick={() => setIsContactDialogOpen(true)} />
               </AccordionContent>
             </AccordionItem>
 
@@ -146,6 +170,7 @@ export default function ServicesPage() {
                 <p className="text-muted-foreground">
                   لحماية استثمارك العقاري من أي مخاطر مستقبلية غير متوقعة مثل الحرائق أو الكوارث الطبيعية.
                 </p>
+                <AddServiceCta onClick={() => setIsContactDialogOpen(true)} />
               </AccordionContent>
             </AccordionItem>
 
@@ -160,6 +185,7 @@ export default function ServicesPage() {
                 <p className="text-muted-foreground">
                   لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد يعكس ذوقك الشخصي.
                 </p>
+                <AddServiceCta onClick={() => setIsContactDialogOpen(true)} />
               </AccordionContent>
             </AccordionItem>
 
@@ -174,6 +200,7 @@ export default function ServicesPage() {
                 <p className="text-muted-foreground">
                   للمهتمين بالاستثمار، نوفر خدمات إدارة العقارات المؤجرة بكفاءة، من تحصيل الإيجار إلى الصيانة.
                 </p>
+                <AddServiceCta onClick={() => setIsContactDialogOpen(true)} />
               </AccordionContent>
             </AccordionItem>
             
@@ -181,5 +208,7 @@ export default function ServicesPage() {
         </CardContent>
       </Card>
     </div>
+    {isContactDialogOpen && <ContactDialog isOpen={isContactDialogOpen} onOpenChange={setIsContactDialogOpen} />}
+    </>
   );
 }
