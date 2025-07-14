@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatDisplayPrice } from '@/lib/utils';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 // Custom icon using a simple div for better customization and to avoid webpack issues with default icon paths
 const createCustomIcon = () => {
@@ -42,12 +42,12 @@ const extractCoordsFromGoogleMapsLink = (link?: string): [number, number] | null
 // This inner component will re-render when properties change, but MapContainer will not.
 const MapInner = ({ properties, selectedPropertyId }: PropertyMapProps) => {
     const map = useMap();
-    const propertiesWithCoords = properties
+    const propertiesWithCoords = React.useMemo(() => properties
         .map(p => ({
             ...p,
             coords: extractCoordsFromGoogleMapsLink(p.googleMapsLink),
         }))
-        .filter(p => p.coords !== null);
+        .filter(p => p.coords !== null), [properties]);
 
     useEffect(() => {
         if (selectedPropertyId && propertiesWithCoords.length > 0) {
@@ -62,7 +62,7 @@ const MapInner = ({ properties, selectedPropertyId }: PropertyMapProps) => {
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
         }
-    }, [selectedPropertyId, properties, map]); // properties dependency is simplified, but should be stable if parent component memoizes it.
+    }, [selectedPropertyId, propertiesWithCoords, map]);
 
     return (
         <>
@@ -100,13 +100,9 @@ const MapInner = ({ properties, selectedPropertyId }: PropertyMapProps) => {
 };
 
 
-export function PropertyMap({ properties, selectedPropertyId }: PropertyMapProps) {
+const PropertyMapComponent = ({ properties, selectedPropertyId }: PropertyMapProps) => {
   const defaultPosition: [number, number] = [36.7753, 3.0601]; // Algiers
   const defaultZoom = 6; // Zoom out to show more of Algeria by default
-
-  if (typeof window === 'undefined') {
-    return <div className="h-[500px] w-full bg-muted rounded-lg flex items-center justify-center"><p>جارٍ تحميل الخريطة...</p></div>;
-  }
 
   return (
     <MapContainer center={defaultPosition} zoom={defaultZoom} scrollWheelZoom={true} style={{ height: '500px', width: '100%', borderRadius: '0.5rem' }}>
@@ -118,3 +114,8 @@ export function PropertyMap({ properties, selectedPropertyId }: PropertyMapProps
     </MapContainer>
   );
 }
+
+// Wrap the component with React.memo to prevent re-renders unless props change
+export const PropertyMap = React.memo(PropertyMapComponent);
+PropertyMap.displayName = "PropertyMap";
+
