@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
@@ -89,50 +90,32 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
             const videoId = urlObj.hostname.includes('youtu.be')
                 ? urlObj.pathname.substring(1).split(/[?&]/)[0]
                 : urlObj.searchParams.get('v');
-            if (videoId) {
-                embedSrc = `https://www.youtube.com/embed/${videoId}`;
-            }
+            if (videoId) embedSrc = `https://www.youtube.com/embed/${videoId}`;
         } else if (urlObj.hostname.includes('tiktok.com')) {
             const pathParts = urlObj.pathname.split('/');
             const videoId = pathParts.find(p => /^\d+$/.test(p));
             if (videoId) embedSrc = `https://www.tiktok.com/embed/v2/${videoId}`;
-        } else if (urlObj.hostname.includes('facebook.com')) {
-            return (
-                 <div className="w-full h-full" style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
-                    <iframe
-                        src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&height=476`}
-                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                        scrolling="no"
-                        frameBorder="0"
-                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                        allowFullScreen
-                        title={`Video Player for ${title}`}
-                    ></iframe>
-                 </div>
-            );
+        } else if (urlObj.hostname.includes('facebook.com') && (urlObj.pathname.includes('/videos/') || urlObj.pathname.includes('/watch/'))) {
+            embedSrc = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false`;
         } else if (url.match(/\.(mp4|webm|mov)$/i)) {
             embedSrc = url;
             isIframe = false;
         }
 
         if (embedSrc) {
-            if (isIframe) {
-                return (
-                    <iframe src={embedSrc} title={`Video Player for ${title}`} frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen className="w-full h-full"></iframe>
-                );
-            } else {
-                return (
-                    <video key={url} controls preload="metadata" className="w-full h-full" playsInline poster={poster}>
-                        <source src={url} type={`video/${url.split('.').pop()}`} />
-                        متصفحك لا يدعم عرض الفيديو.
-                    </video>
-                );
-            }
+            return isIframe ? (
+                <iframe src={embedSrc} title={`Video Player for ${title}`} frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen className="w-full h-full"></iframe>
+            ) : (
+                <video key={url} controls preload="metadata" className="w-full h-full" playsInline poster={poster}>
+                    <source src={url} type={`video/${url.split('.').pop()}`} />
+                    متصفحك لا يدعم عرض الفيديو.
+                </video>
+            );
         }
     } catch (e) {
-        // Fallback for invalid URLs
+      // Fallback for invalid URLs or other errors
     }
 
     return (
