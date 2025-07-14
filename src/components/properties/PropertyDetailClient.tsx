@@ -87,7 +87,7 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
         let embedSrc: string | null = null;
         let isIframe = true;
 
-        const youtubeID = getYouTubeID(url);
+        const youtubeID = getYouTubeID(url, { fuzzy: false });
 
         if (youtubeID) {
             embedSrc = `https://www.youtube.com/embed/${youtubeID}`;
