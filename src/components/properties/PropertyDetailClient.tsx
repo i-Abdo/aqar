@@ -87,15 +87,16 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
 
         if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
             const videoId = urlObj.hostname.includes('youtu.be')
-                ? urlObj.pathname.substring(1).split('?')[0]
+                ? urlObj.pathname.substring(1).split(/[?&]/)[0]
                 : urlObj.searchParams.get('v');
-            if (videoId) embedSrc = `https://www.youtube.com/embed/${videoId}`;
+            if (videoId) {
+                embedSrc = `https://www.youtube.com/embed/${videoId}`;
+            }
         } else if (urlObj.hostname.includes('tiktok.com')) {
             const pathParts = urlObj.pathname.split('/');
             const videoId = pathParts.find(p => /^\d+$/.test(p));
             if (videoId) embedSrc = `https://www.tiktok.com/embed/v2/${videoId}`;
         } else if (urlObj.hostname.includes('facebook.com')) {
-            // Facebook requires the iframe approach with their specific plugin URL
             return (
                  <div className="w-full h-full" style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
                     <iframe
@@ -110,7 +111,6 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
                  </div>
             );
         } else if (url.match(/\.(mp4|webm|mov)$/i)) {
-            // Direct video file links
             embedSrc = url;
             isIframe = false;
         }
@@ -119,7 +119,7 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
             if (isIframe) {
                 return (
                     <iframe src={embedSrc} title={`Video Player for ${title}`} frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen className="w-full h-full"></iframe>
                 );
             } else {
@@ -135,7 +135,6 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
         // Fallback for invalid URLs
     }
 
-    // Fallback for unsupported video providers or invalid URLs
     return (
         <div className="w-full h-full flex flex-col items-center justify-center bg-muted p-4 text-center">
             <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
@@ -197,7 +196,6 @@ export default function PropertyDetailClient() {
         
         setProperty(fetchedProperty);
 
-        // Authorization check
         const isOwnerViewing = user && fetchedProperty?.userId === user.uid;
         const canViewNonActive = isOwnerViewing || isAdmin;
 
