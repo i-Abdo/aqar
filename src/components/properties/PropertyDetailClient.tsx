@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Image as ImageIcon, MapPin, BedDouble, Bath, CheckCircle, Flag, MessageSquareWarning, Edit3, Trash2, Ruler, Tag, Building, Home, UserCircle, Mail, MoreVertical, ShieldCheck, RefreshCw, Archive, Check, X, AlertCircle, Map, Phone, Share2, CalendarDays, Facebook, Instagram, Video, Eye } from 'lucide-react';
@@ -9,7 +9,7 @@ import Image from 'next/image';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { doc, getDoc, Timestamp, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrustLevel, SerializableProperty } from '@/types';
+import type { Property, TransactionType, PropertyTypeEnum, CustomUser, UserTrustLevel } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { incrementPropertyView } from '@/actions/viewActions';
 import {
@@ -21,7 +21,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
@@ -58,17 +57,6 @@ const ContactAdminDialog = dynamic(() =>
   import('@/components/dashboard/ContactAdminDialog').then((mod) => mod.ContactAdminDialog)
 );
 
-
-// Helper function to convert ISO string back to Date object
-const parsePropertyDates = (prop: SerializableProperty | null): Property | null => {
-  if (!prop) return null;
-  return {
-    ...prop,
-    createdAt: new Date(prop.createdAt),
-    updatedAt: new Date(prop.updatedAt),
-  };
-};
-
 const transactionTypeTranslations: Record<TransactionType, string> = {
   sale: "بيع",
   rent: "كراء",
@@ -90,11 +78,6 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
   untrusted: 'غير موثوق',
   blacklisted: 'قائمة سوداء',
 };
-
-interface PropertyDetailClientProps {
-    initialProperty: SerializableProperty | null;
-    propertyId: string;
-}
 
 const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster?: string }) => {
     try {
@@ -160,15 +143,19 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
     );
 };
 
-
-// The component now receives the initial property data as a prop
-export default function PropertyDetailClient({ initialProperty, propertyId }: PropertyDetailClientProps) {
+export default function PropertyDetailClient() {
   const router = useRouter();
+  const params = useParams();
+  const propertyId = useMemo(() => {
+    const rawId = params?.id;
+    return Array.isArray(rawId) ? rawId[0] : rawId;
+  }, [params?.id]);
+
   const { toast } = useToast();
   const { user, isAdmin, loading: authLoading, refreshAdminNotifications } = useAuth();
   
-  const [property, setProperty] = useState<Property | null>(parsePropertyDates(initialProperty));
-  const [isLoading, setIsLoading] = useState(!initialProperty); // Set loading true if no initial data
+  const [property, setProperty] = useState<Property | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isReportPropertyDialogOpen, setIsReportPropertyDialogOpen] = useState(false);
   const [isContactAdminDialogOpen, setIsContactAdminDialogOpen] = useState(false);
@@ -182,30 +169,29 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
   const [ownerDetailsForAdmin, setOwnerDetailsForAdmin] = useState<{ uid: string; email: string | null; trustLevel: UserTrustLevel } | null>(null);
   
   const [selectedMedia, setSelectedMedia] = useState<'image' | 'video'>('image');
-  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(initialProperty?.imageUrls?.[0] || null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   
   const [copiedShare, setCopiedShare] = useState(false);
   
-  useEffect(() => {
-    if (initialProperty) {
-      if (initialProperty.imageUrls && initialProperty.imageUrls.length > 0) {
-        setSelectedImageUrl(initialProperty.imageUrls[0]);
-        setSelectedMedia('image');
-      } else if (initialProperty.videoUrl) {
-        setSelectedMedia('video');
-      }
-    }
-  }, [initialProperty]);
-  
   const fetchPropertyAndRefresh = useCallback(async () => {
-    if (!propertyId) return;
+    if (!propertyId) {
+      setError("معرّف العقار غير موجود.");
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const propRef = doc(db, "properties", propertyId);
       const docSnap = await getDoc(propRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        const fetchedProperty = parsePropertyDates({id: docSnap.id, ...data, createdAt: data.createdAt?.toDate().toISOString(), updatedAt: data.updatedAt?.toDate().toISOString() } as SerializableProperty);
+        const fetchedProperty: Property = {
+          id: docSnap.id,
+          ...data,
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+          updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(),
+        } as Property;
+        
         setProperty(fetchedProperty);
 
         // Authorization check
@@ -217,46 +203,34 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
         } else if (fetchedProperty?.status !== 'active' && fetchedProperty?.status !== 'deleted' && !canViewNonActive) {
           setError("هذا العقار غير متاح للعرض حاليًا.");
         } else {
-          setError(null); // Clear any previous error
+          setError(null);
         }
 
-        if (!selectedImageUrl && fetchedProperty?.imageUrls && fetchedProperty.imageUrls.length > 0) {
+        if (fetchedProperty?.imageUrls && fetchedProperty.imageUrls.length > 0) {
             setSelectedImageUrl(fetchedProperty.imageUrls[0]);
+            setSelectedMedia('image');
+        } else if (fetchedProperty.videoUrl) {
+            setSelectedMedia('video');
         }
 
       } else {
         setError("لم يتم العثور على العقار. ربما تم حذفه.");
       }
     } catch(err) {
-      console.error("Error refreshing property details:", err);
+      console.error("Error fetching property details:", err);
       toast({ title: "خطأ", description: "فشل تحديث بيانات العقار.", variant: "destructive" });
       setError("فشل تحميل بيانات العقار.");
     } finally {
         setIsLoading(false);
     }
-  }, [propertyId, toast, user, isAdmin, selectedImageUrl]);
+  }, [propertyId, toast, user, isAdmin]);
 
   useEffect(() => {
-    if (!initialProperty) {
-      fetchPropertyAndRefresh();
-    } else {
-      // Logic for when initialProperty is present
-      const isOwnerViewing = user && initialProperty.userId === user.uid;
-      const canViewNonActive = isOwnerViewing || isAdmin;
-      if (initialProperty.status === 'deleted' && !canViewNonActive) {
-        setError("هذا العقار تم حذفه وغير متاح للعرض.");
-      } else if (initialProperty.status !== 'active' && initialProperty.status !== 'deleted' && !canViewNonActive) {
-        setError("هذا العقار غير متاح للعرض حاليًا.");
-      } else {
-        setError(null);
-      }
-    }
-  }, [initialProperty, fetchPropertyAndRefresh, user, isAdmin]);
+    fetchPropertyAndRefresh();
+  }, [fetchPropertyAndRefresh]);
 
-  // Effect to increment view count
   useEffect(() => {
     const handleIncrementView = async () => {
-      // Only run if property exists and user is not the owner
       if (property && user?.uid !== property.userId) {
         const viewedKey = `viewed-${property.id}`;
         if (!sessionStorage.getItem(viewedKey)) {
@@ -265,7 +239,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
             sessionStorage.setItem(viewedKey, 'true');
           } catch (e) {
             console.error("Failed to increment view count:", e);
-            // We don't toast this error to the user as it's a background task.
           }
         }
       }
@@ -276,8 +249,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
     }
   }, [propertyId, property, user]);
 
-
-  // Fetch owner details if admin
   useEffect(() => {
     const fetchOwnerDetails = async () => {
       if (isAdmin && property?.userId) {
@@ -351,7 +322,7 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
       await updateDoc(propRef, updateData as any);
       toast({ title: "تم تحديث حالة العقار", description: `تم تغيير حالة العقار إلى ${newStatus}.` });
-      await fetchPropertyAndRefresh(); // Re-fetch to get latest data
+      await fetchPropertyAndRefresh();
       await refreshAdminNotifications();
     } catch (e) {
       console.error("Error updating property status by admin:", e);
@@ -380,63 +351,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
       setIsPropertyActionLoading(false);
     }
   };
-
-  const generateJsonLd = () => {
-    if (!property) return null;
-
-    const propertyTypeSchema = {
-      'apartment': 'Apartment',
-      'house': 'House',
-      'villa': 'House',
-      'land': 'LandPlot',
-      'office': 'OfficeBuilding',
-      'warehouse': 'Place',
-      'shop': 'Store',
-      'other': 'RealEstateListing'
-    }[property.propertyType] || 'RealEstateListing';
-    
-    return {
-      '@context': 'https://schema.org',
-      '@type': propertyTypeSchema,
-      name: property.title,
-      description: property.description,
-      image: property.imageUrls && property.imageUrls.length > 0 ? property.imageUrls : undefined,
-      ...(property.videoUrl && { video: property.videoUrl }),
-      url: `${siteConfig.url}/properties/${property.id}`,
-      ...(property.area && {
-        floorSize: {
-          '@type': 'QuantitativeValue',
-          value: property.area,
-          unitCode: 'MTK' // Square meter
-        }
-      }),
-      ...(propertyTypeSchema !== 'LandPlot' && {
-        numberOfRooms: property.rooms,
-        ...(property.bathrooms && {
-           numberOfBathroomsTotal: property.bathrooms,
-        })
-      }),
-      address: {
-        '@type': 'PostalAddress',
-        streetAddress: property.address || property.neighborhood,
-        addressLocality: property.city,
-        addressRegion: property.wilaya,
-        addressCountry: 'DZ'
-      },
-      offers: {
-        '@type': 'Offer',
-        price: property.price,
-        priceCurrency: 'DZD',
-        availability: property.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
-        seller: {
-          '@type': 'Organization',
-          name: siteConfig.name,
-        },
-      },
-    };
-  };
-
-  const jsonLd = generateJsonLd();
   
   const getFormattedDate = (date: any) => {
     if (!date) return '';
@@ -496,15 +410,8 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
 
   return (
     <>
-      {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      )}
      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Image Gallery & Video Column */}
             <div className="lg:col-span-2">
                 <Card className="shadow-lg overflow-hidden sticky top-24">
                     <CardContent className="p-0">
@@ -574,7 +481,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                 </Card>
             </div>
 
-            {/* Details Column */}
             <div className="lg:col-span-1 space-y-6">
                  <Card className="shadow-lg">
                     <CardHeader>
@@ -678,7 +584,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                     </Card>
                 )}
 
-                {/* Contact Card */}
                  <Card className="shadow-lg">
                     <CardHeader>
                         <CardTitle className="font-headline text-xl text-center">التواصل مع صاحب العقار</CardTitle>
@@ -726,8 +631,6 @@ export default function PropertyDetailClient({ initialProperty, propertyId }: Pr
                     </CardContent>
                  </Card>
 
-
-                {/* Actions Card */}
                  <Card className="shadow-lg bg-secondary/30">
                     <CardHeader>
                         <CardTitle className="font-headline text-xl text-center">إجراءات</CardTitle>
