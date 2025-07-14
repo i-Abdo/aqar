@@ -82,21 +82,22 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
 
 const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster?: string }) => {
     try {
-        const urlObj = new URL(url);
         let embedSrc: string | null = null;
         let isIframe = true;
 
-        if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
-            const videoId = urlObj.hostname.includes('youtu.be')
-                ? urlObj.pathname.substring(1).split(/[?&]/)[0]
-                : urlObj.searchParams.get('v');
-            if (videoId) embedSrc = `https://www.youtube.com/embed/${videoId}`;
-        } else if (urlObj.hostname.includes('tiktok.com')) {
-            const pathParts = urlObj.pathname.split('/');
-            const videoId = pathParts.find(p => /^\d+$/.test(p));
-            if (videoId) embedSrc = `https://www.tiktok.com/embed/v2/${videoId}`;
-        } else if (urlObj.hostname.includes('facebook.com') && (urlObj.pathname.includes('/videos/') || urlObj.pathname.includes('/watch/'))) {
+        const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+        const youtubeMatch = url.match(youtubeRegex);
+
+        if (youtubeMatch && youtubeMatch[1]) {
+            embedSrc = `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+        } else if (url.includes('facebook.com') && (url.includes('/videos/') || url.includes('/watch/'))) {
             embedSrc = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false`;
+        } else if (url.includes('tiktok.com')) {
+             const tiktokRegex = /tiktok\.com\/.*\/video\/(\d+)/;
+             const tiktokMatch = url.match(tiktokRegex);
+             if (tiktokMatch && tiktokMatch[1]) {
+                embedSrc = `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`;
+             }
         } else if (url.match(/\.(mp4|webm|mov)$/i)) {
             embedSrc = url;
             isIframe = false;
