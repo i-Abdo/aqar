@@ -95,6 +95,7 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
             const videoId = pathParts.find(p => /^\d+$/.test(p));
             if (videoId) embedSrc = `https://www.tiktok.com/embed/v2/${videoId}`;
         } else if (urlObj.hostname.includes('facebook.com')) {
+            // Facebook requires the iframe approach with their specific plugin URL
             return (
                  <div className="w-full h-full" style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden' }}>
                     <iframe
@@ -109,6 +110,7 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
                  </div>
             );
         } else if (url.match(/\.(mp4|webm|mov)$/i)) {
+            // Direct video file links
             embedSrc = url;
             isIframe = false;
         }
@@ -123,16 +125,17 @@ const VideoEmbed = ({ url, title, poster }: { url: string; title: string; poster
             } else {
                 return (
                     <video key={url} controls preload="metadata" className="w-full h-full" playsInline poster={poster}>
-                        <source src={url} />
+                        <source src={url} type={`video/${url.split('.').pop()}`} />
                         متصفحك لا يدعم عرض الفيديو.
                     </video>
                 );
             }
         }
     } catch (e) {
-        // Invalid URL, fall through to unsupported link
+        // Fallback for invalid URLs
     }
 
+    // Fallback for unsupported video providers or invalid URLs
     return (
         <div className="w-full h-full flex flex-col items-center justify-center bg-muted p-4 text-center">
             <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
