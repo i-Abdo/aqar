@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { Property, SerializableProperty } from "@/types";
@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescri
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { findProperties, FindPropertiesInput } from '@/ai/flows/find-properties-flow';
 import { Input } from '@/components/ui/input';
+import { useParams } from 'next/navigation';
 
 
 const PROPERTIES_PER_PAGE = 9;
@@ -30,35 +31,22 @@ const deserializeProperties = (props: SerializableProperty[]): Property[] => {
 };
 
 export default function PropertiesPage() {
+  const params = useParams();
+  const initialWilaya = useMemo(() => {
+    const wilayaName = params?.wilayaName;
+    return wilayaName ? decodeURIComponent(Array.isArray(wilayaName) ? wilayaName[0] : wilayaName) : '';
+  }, [params]);
+
   const [allProperties, setAllProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [searchCriteria, setSearchCriteria] = useState<SearchFilters>({});
+  const [searchCriteria, setSearchCriteria] = useState<SearchFilters>({
+    wilaya: initialWilaya,
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [smartSearchQuery, setSmartSearchQuery] = useState("");
-
-  const fetchProperties = async () => {
-    setIsLoading(true);
-    try {
-      let q = query(collection(db, "properties"), where("status", "==", "active"), orderBy("createdAt", "desc"));
-      
-      const querySnapshot = await getDocs(q);
-      const propsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt),
-        updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date(doc.data().updatedAt),
-      } as Property));
-      setAllProperties(propsData);
-      applyFilters(propsData, searchCriteria); 
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   const applyFilters = useCallback((propertiesToFilter: Property[], filters: SearchFilters) => {
     let result = [...propertiesToFilter];
@@ -80,11 +68,30 @@ export default function PropertiesPage() {
     setCurrentPage(1);
   }, []);
 
-
+  const fetchProperties = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      let q = query(collection(db, "properties"), where("status", "==", "active"), orderBy("createdAt", "desc"));
+      
+      const querySnapshot = await getDocs(q);
+      const propsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(doc.data().createdAt),
+        updatedAt: doc.data().updatedAt?.toDate ? doc.data().updatedAt.toDate() : new Date(doc.data().updatedAt),
+      } as Property));
+      setAllProperties(propsData);
+      applyFilters(propsData, { wilaya: initialWilaya }); 
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [initialWilaya, applyFilters]);
+  
   useEffect(() => {
     fetchProperties();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchProperties]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -197,8 +204,12 @@ export default function PropertiesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-8 text-center">
-        <h1 className="text-4xl font-bold font-headline text-primary">تصفح العقارات</h1>
-        <p className="text-lg text-muted-foreground mt-2">جد العقار الذي يناسب احتياجاتك من بين مئات العروض.</p>
+        <h1 className="text-4xl font-bold font-headline text-primary">
+            {initialWilaya ? `عقارات في ${initialWilaya}` : 'تصفح العقارات'}
+        </h1>
+        <p className="text-lg text-muted-foreground mt-2">
+            {initialWilaya ? `جد العقار الذي يناسبك في ولاية ${initialWilaya}.` : 'جد العقار الذي يناسب احتياجاتك من بين مئات العروض.'}
+        </p>
       </header>
 
       {/* AI Smart Search Bar */}
