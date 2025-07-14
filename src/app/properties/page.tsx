@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { Property, SerializableProperty } from "@/types";
@@ -21,7 +21,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PropertyMap = dynamic(
-  () => import('@/components/properties/PropertyMap'), // Corrected import path resolution
+  () => import('@/components/properties/PropertyMap').then(mod => mod.default),
   { 
     ssr: false,
     loading: () => <Skeleton className="h-[500px] w-full rounded-lg" />
@@ -40,7 +40,7 @@ const deserializeProperties = (props: SerializableProperty[]): Property[] => {
   }));
 };
 
-export default function PropertiesPage() {
+function PropertiesPageClient() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -367,5 +367,19 @@ export default function PropertiesPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+
+export default function PropertiesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] text-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">جاري تحميل صفحة العقارات...</p>
+      </div>
+    }>
+      <PropertiesPageClient />
+    </Suspense>
   );
 }

@@ -47,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.9,
       }));
     } catch (error) {
-      console.error("Error fetching properties for sitemap:", error);
+      console.warn("Could not fetch properties for sitemap. This might be due to missing credentials in the build environment. Sitemap will be generated with static routes only.", error);
     }
   } else {
     console.warn("Firebase Admin SDK not initialized. Dynamic property routes will not be included in the sitemap.");
