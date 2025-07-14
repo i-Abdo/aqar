@@ -18,6 +18,7 @@ import { findProperties, FindPropertiesInput } from '@/ai/flows/find-properties-
 import { Input } from '@/components/ui/input';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PropertyMap = dynamic(
   () => import('@/components/properties/PropertyMap').then(mod => mod.PropertyMap),
