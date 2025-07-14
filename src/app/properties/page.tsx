@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase/client";
 import type { Property, SerializableProperty } from "@/types";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertySearchSidebar, SearchFilters } from "@/components/properties/PropertySearchSidebar";
-import { Loader2, SearchIcon, RotateCcw, Filter, Sparkles } from "lucide-react";
+import { Loader2, SearchIcon, RotateCcw, Filter, Sparkles, MapIcon } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { cn } from '@/lib/utils';
@@ -16,7 +16,16 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescri
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { findProperties, FindPropertiesInput } from '@/ai/flows/find-properties-flow';
 import { Input } from '@/components/ui/input';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const PropertyMap = dynamic(
+  () => import('@/components/properties/PropertyMap').then(mod => mod.PropertyMap),
+  { 
+    ssr: false,
+    loading: () => <Skeleton className="h-[500px] w-full rounded-lg" />
+  }
+);
 
 
 const PROPERTIES_PER_PAGE = 9;
@@ -32,6 +41,9 @@ const deserializeProperties = (props: SerializableProperty[]): Property[] => {
 
 export default function PropertiesPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const initialWilaya = useMemo(() => {
     const wilayaName = params?.wilayaName;
     return wilayaName ? decodeURIComponent(Array.isArray(wilayaName) ? wilayaName[0] : wilayaName) : '';
@@ -47,6 +59,16 @@ export default function PropertiesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [smartSearchQuery, setSmartSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+
+  const selectedPropertyIdForMap = searchParams.get('propertyId');
+  
+  useEffect(() => {
+    if (selectedPropertyIdForMap) {
+      setViewMode('map');
+    }
+  }, [selectedPropertyIdForMap]);
+
   
   const applyFilters = useCallback((propertiesToFilter: Property[], filters: SearchFilters) => {
     let result = [...propertiesToFilter];
@@ -239,6 +261,20 @@ export default function PropertiesPage() {
           </form>
         </CardContent>
       </Card>
+      
+       {/* View Mode Toggle */}
+      <div className="flex justify-center mb-6">
+        <Button onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')} variant="outline" className="w-full sm:w-auto">
+          <MapIcon className="mr-2 h-4 w-4" />
+          {viewMode === 'list' ? 'عرض الخريطة' : 'عرض القائمة'}
+        </Button>
+      </div>
+
+      {viewMode === 'map' && (
+        <div className="mb-8">
+            <PropertyMap properties={filteredProperties} selectedPropertyId={selectedPropertyIdForMap} />
+        </div>
+      )}
 
 
       {/* Mobile-only Filter Button */}

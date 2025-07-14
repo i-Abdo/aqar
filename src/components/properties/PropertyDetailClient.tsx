@@ -560,12 +560,12 @@ export default function PropertyDetailClient() {
                              <CardTitle className="font-headline text-xl flex items-center gap-2"><Map size={18}/>الموقع على الخريطة</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="block w-full">
-                                <Button size="lg" className="w-full text-base transition-smooth hover:shadow-md">
+                            <Button asChild size="lg" className="w-full text-base transition-smooth hover:shadow-md">
+                                <Link href={`/properties?propertyId=${property.id}`} prefetch={false}>
                                     <MapPin size={20} className="ml-2 rtl:mr-2 rtl:ml-0"/>
-                                    عرض الموقع على خرائط جوجل
-                                </Button>
-                            </a>
+                                    عرض الموقع على الخريطة التفاعلية
+                                </Link>
+                            </Button>
                         </CardContent>
                     </Card>
                 )}
