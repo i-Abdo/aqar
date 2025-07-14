@@ -11,7 +11,7 @@ const cspHeader = `
     media-src 'self' blob: https://archive.org;
     connect-src 'self' wss://*.firebaseio.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://www.google-analytics.com *.sentry.io https://s3.us.archive.org;
     font-src 'self' https://fonts.gstatic.com;
-    frame-src 'self' https://maps.google.com https://www.google.com https://*.firebaseapp.com;
+    frame-src 'self' https://maps.google.com https://www.google.com https://*.firebaseapp.com https://www.youtube.com https://www.facebook.com https://www.tiktok.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
