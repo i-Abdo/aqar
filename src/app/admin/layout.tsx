@@ -28,18 +28,57 @@ interface AdminCounts {
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, loading: authLoading, refreshAdminNotifications, adminNotificationCount } = useAuth();
+  const { user, isAdmin, loading: authLoading, refreshAdminNotifications } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [authHydrated, setAuthHydrated] = React.useState(false);
   const [isLoadingCounts, setIsLoadingCounts] = React.useState(true);
+  const [counts, setCounts] = useState<AdminCounts>({
+    pending: 0,
+    reports: 0,
+    issues: 0,
+    appeals: 0,
+  });
+
+  const fetchCounts = useCallback(async () => {
+    if (!isAdmin) return;
+    setIsLoadingCounts(true);
+    try {
+      const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
+      const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
+      const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
+      const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
+      
+      const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
+        getCountFromServer(pendingPropsQuery),
+        getCountFromServer(newReportsQuery),
+        getCountFromServer(newUserIssuesQuery),
+        getCountFromServer(newAppealsQuery),
+      ]);
+      
+      setCounts({
+        pending: pendingSnapshot.data().count,
+        reports: reportsSnapshot.data().count,
+        issues: issuesSnapshot.data().count,
+        appeals: appealsSnapshot.data().count,
+      });
+    } catch (error) {
+      console.error("Error fetching admin counts:", error);
+    } finally {
+      setIsLoadingCounts(false);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts]);
   
-  const counts: AdminCounts = {
-    pending: adminNotificationCount.pending,
-    reports: adminNotificationCount.reports,
-    issues: adminNotificationCount.issues,
-    appeals: adminNotificationCount.appeals,
-  };
+  useEffect(() => {
+    if (isAdmin) {
+      refreshAdminNotifications();
+    }
+  }, [isAdmin, refreshAdminNotifications, pathname]);
+
 
   useEffect(() => { setAuthHydrated(true); }, []);
 
@@ -52,12 +91,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
     }
   }, [user, isAdmin, authLoading, router, authHydrated]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      refreshAdminNotifications().finally(() => setIsLoadingCounts(false));
-    }
-  }, [isAdmin, pathname, refreshAdminNotifications]);
 
 
   if (authLoading || !authHydrated || !isAdmin) {

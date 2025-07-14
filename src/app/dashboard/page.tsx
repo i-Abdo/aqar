@@ -85,7 +85,7 @@ const reportStatusTranslations: Record<Report['status'], string> = {
 
 
 export default function DashboardPage() {
-  const { user, loading: authLoading, setUserDashboardNotificationCount } = useAuth(); 
+  const { user, loading: authLoading, userDashboardNotificationCount, setUserDashboardNotificationCount } = useAuth(); 
   const [userStats, setUserStats] = useState<UserStats>({
     activeListings: 0,
     maxListings: "0",
@@ -246,6 +246,12 @@ export default function DashboardPage() {
 
     return activities.sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [appealNotifications, userIssueUpdates, reportUpdates, handleDismissAppeal, handleDismissIssue, handleDismissReport]);
+  
+  // Recalculate badge count based on combined activities length
+  useEffect(() => {
+      setUserDashboardNotificationCount(combinedActivities.length);
+  }, [combinedActivities, setUserDashboardNotificationCount]);
+
 
   if (authLoading || isLoading) {
     return (
@@ -302,7 +308,7 @@ export default function DashboardPage() {
               <CardTitle className="flex items-center gap-2">
                 <Bell className="text-primary"/>
                 <span>آخر الأنشطة</span>
-                {combinedActivities.length > 0 && <Badge variant="destructive">{combinedActivities.length}</Badge>}
+                {userDashboardNotificationCount > 0 && <Badge variant="destructive">{userDashboardNotificationCount}</Badge>}
               </CardTitle>
             </CardHeader>
             <CardContent>

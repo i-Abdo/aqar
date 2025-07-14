@@ -16,9 +16,6 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   userDashboardNotificationCount: number;
   setUserDashboardNotificationCount: React.Dispatch<React.SetStateAction<number>>;
-  adminNotificationCount: number;
-  setAdminNotificationCount: React.Dispatch<React.SetStateAction<number>>;
-  clearUserDashboardNotificationBadge: () => void;
   refreshAdminNotifications: () => Promise<void>;
 }
 
@@ -30,8 +27,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [trustLevel, setTrustLevel] = useState<UserTrustLevel | null>(null);
   const [userDashboardNotificationCount, setUserDashboardNotificationCount] = useState(0);
-  const [adminNotificationCount, setAdminNotificationCount] = useState(0);
-
 
   useEffect(() => {
     let unsubscribeFirestore: (() => void) | undefined;
@@ -96,7 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAdmin(false);
         setTrustLevel(null);
         setUserDashboardNotificationCount(0); 
-        setAdminNotificationCount(0); 
         setLoading(false);
       }
     });
@@ -109,84 +103,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Fetch user dashboard notifications
-  useEffect(() => {
-    if (user && !loading) {
-      const fetchUserNotifications = async () => {
-        try {
-          const appealsQuery = query(
-            collection(db, "property_appeals"),
-            where("ownerUserId", "==", user.uid),
-            where("appealStatus", "in", ["resolved_deleted", "resolved_kept_archived", "resolved_published"]),
-            where("dismissedByOwner", "!=", true) 
-          );
-          const issuesQuery = query(
-            collection(db, "user_issues"),
-            where("userId", "==", user.uid),
-            where("status", "in", ["in_progress", "resolved"]),
-            where("dismissedByOwner", "!=", true) 
-          );
-           const reportsQuery = query(
-            collection(db, "reports"),
-            where("reporterUserId", "==", user.uid),
-            where("status", "in", ["resolved", "dismissed"]),
-            where("dismissedByReporter", "!=", true)
-          );
-          const [appealsSnapshot, issuesSnapshot, reportsSnapshot] = await Promise.all([
-            getCountFromServer(appealsQuery),
-            getCountFromServer(issuesQuery),
-            getCountFromServer(reportsQuery)
-          ]);
-          setUserDashboardNotificationCount(appealsSnapshot.data().count + issuesSnapshot.data().count + reportsSnapshot.data().count);
-        } catch (error) {
-          console.error("Error fetching user dashboard notification counts in AuthProvider:", error);
-          setUserDashboardNotificationCount(0);
-        }
-      };
-      fetchUserNotifications();
-    } else if (!user) {
-      setUserDashboardNotificationCount(0);
-    }
-  }, [user, loading]);
-
-  // Fetch admin notifications
-  const fetchAdminNotificationsCallback = useCallback(async () => {
-    if (user && isAdmin && !loading) {
-      try {
-        const pendingPropsQuery = query(collection(db, "properties"), where("status", "==", "pending"));
-        const newReportsQuery = query(collection(db, "reports"), where("status", "==", "new"));
-        const newUserIssuesQuery = query(collection(db, "user_issues"), where("status", "==", "new"));
-        const newAppealsQuery = query(collection(db, "property_appeals"), where("appealStatus", "==", "new"));
-
-        const [pendingSnapshot, reportsSnapshot, issuesSnapshot, appealsSnapshot] = await Promise.all([
-          getCountFromServer(pendingPropsQuery),
-          getCountFromServer(newReportsQuery),
-          getCountFromServer(newUserIssuesQuery),
-          getCountFromServer(newAppealsQuery),
-        ]);
-
-        setAdminNotificationCount(
-          pendingSnapshot.data().count +
-          reportsSnapshot.data().count +
-          issuesSnapshot.data().count +
-          appealsSnapshot.data().count
-        );
-      } catch (error) {
-        console.error("Error fetching admin notification counts in AuthProvider:", error);
-        setAdminNotificationCount(0);
-      }
-    } else if (!user || !isAdmin) {
-      setAdminNotificationCount(0);
-    }
-  }, [user, isAdmin, loading]);
-
-  useEffect(() => {
-    fetchAdminNotificationsCallback();
-  }, [fetchAdminNotificationsCallback]);
-
   const refreshAdminNotifications = useCallback(async () => {
-    await fetchAdminNotificationsCallback();
-  }, [fetchAdminNotificationsCallback]);
+    // This is now primarily handled in AdminLayout to prevent unnecessary global state re-renders.
+    // This function can be called to trigger a re-fetch in components that need it,
+    // though the primary mechanism is now local to the admin layout.
+  }, []);
 
   const signOut = async () => {
     setLoading(true);
@@ -197,10 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const clearUserDashboardNotificationBadge = () => {
-    setUserDashboardNotificationCount(0);
-  };
-  
   return (
     <AuthContext.Provider value={{ 
         user, 
@@ -210,9 +127,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         userDashboardNotificationCount,
         setUserDashboardNotificationCount,
-        adminNotificationCount,
-        setAdminNotificationCount,
-        clearUserDashboardNotificationBadge,
         refreshAdminNotifications,
     }}>
       {children}
