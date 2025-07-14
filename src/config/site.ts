@@ -33,6 +33,10 @@ export const siteConfig: SiteConfig = {
       href: "/properties",
     },
     {
+      title: "المفضلة",
+      href: "/favorites",
+    },
+    {
       title: "الخدمات",
       href: "/services",
     },

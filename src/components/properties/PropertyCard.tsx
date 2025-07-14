@@ -5,12 +5,14 @@ import Image from "next/image";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Property, TransactionType, PropertyTypeEnum } from "@/types";
-import { BedDouble, Bath, MapPin, Phone, Flag, Tag, Home, Ruler, Share2, Check } from "lucide-react"; 
+import { BedDouble, Bath, MapPin, Phone, Flag, Tag, Home, Ruler, Share2, Check, Heart } from "lucide-react"; 
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useFavorites } from "@/hooks/use-favorites"; // Import useFavorites
 import { formatDisplayPrice } from '@/lib/utils';
 import { Badge } from "@/components/ui/badge";
 import dynamic from 'next/dynamic';
+import { cn } from "@/lib/utils";
 
 const ReportPropertyDialog = dynamic(() => 
   import('./ReportPropertyDialog').then((mod) => mod.ReportPropertyDialog)
@@ -38,15 +40,23 @@ const propertyTypeShortTranslations: Record<PropertyTypeEnum, string> = {
 
 export function PropertyCard({ property }: PropertyCardProps) {
   const { user, isAdmin } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites(); // Use the favorites hook
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-
+  
   const canReport = user && !isAdmin && property.userId !== user.uid;
+  const isCurrentlyFavorite = isFavorite(property.id);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent link navigation
+    e.stopPropagation(); // Stop event bubbling
+    toggleFavorite(property);
+  };
 
   return (
     <>
       <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
         <CardHeader className="p-0 relative">
-          <Link href={`/properties/${property.id}`} className="block h-36 relative group">
+          <Link href={`/properties/${property.id}`} className="block h-48 relative group">
             <Image
               src={property.imageUrls?.[0] || "https://placehold.co/400x250.png"}
               alt={property.title}
@@ -56,6 +66,15 @@ export function PropertyCard({ property }: PropertyCardProps) {
               className="rounded-t-lg transition-transform duration-300 group-hover:scale-105"
               data-ai-hint="house exterior"
             />
+             <Button
+              size="icon"
+              variant="secondary"
+              className="absolute top-2 left-2 z-10 rounded-full h-9 w-9 bg-black/30 hover:bg-black/50 text-white"
+              onClick={handleFavoriteClick}
+              aria-label={isCurrentlyFavorite ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+            >
+              <Heart className={cn("h-5 w-5 transition-all", isCurrentlyFavorite ? "text-red-500 fill-current" : "text-white")} />
+            </Button>
           </Link>
            <div className="absolute top-2 right-2 flex gap-1 z-10">
             {property.transactionType && (

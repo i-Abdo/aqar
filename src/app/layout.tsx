@@ -5,6 +5,7 @@ import './globals.css';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { AuthProvider } from '@/hooks/use-auth';
+import { FavoritesProvider } from '@/hooks/use-favorites'; // Import FavoritesProvider
 import { ThemeProvider } from '@/hooks/use-theme'; 
 import { Almarai, Cairo } from 'next/font/google';
 import { cn } from '@/lib/utils';
@@ -120,13 +121,15 @@ export default function RootLayout({
         )}>
         <ThemeProvider> 
           <AuthProvider>
-            <SiteHeader />
-            <MobileNav />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <SiteFooter />
-            <Toaster />
+            <FavoritesProvider>
+              <SiteHeader />
+              <MobileNav />
+              <main className="flex-grow">
+                {children}
+              </main>
+              <SiteFooter />
+              <Toaster />
+            </FavoritesProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
