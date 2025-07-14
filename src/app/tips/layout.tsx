@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'نصائح عقارية - عقاري',
-  description: 'اكتشف نصائح وإرشادات قيمة لبيع وشراء وتأجير العقارات. تعلم من الخبراء لتحقيق أفضل الصفقات.',
+  title: 'دليل عقاري - نصائح ومصطلحات',
+  description: 'اكتشف نصائح الخبراء لبيع وشراء وتأجير العقارات، وتعرف على أهم المصطلحات العقارية في الجزائر.',
 };
 
 export default function TipsLayout({

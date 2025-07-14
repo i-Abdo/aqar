@@ -41,7 +41,7 @@ export const siteConfig: SiteConfig = {
       href: "/pricing",
     },
     {
-      title: "نصائح", // Tips
+      title: "دليل عقاري", // Tips -> Guide
       href: "/tips",
     },
     {
