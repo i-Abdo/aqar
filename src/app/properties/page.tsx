@@ -21,7 +21,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PropertyMap = dynamic(
-  () => import('@/components/properties/PropertyMap').then(mod => mod.default),
+  () => import('@/components/properties/PropertyMap'),
   { 
     ssr: false,
     loading: () => <Skeleton className="h-[500px] w-full rounded-lg" />
@@ -383,3 +383,5 @@ export default function PropertiesPage() {
     </Suspense>
   );
 }
+
+    

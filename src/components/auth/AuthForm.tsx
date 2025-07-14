@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, type AuthError } from 'firebase/auth';
 import { auth as firebaseAuth, db } from '@/lib/firebase/client';
 import { doc, setDoc, serverTimestamp, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import type { UserTrustLevel } from "@/types";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import * as Sentry from "@sentry/nextjs";
 
 const GoogleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px">
@@ -177,9 +178,24 @@ export function AuthForm({ mode }: AuthFormProps) {
   const passwordValue = form.watch("password");
   const passwordStrength = React.useMemo(() => calculatePasswordStrength(passwordValue), [passwordValue]);
 
-  const handleAuthError = (error: any) => {
-    console.error("Authentication error:", error);
+  const handleAuthError = (error: AuthError) => {
     let errorMessage = "حدث خطأ ما. الرجاء المحاولة مرة أخرى.";
+    let shouldReportToSentry = true;
+
+    // These are expected user errors, not application bugs.
+    const expectedErrorCodes = [
+        'auth/email-already-in-use',
+        'auth/user-not-found',
+        'auth/wrong-password',
+        'auth/invalid-credential',
+        'auth/popup-closed-by-user',
+        'auth/account-exists-with-different-credential'
+    ];
+    
+    if (expectedErrorCodes.includes(error.code)) {
+        shouldReportToSentry = false; // Don't report expected errors.
+    }
+
     switch (error.code) {
         case 'auth/email-already-in-use':
             errorMessage = 'هذا البريد الإلكتروني مستخدم بالفعل في حساب آخر.';
@@ -198,9 +214,18 @@ export function AuthForm({ mode }: AuthFormProps) {
         default:
             if (error.message.includes('network')) {
                 errorMessage = 'فشل الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت.';
+                shouldReportToSentry = false; // Network errors are not app bugs.
             }
             break;
     }
+    
+    if (shouldReportToSentry) {
+        Sentry.captureException(error, {
+            extra: { context: "Authentication Form Error" }
+        });
+        console.error("Unexpected authentication error:", error);
+    }
+    
     toast({
         title: "خطأ في المصادقة",
         description: errorMessage,
@@ -564,3 +589,5 @@ export function AuthForm({ mode }: AuthFormProps) {
     </>
   );
 }
+
+    
