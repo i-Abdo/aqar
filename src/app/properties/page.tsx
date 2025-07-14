@@ -21,7 +21,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PropertyMap = dynamic(
-  () => import('@/components/properties/PropertyMap').then(mod => mod.PropertyMap),
+  () => import('@/components/properties/PropertyMap'), // Corrected import path resolution
   { 
     ssr: false,
     loading: () => <Skeleton className="h-[500px] w-full rounded-lg" />
