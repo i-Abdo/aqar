@@ -1,7 +1,7 @@
 
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { Property } from '@/types';
@@ -39,28 +39,70 @@ const extractCoordsFromGoogleMapsLink = (link?: string): [number, number] | null
   return null;
 };
 
+// This inner component will re-render when properties change, but MapContainer will not.
+const MapInner = ({ properties, selectedPropertyId }: PropertyMapProps) => {
+    const map = useMap();
+    const propertiesWithCoords = properties
+        .map(p => ({
+            ...p,
+            coords: extractCoordsFromGoogleMapsLink(p.googleMapsLink),
+        }))
+        .filter(p => p.coords !== null);
+
+    useEffect(() => {
+        if (selectedPropertyId && propertiesWithCoords.length > 0) {
+            const selectedProp = propertiesWithCoords.find(p => p.id === selectedPropertyId);
+            if (selectedProp && selectedProp.coords) {
+                map.flyTo(selectedProp.coords, 15); // Zoom in on the selected property
+            }
+        } else if (propertiesWithCoords.length > 0) {
+            // If no specific property is selected, fit the map to show all properties
+            const bounds = new L.LatLngBounds(propertiesWithCoords.map(p => p.coords as L.LatLngExpression));
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+    }, [selectedPropertyId, properties, map]); // properties dependency is simplified, but should be stable if parent component memoizes it.
+
+    return (
+        <>
+            {propertiesWithCoords.map(prop => (
+                prop.coords && (
+                    <Marker key={prop.id} position={prop.coords} icon={createCustomIcon()}>
+                        <Popup minWidth={250}>
+                        <Card className="border-none shadow-none">
+                            <CardHeader className="p-2">
+                            <div className="relative h-24 w-full mb-2">
+                                <Image
+                                    src={prop.imageUrls?.[0] || "https://placehold.co/200x100.png"}
+                                    alt={prop.title}
+                                    fill
+                                    style={{objectFit: "cover"}}
+                                    className="rounded-md"
+                                    data-ai-hint="house exterior"
+                                />
+                            </div>
+                            <CardTitle className="text-sm font-headline truncate" title={prop.title}>{prop.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-2">
+                            <p className="text-sm font-semibold text-primary mb-2">{formatDisplayPrice(prop.price)}</p>
+                            <Button asChild size="sm" className="w-full">
+                                <Link href={`/properties/${prop.id}`}>عرض التفاصيل</Link>
+                            </Button>
+                            </CardContent>
+                        </Card>
+                        </Popup>
+                    </Marker>
+                )
+            ))}
+        </>
+    );
+};
+
+
 export function PropertyMap({ properties, selectedPropertyId }: PropertyMapProps) {
-  const propertiesWithCoords = properties
-    .map(p => ({
-      ...p,
-      coords: extractCoordsFromGoogleMapsLink(p.googleMapsLink),
-    }))
-    .filter(p => p.coords !== null);
-
   const defaultPosition: [number, number] = [36.7753, 3.0601]; // Algiers
-  const defaultZoom = 10;
-  
-  const mapRef = L.map;
-
-  useEffect(() => {
-    if (selectedPropertyId && propertiesWithCoords.length > 0) {
-      const selectedProp = propertiesWithCoords.find(p => p.id === selectedPropertyId);
-      if (selectedProp && selectedProp.coords) {
-         // This is a placeholder for a potential future implementation to flyTo the location.
-         // Direct map instance manipulation from here is complex. The user can manually navigate for now.
-      }
-    }
-  }, [selectedPropertyId, propertiesWithCoords]);
+  const defaultZoom = 6; // Zoom out to show more of Algeria by default
 
   if (typeof window === 'undefined') {
     return <div className="h-[500px] w-full bg-muted rounded-lg flex items-center justify-center"><p>جارٍ تحميل الخريطة...</p></div>;
@@ -72,35 +114,7 @@ export function PropertyMap({ properties, selectedPropertyId }: PropertyMapProps
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {propertiesWithCoords.map(prop => (
-        prop.coords && (
-          <Marker key={prop.id} position={prop.coords} icon={createCustomIcon()}>
-            <Popup minWidth={250}>
-              <Card className="border-none shadow-none">
-                <CardHeader className="p-2">
-                  <div className="relative h-24 w-full mb-2">
-                     <Image
-                        src={prop.imageUrls?.[0] || "https://placehold.co/200x100.png"}
-                        alt={prop.title}
-                        fill
-                        style={{objectFit: "cover"}}
-                        className="rounded-md"
-                        data-ai-hint="house exterior"
-                     />
-                  </div>
-                  <CardTitle className="text-sm font-headline truncate" title={prop.title}>{prop.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-2">
-                  <p className="text-sm font-semibold text-primary mb-2">{formatDisplayPrice(prop.price)}</p>
-                  <Button asChild size="sm" className="w-full">
-                    <Link href={`/properties/${prop.id}`}>عرض التفاصيل</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </Popup>
-          </Marker>
-        )
-      ))}
+      <MapInner properties={properties} selectedPropertyId={selectedPropertyId} />
     </MapContainer>
   );
 }
