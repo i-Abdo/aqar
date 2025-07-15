@@ -1,8 +1,9 @@
+
 import { z } from "zod";
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export type UserTrustLevel = 'normal' | 'untrusted' | 'blacklisted';
-export type UserRole = 'advertiser'; // New role for advertisers
+export type UserRole = 'advertiser' | 'admin'; // Role for advertisers or admins
 
 export interface CustomUser extends FirebaseUser {
   planId?: PlanId;
@@ -193,3 +194,5 @@ export const propertyFormSchema = z.object({
 });
 
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
+
+    
