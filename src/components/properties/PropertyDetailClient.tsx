@@ -214,6 +214,11 @@ export default function PropertyDetailClient() {
   useEffect(() => {
     fetchPropertyAndRefresh();
   }, [fetchPropertyAndRefresh]);
+  
+  useEffect(() => {
+    // Scroll to top when the component mounts or propertyId changes
+    window.scrollTo(0, 0);
+  }, [propertyId]);
 
   useEffect(() => {
     const handleIncrementView = async () => {
@@ -692,3 +697,4 @@ export default function PropertyDetailClient() {
     </>
   );
 }
+
