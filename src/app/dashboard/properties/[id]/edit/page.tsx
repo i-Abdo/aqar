@@ -281,7 +281,7 @@ export default function EditPropertyPage() {
       <PropertyForm 
         onSubmit={handleSubmit} 
         initialData={initialPropertyData} 
-        isLoading={isSubmitting}
+        isSubmitting={isSubmitting}
         isEditMode={true}
       />
     </div>
