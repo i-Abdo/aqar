@@ -20,14 +20,18 @@ export function SiteHeader() {
       <div className="container flex h-full items-center">
         {/* Right Side (in RTL) */}
         <div className="flex items-center gap-4">
-            <AppLogo />
-            <div className="hidden md:flex">
-              <MainNav />
-            </div>
+          <AppLogo />
+        </div>
+
+        {/* Center: Main Navigation */}
+        <div className="flex flex-1 justify-center">
+          <div className="hidden md:flex">
+            <MainNav />
+          </div>
         </div>
 
         {/* Left Side (in RTL) */}
-        <div className="flex items-center gap-1 ml-auto rtl:mr-auto rtl:ml-0">
+        <div className="flex items-center gap-1">
           <UserAccountNav />
           <ThemeToggleButton />
         </div>
