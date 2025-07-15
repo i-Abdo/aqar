@@ -1,22 +1,116 @@
 
 "use client";
 import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+
+const generalAdSchema = z.object({
+  title: z.string().min(5, "العنوان يجب أن يكون 5 أحرف على الأقل.").max(100, "العنوان طويل جدًا."),
+  text: z.string().min(10, "النص يجب أن يكون 10 أحرف على الأقل.").max(500, "النص طويل جدًا."),
+  imageUrl: z.string().url("يجب أن يكون رابط الصورة صالحًا.").min(1, "رابط الصورة مطلوب."),
+  buttonText: z.string().min(2, "نص الزر قصير جدًا.").max(30, "نص الزر طويل جدًا."),
+  buttonUrl: z.string().url("رابط الإحالة يجب أن يكون صالحًا.").min(1, "رابط الإحالة مطلوب."),
+});
+
+type GeneralAdFormValues = z.infer<typeof generalAdSchema>;
 
 export default function GeneralAdsPage() {
     // Placeholder state for general (popup) ads.
     const [generalAds, setGeneralAds] = useState([]);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
+
+    const form = useForm<GeneralAdFormValues>({
+        resolver: zodResolver(generalAdSchema),
+        defaultValues: {
+            title: "",
+            text: "",
+            imageUrl: "",
+            buttonText: "",
+            buttonUrl: "",
+        },
+    });
+
+    const onSubmit = async (data: GeneralAdFormValues) => {
+        setIsSubmitting(true);
+        console.log("Submitting general ad:", data);
+        // Placeholder for actual submission logic
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        toast({
+            title: "تم إضافة الإعلان بنجاح!",
+            description: "سيظهر إعلانك للمستخدمين أثناء تصفحهم للموقع.",
+        });
+        setIsSubmitting(false);
+        setIsDialogOpen(false);
+        form.reset();
+    };
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold font-headline">إدارة الإعلانات العامة (المنبثقة)</h1>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    إضافة إعلان عام جديد
-                </Button>
+                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            إضافة إعلان عام جديد
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>إضافة إعلان عام جديد</DialogTitle>
+                            <DialogDescription>
+                                املأ التفاصيل أدناه لإنشاء إعلانك المنبثق. سيظهر هذا الإعلان للمستخدمين أثناء تصفحهم.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="title">عنوان الإعلان</Label>
+                                <Input id="title" {...form.register("title")} placeholder="مثال: تخفيضات الصيف الكبرى" />
+                                {form.formState.errors.title && <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="text">نص الإعلان</Label>
+                                <Textarea id="text" {...form.register("text")} placeholder="اكتب وصفًا موجزًا وجذابًا للإعلان." />
+                                {form.formState.errors.text && <p className="text-sm text-destructive">{form.formState.errors.text.message}</p>}
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="imageUrl">رابط صورة الإعلان</Label>
+                                <Input id="imageUrl" {...form.register("imageUrl")} placeholder="https://example.com/image.png" dir="ltr" />
+                                {form.formState.errors.imageUrl && <p className="text-sm text-destructive">{form.formState.errors.imageUrl.message}</p>}
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="buttonText">النص على الزر</Label>
+                                <Input id="buttonText" {...form.register("buttonText")} placeholder="مثال: تسوق الآن" />
+                                {form.formState.errors.buttonText && <p className="text-sm text-destructive">{form.formState.errors.buttonText.message}</p>}
+                            </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="buttonUrl">رابط الإحالة للزر</Label>
+                                <Input id="buttonUrl" {...form.register("buttonUrl")} placeholder="https://example.com/shop" dir="ltr" />
+                                {form.formState.errors.buttonUrl && <p className="text-sm text-destructive">{form.formState.errors.buttonUrl.message}</p>}
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">إلغاء</Button>
+                                </DialogClose>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isSubmitting ? "جاري الإضافة..." : "إضافة الإعلان"}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
             
             <Card>
@@ -33,8 +127,6 @@ export default function GeneralAdsPage() {
                     )}
                 </CardContent>
             </Card>
-
-             {/* The form for adding/editing a general ad could be in a Dialog or a separate page */}
         </div>
     );
 }
