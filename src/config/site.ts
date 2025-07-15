@@ -6,7 +6,7 @@ export type NavItem = {
   external?: boolean;
   authRequired?: boolean;
   adminRequired?: boolean;
-  advertiserRequired?: boolean; // New property
+  advertiserRequired?: boolean; 
   icon?: React.ComponentType<{ className?: string }>;
   description?: string;
 };
@@ -36,29 +36,26 @@ export const siteConfig: SiteConfig = {
       title: "الرئيسية",
       href: "/",
     },
+     {
+      title: "الأسعار",
+      href: "/pricing",
+    },
+    {
+      title: "الخدمات",
+      href: "/services",
+    },
     {
       title: "عقارات",
       items: [
         {
           title: "تصفح العقارات",
           href: "/properties",
-          description: "ابحث عن منزلك المثالي بين آلاف العروض.",
         },
         {
           title: "المفضلة",
           href: "/favorites",
-          description: "عرض قائمة العقارات التي قمت بحفظها.",
-        },
-        {
-          title: "الأسعار",
-          href: "/pricing",
-          description: "اختر الخطة التي تناسب احتياجاتك.",
         },
       ],
-    },
-    {
-      title: "الخدمات",
-      href: "/services",
     },
     {
       title: "الدليل",
@@ -66,12 +63,10 @@ export const siteConfig: SiteConfig = {
          {
           title: "دليل عقاري",
           href: "/tips",
-          description: "نصائح الخبراء لبيع وشراء العقارات.",
         },
         {
           title: "المساعدة والأسئلة الشائعة",
           href: "/faq",
-          description: "احصل على إجابات لأسئلتك الأكثر شيوعًا.",
         },
       ]
     },
@@ -82,21 +77,18 @@ export const siteConfig: SiteConfig = {
           title: "لوحة التحكم",
           href: "/dashboard",
           authRequired: true,
-          description: "إدارة عقاراتك وملفك الشخصي.",
         },
         {
           title: "لوحة المعلنين",
           href: "/advertiser",
           authRequired: true,
           advertiserRequired: true,
-          description: "إدارة حملاتك الإعلانية.",
         },
         {
           title: "إدارة",
           href: "/admin/reports",
           authRequired: true,
           adminRequired: true,
-          description: "الوصول إلى أدوات إدارة الموقع.",
         },
       ]
     },

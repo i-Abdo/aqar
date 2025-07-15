@@ -12,22 +12,27 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import React from "react";
 
 export function MainNav() {
   const { user, isAdmin, isAdvertiser, userDashboardNotificationCount } = useAuth();
   const pathname = usePathname();
+  const [openMenus, setOpenMenus] = React.useState<Record<string, boolean>>({});
+
+  const handleOpenChange = (title: string, open: boolean) => {
+    setOpenMenus(prev => ({ ...prev, [title]: open }));
+  };
 
   const renderNavItem = (item: NavItem | NavItemGroup, index: number) => {
     if ("items" in item) { // It's a NavItemGroup
       const visibleItems = item.items.filter(subItem => {
         if (subItem.adminRequired && !isAdmin) return false;
         if (subItem.advertiserRequired && !isAdvertiser) return false;
-        if (item.title === "لوحات التحكم" && !user) return false; // Hide entire Dashboards menu if not logged in
-        if (subItem.authRequired && !user) return false; // This check is mostly for sub-items if needed
+        if (item.title === "لوحات التحكم" && !user) return false;
+        if (subItem.authRequired && !user) return false;
         return true;
       });
 
@@ -35,31 +40,33 @@ export function MainNav() {
         return null;
       }
       
-      // Check if any sub-item is active to highlight the main trigger
-      const isGroupActive = visibleItems.some(subItem => pathname === subItem.href);
+      const isGroupActive = visibleItems.some(subItem => pathname.startsWith(subItem.href));
+      const isOpen = openMenus[item.title] || false;
 
       return (
-        <DropdownMenu key={index}>
+        <DropdownMenu key={index} open={isOpen} onOpenChange={(open) => handleOpenChange(item.title, open)}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
+              onMouseEnter={() => handleOpenChange(item.title, true)}
               className={cn(
                 "transition-colors hover:text-primary px-2 py-2 flex items-center gap-1",
                 isGroupActive ? "text-primary" : "text-foreground/60"
               )}
             >
               <span>{item.title}</span>
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-64" align="start">
+          <DropdownMenuContent 
+            className="w-56" 
+            align="start" 
+            onMouseLeave={() => handleOpenChange(item.title, false)}
+          >
             {visibleItems.map((subItem, subIndex) => (
               <DropdownMenuItem key={subIndex} asChild>
                 <Link href={subItem.href} className="w-full flex flex-col items-start p-2">
                   <div className="font-medium text-foreground">{subItem.title}</div>
-                  {subItem.description && (
-                    <p className="text-xs text-muted-foreground">{subItem.description}</p>
-                  )}
                 </Link>
               </DropdownMenuItem>
             ))}
