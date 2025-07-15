@@ -12,6 +12,7 @@ interface AuthContextType {
   user: CustomUser | null;
   loading: boolean;
   isAdmin: boolean;
+  isAdvertiser: boolean;
   trustLevel: UserTrustLevel | null;
   roles: UserRole[] | null;
   signOut: () => Promise<void>;
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<CustomUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdvertiser, setIsAdvertiser] = useState(false);
   const [trustLevel, setTrustLevel] = useState<UserTrustLevel | null>(null);
   const [roles, setRoles] = useState<UserRole[] | null>(null);
   const [userDashboardNotificationCount, setUserDashboardNotificationCount] = useState(0);
@@ -68,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             setUser(userData);
             setIsAdmin(customData.isAdmin === true);
+            setIsAdvertiser(customData.roles?.includes('advertiser') || false);
             setTrustLevel(customData.trustLevel || 'normal');
             setRoles(customData.roles || []);
           } else {
@@ -79,6 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               roles: [],
             } as CustomUser);
             setIsAdmin(false);
+            setIsAdvertiser(false);
             setTrustLevel(defaultTrustLevel);
             setRoles([]);
             console.warn(`User document for UID ${firebaseUser.uid} not found in Firestore. Using defaults.`);
@@ -89,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const defaultTrustLevel: UserTrustLevel = 'normal';
           setUser({ ...firebaseUser, trustLevel: defaultTrustLevel, isAdmin: false, roles: [] } as CustomUser);
           setIsAdmin(false);
+          setIsAdvertiser(false);
           setTrustLevel(defaultTrustLevel);
           setRoles([]);
           setLoading(false);
@@ -96,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setUser(null);
         setIsAdmin(false);
+        setIsAdvertiser(false);
         setTrustLevel(null);
         setRoles(null);
         setUserDashboardNotificationCount(0); 
@@ -131,6 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user, 
         loading, 
         isAdmin, 
+        isAdvertiser,
         trustLevel, 
         roles,
         signOut,

@@ -8,14 +8,21 @@ export type NavItem = {
   adminRequired?: boolean;
   advertiserRequired?: boolean; // New property
   icon?: React.ComponentType<{ className?: string }>;
+  description?: string;
 };
+
+export type NavItemGroup = {
+  title: string;
+  items: NavItem[];
+};
+
 
 export type SiteConfig = {
   name: string;
   description: string;
   url: string;
   ogImage: string;
-  mainNav: NavItem[];
+  mainNav: (NavItem | NavItemGroup)[];
   footerNav: NavItem[];
 };
 
@@ -26,45 +33,72 @@ export const siteConfig: SiteConfig = {
   ogImage: "https://res.cloudinary.com/dgz2rwp09/image/upload/f_auto,q_auto/v1751404879/aqari_properties/s732todiszp2m1nkkjif.png",
   mainNav: [
     {
-      title: "الرئيسية", // Home
+      title: "الرئيسية",
       href: "/",
     },
     {
-      title: "العقارات",
-      href: "/properties",
-    },
-     {
-      title: "المفضلة",
-      href: "/favorites",
+      title: "عقارات",
+      items: [
+        {
+          title: "تصفح العقارات",
+          href: "/properties",
+          description: "ابحث عن منزلك المثالي بين آلاف العروض.",
+        },
+        {
+          title: "المفضلة",
+          href: "/favorites",
+          description: "عرض قائمة العقارات التي قمت بحفظها.",
+        },
+        {
+          title: "الأسعار",
+          href: "/pricing",
+          description: "اختر الخطة التي تناسب احتياجاتك.",
+        },
+      ],
     },
     {
       title: "الخدمات",
       href: "/services",
     },
     {
-      title: "الأسعار", // Pricing
-      href: "/pricing",
+      title: "الدليل",
+      items: [
+         {
+          title: "دليل عقاري",
+          href: "/tips",
+          description: "نصائح الخبراء لبيع وشراء العقارات.",
+        },
+        {
+          title: "المساعدة والأسئلة الشائعة",
+          href: "/faq",
+          description: "احصل على إجابات لأسئلتك الأكثر شيوعًا.",
+        },
+      ]
     },
     {
-      title: "دليل عقاري", // Tips -> Guide
-      href: "/tips",
-    },
-    {
-      title: "لوحة التحكم", // Dashboard
-      href: "/dashboard",
-      authRequired: true,
-    },
-    {
-      title: "لوحة المعلنين", // Advertiser Dashboard
-      href: "/advertiser",
-      authRequired: true,
-      advertiserRequired: true,
-    },
-    {
-      title: "إدارة", // Admin
-      href: "/admin/reports",
-      authRequired: true,
-      adminRequired: true,
+      title: "لوحات التحكم",
+      items: [
+        {
+          title: "لوحة التحكم",
+          href: "/dashboard",
+          authRequired: true,
+          description: "إدارة عقاراتك وملفك الشخصي.",
+        },
+        {
+          title: "لوحة المعلنين",
+          href: "/advertiser",
+          authRequired: true,
+          advertiserRequired: true,
+          description: "إدارة حملاتك الإعلانية.",
+        },
+        {
+          title: "إدارة",
+          href: "/admin/reports",
+          authRequired: true,
+          adminRequired: true,
+          description: "الوصول إلى أدوات إدارة الموقع.",
+        },
+      ]
     },
   ],
   footerNav: [
