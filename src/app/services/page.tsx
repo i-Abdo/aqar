@@ -14,7 +14,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Loader2, ServerCrash, Briefcase, Phone, Facebook, Instagram } from "lucide-react";
-import { collection, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, increment, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { ServiceAd } from "@/types";
 import Image from "next/image";
@@ -106,7 +106,11 @@ export default function ServicesPage() {
     setIsLoading(true);
     setError(null);
     try {
-        let q = query(collection(db, "service_ads"), where("status", "==", "active"));
+        let q = query(
+            collection(db, "service_ads"), 
+            where("status", "==", "active"),
+            where("expirationDate", ">", Timestamp.now())
+        );
         if (selectedWilaya && selectedWilaya !== ALL_WILAYAS_VALUE) {
             q = query(q, where("wilaya", "==", selectedWilaya));
         }

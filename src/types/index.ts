@@ -137,7 +137,8 @@ export interface PropertyAppeal {
 export enum ServiceAdStatus {
   Active = 'active',
   Paused = 'paused',
-  Pending = 'pending'
+  Pending = 'pending',
+  Archived = 'archived'
 }
 
 export interface ServiceAd {
@@ -154,6 +155,7 @@ export interface ServiceAd {
   facebookUrl?: string;
   instagramUrl?: string;
   createdAt: any;
+  expirationDate: any;
   status: ServiceAdStatus;
   views: number;
   clicks: number;
@@ -162,7 +164,8 @@ export interface ServiceAd {
 export enum GeneralAdStatus {
   Active = 'active',
   Paused = 'paused',
-  Pending = 'pending'
+  Pending = 'pending',
+  Archived = 'archived'
 }
 
 export interface GeneralAd {
@@ -175,6 +178,7 @@ export interface GeneralAd {
   buttonText: string;
   buttonUrl: string;
   createdAt: any;
+  expirationDate: any;
   status: GeneralAdStatus;
   views: number;
   clicks: number;
