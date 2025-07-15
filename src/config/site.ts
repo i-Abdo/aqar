@@ -36,7 +36,7 @@ export const siteConfig: SiteConfig = {
       title: "الرئيسية",
       href: "/",
     },
-     {
+    {
       title: "الأسعار",
       href: "/pricing",
     },
@@ -57,7 +57,7 @@ export const siteConfig: SiteConfig = {
         },
       ],
     },
-    {
+     {
       title: "الدليل",
       items: [
          {

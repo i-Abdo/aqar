@@ -49,6 +49,7 @@ export function MainNav() {
             <Button
               variant="ghost"
               onMouseEnter={() => handleOpenChange(item.title, true)}
+              onMouseLeave={() => handleOpenChange(item.title, false)}
               className={cn(
                 "transition-colors hover:text-primary px-2 py-2 flex items-center gap-1",
                 isGroupActive ? "text-primary" : "text-foreground/60"
@@ -59,8 +60,9 @@ export function MainNav() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
-            className="w-56" 
             align="start" 
+            className="w-56" 
+            onMouseEnter={() => handleOpenChange(item.title, true)}
             onMouseLeave={() => handleOpenChange(item.title, false)}
           >
             {visibleItems.map((subItem, subIndex) => (
