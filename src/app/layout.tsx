@@ -5,12 +5,13 @@ import './globals.css';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { AuthProvider } from '@/hooks/use-auth';
-import { FavoritesProvider } from '@/hooks/use-favorites'; // Import FavoritesProvider
+import { FavoritesProvider } from '@/hooks/use-favorites';
 import { ThemeProvider } from '@/hooks/use-theme'; 
 import { Almarai, Cairo } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { siteConfig } from '@/config/site';
+import AdPopup from '@/components/ads/AdPopup';
 
 const fontBody = Almarai({
   subsets: ['arabic'],
@@ -127,6 +128,7 @@ export default function RootLayout({
               <main className="flex-grow">
                 {children}
               </main>
+              <AdPopup />
               <SiteFooter />
               <Toaster />
             </FavoritesProvider>

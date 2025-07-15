@@ -1,7 +1,7 @@
 
 "use client";
 import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
@@ -12,6 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { GeneralAd, GeneralAdStatus } from "@/types";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
 
 const generalAdSchema = z.object({
   title: z.string().min(5, "العنوان يجب أن يكون 5 أحرف على الأقل.").max(100, "العنوان طويل جدًا."),
@@ -24,11 +28,11 @@ const generalAdSchema = z.object({
 type GeneralAdFormValues = z.infer<typeof generalAdSchema>;
 
 export default function GeneralAdsPage() {
-    // Placeholder state for general (popup) ads.
     const [generalAds, setGeneralAds] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
+    const { user } = useAuth();
 
     const form = useForm<GeneralAdFormValues>({
         resolver: zodResolver(generalAdSchema),
@@ -42,17 +46,34 @@ export default function GeneralAdsPage() {
     });
 
     const onSubmit = async (data: GeneralAdFormValues) => {
+        if (!user) {
+            toast({ title: "خطأ", description: "يجب تسجيل الدخول لإضافة إعلان.", variant: "destructive" });
+            return;
+        }
         setIsSubmitting(true);
-        console.log("Submitting general ad:", data);
-        // Placeholder for actual submission logic
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        toast({
-            title: "تم إضافة الإعلان بنجاح!",
-            description: "سيظهر إعلانك للمستخدمين أثناء تصفحهم للموقع.",
-        });
-        setIsSubmitting(false);
-        setIsDialogOpen(false);
-        form.reset();
+        try {
+            const adData: Omit<GeneralAd, 'id'> = {
+                ...data,
+                advertiserId: user.uid,
+                advertiserEmail: user.email || "غير متوفر",
+                createdAt: serverTimestamp(),
+                status: GeneralAdStatus.Active,
+                views: 0,
+                clicks: 0,
+            };
+            await addDoc(collection(db, "general_ads"), adData);
+            toast({
+                title: "تم إضافة الإعلان بنجاح!",
+                description: "سيظهر إعلانك للمستخدمين أثناء تصفحهم للموقع.",
+            });
+            setIsSubmitting(false);
+            setIsDialogOpen(false);
+            form.reset();
+        } catch (error) {
+            console.error("Error submitting general ad:", error);
+            toast({ title: "خطأ", description: "فشل إضافة الإعلان. يرجى المحاولة مرة أخرى.", variant: "destructive" });
+            setIsSubmitting(false);
+        }
     };
 
     return (

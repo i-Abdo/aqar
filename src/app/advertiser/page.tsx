@@ -1,22 +1,69 @@
 
 "use client";
-
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, List, FileImage } from 'lucide-react';
+import { BarChart, List, FileImage, Eye, MousePointerClick } from 'lucide-react';
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { collection, query, where, getCountFromServer, getDocs, collectionGroup } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
+import type { ServiceAd, GeneralAd } from "@/types";
+
+interface AdStats {
+  totalAds: number;
+  serviceAds: number;
+  generalAds: number;
+  totalViews: number;
+  totalClicks: number;
+}
 
 export default function AdvertiserDashboardPage() {
-    const { user, loading } = useAuth();
-    
-    // Placeholder stats
-    const stats = {
-        totalAds: 0,
-        serviceAds: 0,
-        generalAds: 0,
-    };
+    const { user, loading: authLoading } = useAuth();
+    const [stats, setStats] = useState<AdStats | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    if (loading) {
+    useEffect(() => {
+        const fetchStats = async () => {
+            if (!user) return;
+            setIsLoading(true);
+            try {
+                const serviceAdsQuery = query(collection(db, 'service_ads'), where('advertiserId', '==', user.uid));
+                const generalAdsQuery = query(collection(db, 'general_ads'), where('advertiserId', '==', user.uid));
+
+                const [serviceAdsSnapshot, generalAdsSnapshot] = await Promise.all([
+                    getDocs(serviceAdsQuery),
+                    getDocs(generalAdsQuery),
+                ]);
+
+                const serviceAdsData = serviceAdsSnapshot.docs.map(doc => doc.data() as ServiceAd);
+                const generalAdsData = generalAdsSnapshot.docs.map(doc => doc.data() as GeneralAd);
+
+                const serviceViews = serviceAdsData.reduce((sum, ad) => sum + (ad.views || 0), 0);
+                const serviceClicks = serviceAdsData.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
+                const generalViews = generalAdsData.reduce((sum, ad) => sum + (ad.views || 0), 0);
+                const generalClicks = generalAdsData.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
+
+                setStats({
+                    totalAds: serviceAdsSnapshot.size + generalAdsSnapshot.size,
+                    serviceAds: serviceAdsSnapshot.size,
+                    generalAds: generalAdsSnapshot.size,
+                    totalViews: serviceViews + generalViews,
+                    totalClicks: serviceClicks + generalClicks,
+                });
+
+            } catch (error) {
+                console.error("Failed to fetch advertiser stats:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (user && !authLoading) {
+            fetchStats();
+        }
+    }, [user, authLoading]);
+
+    if (authLoading || isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -40,28 +87,28 @@ export default function AdvertiserDashboardPage() {
                         <BarChart className="h-5 w-5 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalAds.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">{(stats?.totalAds || 0).toLocaleString()}</div>
                         <p className="text-xs text-muted-foreground">مجموع كل إعلاناتك النشطة.</p>
                     </CardContent>
                 </Card>
                 <Card className="shadow-lg hover:shadow-xl transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">إعلانات الخدمات</CardTitle>
-                        <List className="h-5 w-5 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">إجمالي المشاهدات</CardTitle>
+                        <Eye className="h-5 w-5 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.serviceAds.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">الإعلانات التي تظهر في صفحة الخدمات.</p>
+                        <div className="text-2xl font-bold">{(stats?.totalViews || 0).toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">إجمالي عدد مرات ظهور إعلاناتك.</p>
                     </CardContent>
                 </Card>
                 <Card className="shadow-lg hover:shadow-xl transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">الإعلانات العامة (المنبثقة)</CardTitle>
-                        <FileImage className="h-5 w-5 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">إجمالي النقرات</CardTitle>
+                        <MousePointerClick className="h-5 w-5 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.generalAds.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">الإعلانات التي تظهر كنوافذ منبثقة.</p>
+                        <div className="text-2xl font-bold">{(stats?.totalClicks || 0).toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">إجمالي عدد النقرات على إعلاناتك.</p>
                     </CardContent>
                 </Card>
             </div>

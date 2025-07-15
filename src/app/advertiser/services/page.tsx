@@ -13,7 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { useAuth } from "@/hooks/use-auth";
+import { ServiceAd, ServiceAdStatus } from "@/types";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
 
 const serviceAdSchema = z.object({
   title: z.string().min(5, "العنوان مطلوب (5 أحرف على الأقل).").max(100),
@@ -44,12 +47,12 @@ const wilayas = [
   "سوق أهراس", "تيبازة", "ميلة", "عين الدفلى", "النعامة", "عين تموشنت", "غرداية", "غليزان"
 ];
 
-
 export default function ServiceAdsPage() {
     const [serviceAds, setServiceAds] = useState([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
+    const { user } = useAuth();
 
     const form = useForm<ServiceAdFormValues>({
         resolver: zodResolver(serviceAdSchema),
@@ -67,17 +70,34 @@ export default function ServiceAdsPage() {
     });
 
     const onSubmit = async (data: ServiceAdFormValues) => {
+        if (!user) {
+            toast({ title: "خطأ", description: "يجب تسجيل الدخول لإضافة إعلان.", variant: "destructive" });
+            return;
+        }
         setIsSubmitting(true);
-        console.log("Submitting service ad:", data);
-        // Placeholder for actual submission logic
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        toast({
-            title: "تم إضافة الإعلان بنجاح!",
-            description: "سيظهر إعلانك في صفحة دليل الخدمات.",
-        });
-        setIsSubmitting(false);
-        setIsDialogOpen(false);
-        form.reset();
+        try {
+             const adData: Omit<ServiceAd, 'id'> = {
+                ...data,
+                advertiserId: user.uid,
+                advertiserEmail: user.email || "غير متوفر",
+                createdAt: serverTimestamp(),
+                status: ServiceAdStatus.Active,
+                views: 0,
+                clicks: 0,
+            };
+            await addDoc(collection(db, "service_ads"), adData);
+            toast({
+                title: "تم إضافة الإعلان بنجاح!",
+                description: "سيظهر إعلانك في صفحة دليل الخدمات.",
+            });
+            setIsSubmitting(false);
+            setIsDialogOpen(false);
+            form.reset();
+        } catch (error) {
+            console.error("Error submitting service ad:", error);
+            toast({ title: "خطأ", description: "فشل إضافة الإعلان. يرجى المحاولة مرة أخرى.", variant: "destructive" });
+            setIsSubmitting(false);
+        }
     };
 
     return (

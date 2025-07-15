@@ -3,15 +3,15 @@ import { z } from "zod";
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export type UserTrustLevel = 'normal' | 'untrusted' | 'blacklisted';
-export type UserRole = 'advertiser' | 'admin'; // Role for advertisers or admins
+export type UserRole = 'advertiser' | 'admin'; 
 
 export interface CustomUser extends FirebaseUser {
   planId?: PlanId;
   isAdmin?: boolean;
   trustLevel?: UserTrustLevel;
-  roles?: UserRole[]; // Users can have multiple roles
+  roles?: UserRole[]; 
   newsletter?: boolean;
-  createdAt?: any; // To store Firestore Timestamp
+  createdAt?: any; 
 }
 
 export type PlanId = 'free' | 'vip' | 'vip_plus_plus';
@@ -66,21 +66,15 @@ export interface Property {
   status: 'active' | 'pending' | 'deleted' | 'archived';
   deletionReason?: string;
   archivalReason?: string; 
-  createdAt: any; // Allow for Firestore Timestamp
-  updatedAt: any; // Allow for Firestore Timestamp
+  createdAt: any; 
+  updatedAt: any; 
   viewCount?: number;
   googleMapsLink?: string;
 }
 
-// A version of Property where Timestamps are serialized to strings
 export interface SerializableProperty extends Omit<Property, 'createdAt' | 'updatedAt'> {
   createdAt: string;
   updatedAt: string;
-}
-
-
-export interface LocationData {
-  wilayas: { code: string; name: string }[];
 }
 
 export enum ReportReason {
@@ -104,7 +98,7 @@ export interface Report {
   status: 'new' | 'under_review' | 'resolved' | 'dismissed';
   adminNotes?: string;
   updatedAt?: Date;
-  dismissedByReporter?: boolean; // Added
+  dismissedByReporter?: boolean;
 }
 
 export interface UserIssue {
@@ -118,7 +112,7 @@ export interface UserIssue {
   updatedAt?: Date;
   propertyId?: string; 
   propertyTitle?: string; 
-  dismissedByOwner?: boolean; // Added
+  dismissedByOwner?: boolean;
 }
 
 export type AppealStatus = 'new' | 'under_review' | 'resolved_deleted' | 'resolved_kept_archived' | 'resolved_published';
@@ -136,8 +130,54 @@ export interface PropertyAppeal {
   adminNotes?: string; 
   adminDecisionAt?: Date; 
   propertyArchivalReason?: string; 
-  dismissedByOwner?: boolean; // Added
-  updatedAt?: Date; // Added
+  dismissedByOwner?: boolean;
+  updatedAt?: Date;
+}
+
+export enum ServiceAdStatus {
+  Active = 'active',
+  Paused = 'paused',
+  Pending = 'pending'
+}
+
+export interface ServiceAd {
+  id: string;
+  advertiserId: string;
+  advertiserEmail: string;
+  title: string;
+  serviceType: string;
+  wilaya: string;
+  description: string;
+  imageUrl: string;
+  phoneNumber: string;
+  whatsappNumber?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  createdAt: any;
+  status: ServiceAdStatus;
+  views: number;
+  clicks: number;
+}
+
+export enum GeneralAdStatus {
+  Active = 'active',
+  Paused = 'paused',
+  Pending = 'pending'
+}
+
+export interface GeneralAd {
+  id: string;
+  advertiserId: string;
+  advertiserEmail: string;
+  title: string;
+  text: string;
+  imageUrl: string;
+  buttonText: string;
+  buttonUrl: string;
+  createdAt: any;
+  status: GeneralAdStatus;
+  views: number;
+  clicks: number;
 }
 
 
@@ -194,5 +234,3 @@ export const propertyFormSchema = z.object({
 });
 
 export type PropertyFormValues = z.infer<typeof propertyFormSchema>;
-
-    
