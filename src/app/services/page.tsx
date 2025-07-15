@@ -29,7 +29,10 @@ const BriefcaseIcon = ({ className }: { className?: string }) => (
 
 const BalanceScaleIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="22" x2="12" y2="18"></line><path d="M5 6l14 0"></path><path d="M5 18l14 0"></path><path d="M3 9h.01"></path><path d="M21 9h-0.01"></path><path d="M12 6l-2.5 4.5h5L12 6Z"></path><path d="M12 18l-2.5-4.5h5L12 18Z"></path>
+        <path d="M2 6h20" />
+        <path d="M12 2v20" />
+        <path d="M4 10l8-4 8 4" />
+        <path d="M4 18l8-4 8 4" />
     </svg>
 );
 
@@ -65,7 +68,12 @@ const ShieldIcon = ({ className }: { className?: string }) => (
 
 const PaintBucketIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 4 4"/><path d="M12.5 6.5 17.5 11.5"/><path d="M22 12v6c0 1.1-.9 2-2 2H7.8c-.4 0-.8-.2-1-.4L2 13.8c-.2-.2-.3-.5-.3-.8V7c0-1.1.9-2 2-2h6"/>
+      <path d="M18.2 11.8a4 4 0 0 0-5.6-5.6l-5.6 5.6a4 4 0 0 0 5.6 5.6Z" />
+      <path d="m9.2 12.8 1.4-1.4" />
+      <path d="M2 13v3c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-3" />
+      <path d="M7 21v-2.1" />
+      <path d="M12 21v-2.1" />
+      <path d="M17 21v-2.1" />
     </svg>
 );
 
@@ -122,7 +130,7 @@ const wilayas = [
   "سوق أهراس", "تيبازة", "ميلة", "عين الدفلى", "النعامة", "عين تموشنت", "غرداية", "غليزان"
 ];
 
-const ALL_WILAYAS_VALUE = "_all_";
+const ALL_WILAYAS_VALUE = "_all_wilayas_";
 
 export default function ServicesPage() {
   const [isContactDialogOpen, setIsContactDialogOpen] = React.useState(false);
