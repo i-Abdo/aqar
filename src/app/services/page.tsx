@@ -122,10 +122,11 @@ const wilayas = [
   "سوق أهراس", "تيبازة", "ميلة", "عين الدفلى", "النعامة", "عين تموشنت", "غرداية", "غليزان"
 ];
 
+const ALL_WILAYAS_VALUE = "_all_";
 
 export default function ServicesPage() {
   const [isContactDialogOpen, setIsContactDialogOpen] = React.useState(false);
-  const [selectedWilaya, setSelectedWilaya] = React.useState('');
+  const [selectedWilaya, setSelectedWilaya] = React.useState(ALL_WILAYAS_VALUE);
 
   return (
     <>
@@ -149,7 +150,7 @@ export default function ServicesPage() {
                             <SelectValue placeholder="اختر ولايتك لعرض الخدمات المتوفرة..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">جميع الولايات</SelectItem>
+                            <SelectItem value={ALL_WILAYAS_VALUE}>جميع الولايات</SelectItem>
                             {wilayas.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                         </SelectContent>
                     </Select>
