@@ -29,10 +29,11 @@ const BriefcaseIcon = ({ className }: { className?: string }) => (
 
 const BalanceScaleIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <path d="M2 6h20" />
-        <path d="M12 2v20" />
-        <path d="M4 10l8-4 8 4" />
-        <path d="M4 18l8-4 8 4" />
+      <path d="M2 7h20" />
+      <path d="M12 3v18" />
+      <path d="M5 7c0 5.523 3.134 10 7 10s7-4.477 7-10" />
+      <path d="M5 7a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1" />
+      <path d="M19 7a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1" />
     </svg>
 );
 
@@ -67,14 +68,11 @@ const ShieldIcon = ({ className }: { className?: string }) => (
 );
 
 const PaintBucketIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M18.2 11.8a4 4 0 0 0-5.6-5.6l-5.6 5.6a4 4 0 0 0 5.6 5.6Z" />
-      <path d="m9.2 12.8 1.4-1.4" />
-      <path d="M2 13v3c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-3" />
-      <path d="M7 21v-2.1" />
-      <path d="M12 21v-2.1" />
-      <path d="M17 21v-2.1" />
-    </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m18.2 12.2-6.4 6.3a2 2 0 0 1-2.8 0L3.4 13a2 2 0 0 1 0-2.8l6.3-6.4a2 2 0 0 1 2.8 0Z"/>
+    <path d="m21 11-8.586 8.586"/>
+    <path d="M12.2 18.2 18 12.5a2 2 0 0 1 2.8 0l.2.2a2 2 0 0 1 0 2.8l-6 5.9"/>
+  </svg>
 );
 
 const BuildingIcon = ({ className }: { className?: string }) => (
