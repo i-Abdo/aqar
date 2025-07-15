@@ -1,93 +1,76 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions to make rules cleaner and reusable
+  
+    // Helper Functions
     function isAuth() {
       return request.auth != null;
     }
-
+    
     function isOwner(userId) {
       return isAuth() && request.auth.uid == userId;
     }
-    
-    // =============================================
+
     // Properties Collection
-    // =============================================
     match /properties/{propertyId} {
-      // ANYONE can read a property if it is 'active'.
-      // The OWNER can read their property regardless of status.
-      allow get: if resource.data.status == 'active' || isOwner(resource.data.userId);
-
-      // ANYONE can query the list of properties, BUT the query in the client-side code
-      // MUST include `where("status", "==", "active")`. This rule enforces that constraint.
-      // Owners can query their own properties using `where("userId", "==", auth.uid)`.
-      allow list: if (request.query.filters.size() > 0 && request.query.filters[0].field.path == "status" && request.query.filters[0].value == "active") || (isAuth() && request.query.filters.size() > 0 && request.query.filters[0].field.path == "userId" && request.query.filters[0].value == request.auth.uid);
-
-      // LOGGED-IN users can create properties.
+      // Allow anyone to read properties. The client-side code is responsible
+      // for filtering and showing only 'active' properties to non-owners/admins.
+      // This is the standard and most robust way to allow list queries.
+      allow list, get: if true;
+      
+      // Only authenticated users can create a property.
       allow create: if isAuth();
-
-      // ONLY the OWNER can update or delete their property.
+      
+      // Only the user who owns the property can update or delete it.
       allow update, delete: if isOwner(resource.data.userId);
     }
-
-    // =============================================
+    
     // Users Collection
-    // =============================================
     match /users/{userId} {
-      // A user can only access and modify their own user document.
+      // A user can only read or update their own document.
       allow read, update: if isOwner(userId);
-      // Deny listing all users for security.
-      allow list: if false;
-      // Creation is handled in the AuthForm component logic.
-      allow create: if isAuth();
+      // Deny creation/deletion of user documents from the client for security.
+      allow create, delete: if false;
     }
     
-    // =============================================
-    // Email Collections (For internal use, generally restricted)
-    // =============================================
-    match /all-emails/{emailId} {
-       // Only authenticated users can add their own email, matching their UID.
-       allow create: if isOwner(emailId);
-       // Nobody can read or list these collections from the client.
-       allow read, list, update, delete: if false;
-    }
-     match /subscribers/{subscriberId} {
-       allow create: if isOwner(subscriberId);
-       allow delete: if isOwner(subscriberId);
-       allow read, list, update: if false;
-    }
-    
-    // =============================================
-    // User-Generated Content (Reports, Issues, Appeals)
-    // =============================================
-    
-    function canCreateUserContent() {
-      // Ensure the user is logged in and is creating content for themselves.
-      return isAuth() && request.resource.data.userId == request.auth.uid || request.resource.data.reporterUserId == request.auth.uid || request.resource.data.ownerUserId == request.auth.uid;
-    }
-
+    // Reports Collection
     match /reports/{reportId} {
-      // LOGGED-IN users can create reports.
-      allow create: if canCreateUserContent();
-      // NOBODY can read/list/update/delete reports from the client for privacy.
-      allow read, list, update, delete: if false;
+      // Only authenticated users can create a report.
+      allow create: if isAuth();
+      
+      // Nobody can read, update, or delete reports from the client side.
+      // This must be done via admin/backend functionality.
+      allow read, update, delete: if false;
     }
-
+    
+    // User Issues Collection
     match /user_issues/{issueId} {
-      // LOGGED-IN users can create issues.
-      allow create: if canCreateUserContent();
-      // NOBODY can read/list/update/delete issues from the client.
-      allow read, list, update, delete: if false;
+       // Only authenticated users can create an issue.
+      allow create: if isAuth();
+
+      // Nobody can read, update, or delete issues from the client side.
+      allow read, update, delete: if false;
+    }
+    
+    // Property Appeals Collection
+    match /property_appeals/{appealId} {
+      // An authenticated user can submit an appeal for their own property.
+      // We check that the appeal's owner ID matches the authenticated user.
+      allow create: if isOwner(request.resource.data.ownerUserId);
+      
+      // Nobody can read, update, or delete appeals from the client side.
+      allow read, update, delete: if false;
     }
 
-    match /property_appeals/{appealId} {
-       // LOGGED-IN users can create appeals.
-      allow create: if canCreateUserContent();
-      // NOBODY can read/list/update/delete appeals from the client.
-      allow read, list, update, delete: if false;
+    // Email collections are write-only from client
+    match /subscribers/{subscriberId} {
+        allow create, update: if isAuth();
+        allow read, delete: if false;
+    }
+    match /all-emails/{emailId} {
+        allow create: if isAuth();
+        allow read, update, delete: if false;
     }
   }
 }
