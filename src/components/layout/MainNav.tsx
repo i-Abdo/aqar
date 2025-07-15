@@ -9,8 +9,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
 
 export function MainNav() {
+  const { user, isAdmin, userDashboardNotificationCount } = useAuth();
   const pathname = usePathname();
-  const { user, isAdmin, userDashboardNotificationCount, adminNotificationCount } = useAuth();
+  const isAdvertiser = user?.roles?.includes('advertiser');
 
   return (
     <nav className={cn(
@@ -18,6 +19,9 @@ export function MainNav() {
     )}>
       {siteConfig.mainNav.map((item) => {
         if (item.adminRequired && (!user || !isAdmin)) {
+          return null;
+        }
+        if (item.advertiserRequired && (!user || !isAdvertiser)) {
           return null;
         }
         if (item.authRequired && !user) {
@@ -30,9 +34,6 @@ export function MainNav() {
         if (item.href === "/dashboard" && user && userDashboardNotificationCount > 0) {
           showBadge = true;
           countToShow = userDashboardNotificationCount;
-        } else if (item.href === "/admin/properties" && user && isAdmin && adminNotificationCount > 0) {
-          showBadge = true;
-          countToShow = adminNotificationCount;
         }
         
         return (

@@ -2,11 +2,13 @@ import { z } from "zod";
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export type UserTrustLevel = 'normal' | 'untrusted' | 'blacklisted';
+export type UserRole = 'advertiser'; // New role for advertisers
 
 export interface CustomUser extends FirebaseUser {
   planId?: PlanId;
   isAdmin?: boolean;
   trustLevel?: UserTrustLevel;
+  roles?: UserRole[]; // Users can have multiple roles
   newsletter?: boolean;
   createdAt?: any; // To store Firestore Timestamp
 }

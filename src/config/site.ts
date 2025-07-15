@@ -6,6 +6,7 @@ export type NavItem = {
   external?: boolean;
   authRequired?: boolean;
   adminRequired?: boolean;
+  advertiserRequired?: boolean; // New property
   icon?: React.ComponentType<{ className?: string }>;
 };
 
@@ -52,6 +53,12 @@ export const siteConfig: SiteConfig = {
       title: "لوحة التحكم", // Dashboard
       href: "/dashboard",
       authRequired: true,
+    },
+    {
+      title: "لوحة المعلنين", // Advertiser Dashboard
+      href: "/advertiser",
+      authRequired: true,
+      advertiserRequired: true,
     },
     {
       title: "إدارة", // Admin

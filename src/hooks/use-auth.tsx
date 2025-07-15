@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, User as FirebaseUser, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth as firebaseAuth } from '@/lib/firebase/client';
-import type { CustomUser, UserTrustLevel } from '@/types';
+import type { CustomUser, UserTrustLevel, UserRole } from '@/types';
 import { doc, getDoc, onSnapshot, Timestamp, collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from '@/lib/firebase/client';
 
@@ -13,6 +13,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   trustLevel: UserTrustLevel | null;
+  roles: UserRole[] | null;
   signOut: () => Promise<void>;
   userDashboardNotificationCount: number;
   setUserDashboardNotificationCount: React.Dispatch<React.SetStateAction<number>>;
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [trustLevel, setTrustLevel] = useState<UserTrustLevel | null>(null);
+  const [roles, setRoles] = useState<UserRole[] | null>(null);
   const [userDashboardNotificationCount, setUserDashboardNotificationCount] = useState(0);
 
   useEffect(() => {
@@ -61,35 +63,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               planId: customData.planId,
               isAdmin: customData.isAdmin === true,
               trustLevel: customData.trustLevel || 'normal',
+              roles: customData.roles || [],
               createdAt: customData.createdAt ? (customData.createdAt as Timestamp).toDate() : new Date(),
             };
             setUser(userData);
             setIsAdmin(customData.isAdmin === true);
             setTrustLevel(customData.trustLevel || 'normal');
+            setRoles(customData.roles || []);
           } else {
             const defaultTrustLevel: UserTrustLevel = 'normal';
             setUser({ 
               ...firebaseUser, 
               trustLevel: defaultTrustLevel,
               isAdmin: false, 
+              roles: [],
             } as CustomUser);
             setIsAdmin(false);
             setTrustLevel(defaultTrustLevel);
+            setRoles([]);
             console.warn(`User document for UID ${firebaseUser.uid} not found in Firestore. Using defaults.`);
           }
           setLoading(false);
         }, (error) => {
           console.error("Error listening to user document:", error);
           const defaultTrustLevel: UserTrustLevel = 'normal';
-          setUser({ ...firebaseUser, trustLevel: defaultTrustLevel, isAdmin: false } as CustomUser);
+          setUser({ ...firebaseUser, trustLevel: defaultTrustLevel, isAdmin: false, roles: [] } as CustomUser);
           setIsAdmin(false);
           setTrustLevel(defaultTrustLevel);
+          setRoles([]);
           setLoading(false);
         });
       } else {
         setUser(null);
         setIsAdmin(false);
         setTrustLevel(null);
+        setRoles(null);
         setUserDashboardNotificationCount(0); 
         setLoading(false);
       }
@@ -124,6 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading, 
         isAdmin, 
         trustLevel, 
+        roles,
         signOut,
         userDashboardNotificationCount,
         setUserDashboardNotificationCount,
