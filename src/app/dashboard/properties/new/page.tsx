@@ -160,13 +160,19 @@ export default function NewPropertyPage() {
         userId: user.uid,
         phoneNumber: data.phoneNumber, 
         imageUrls,
-        videoUrl: data.videoUrl || undefined,
         status: propertyStatus, 
         deletionReason: "",
         archivalReason: "",
         viewCount: 0,
       };
       
+      // Explicitly remove videoUrl if it's an empty string to avoid Firestore error
+      if (data.videoUrl) {
+        propertyData.videoUrl = data.videoUrl;
+      } else {
+        delete (propertyData as any).videoUrl;
+      }
+
       const propertyDataWithTimestamps = {
         ...propertyData,
         createdAt: serverTimestamp(),

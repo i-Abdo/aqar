@@ -195,9 +195,15 @@ export default function EditPropertyPage() {
         ...formData,
         phoneNumber: formData.phoneNumber, 
         imageUrls: finalImageUrls,
-        videoUrl: formData.videoUrl || undefined,
         updatedAt: serverTimestamp() as Timestamp,
       };
+      
+      // Explicitly remove videoUrl if it's an empty string to avoid Firestore error
+      if (formData.videoUrl) {
+        propertyUpdateData.videoUrl = formData.videoUrl;
+      } else {
+        delete (propertyUpdateData as any).videoUrl;
+      }
       
       delete (propertyUpdateData as any).id; 
 
