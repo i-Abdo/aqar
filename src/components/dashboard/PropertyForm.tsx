@@ -94,7 +94,7 @@ interface PropertyFormProps {
     additionalImagePreviewsFromState: string[]
   ) => Promise<void>;
   initialData?: Partial<Property>; 
-  isLoading?: boolean;
+  isSubmitting?: boolean;
   isEditMode?: boolean;
 }
 
@@ -132,7 +132,7 @@ const formatPriceForInputUIDisplay = (price: number | undefined): { displayValue
 };
 
 
-export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = false }: PropertyFormProps) {
+export function PropertyForm({ onSubmit, initialData, isSubmitting, isEditMode = false }: PropertyFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter(); 
@@ -393,7 +393,7 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
       return (initialData.videoUrl || "") !== (form.watch('videoUrl') || "");
   }, [isEditMode, initialData, form.watch('videoUrl')]);
 
-  const isSaveButtonDisabled = isLoading || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged && !videoChanged);
+  const isSaveButtonDisabled = isSubmitting || !mainImagePreview || (isEditMode && !form.formState.isDirty && !imagesChanged && !videoChanged);
 
 
   return (
@@ -772,8 +772,8 @@ export function PropertyForm({ onSubmit, initialData, isLoading, isEditMode = fa
           className="w-full sm:w-auto transition-smooth hover:shadow-md" 
           disabled={isSaveButtonDisabled}
         >
-          {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-          {isEditMode ? "حفظ التعديلات" : "نشر العقار"}
+          {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          {isSubmitting ? "جاري الحفظ..." : (isEditMode ? "حفظ التعديلات" : "نشر العقار")}
         </Button>
         {isEditMode && (
           <Button 

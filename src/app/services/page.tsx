@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import React from "react";
 import dynamic from 'next/dynamic';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MapPin } from "lucide-react";
 
 const ContactDialog = dynamic(() =>
   import('@/components/layout/ContactDialog').then((mod) => mod.ContactDialog)
@@ -25,10 +27,10 @@ const BriefcaseIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const GavelIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="m14 13-8.5 8.5"/><path d="m11 16 1.5-1.5"/><path d="M16 11s-1.5-1.5 0-3 2-4 2-2"/><path d="m22 2-3 3"/><path d="m3 21 8.5-8.5"/><path d="m16 16 3-3"/>
-  </svg>
+const BalanceScaleIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="22" x2="12" y2="18"></line><path d="M5 6l14 0"></path><path d="M5 18l14 0"></path><path d="M3 9h.01"></path><path d="M21 9h-0.01"></path><path d="M12 6l-2.5 4.5h5L12 6Z"></path><path d="M12 18l-2.5-4.5h5L12 18Z"></path>
+    </svg>
 );
 
 const RulerIcon = ({ className }: { className?: string }) => (
@@ -61,10 +63,10 @@ const ShieldIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const PaintBrushIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M18.2 3a.2.2 0 0 1 .2.2v3.3a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1V3.2a.2.2 0 0 1 .2-.2Z"/><path d="m21 12-7-7"/><path d="M12 12v3a1 1 0 0 0 1 1h1"/><path d="M3 15v-3a1 1 0 0 1 1-1h9.58c.42 0 .8.21 1.05.59l2.42 4.41c.25.45.25.99 0 1.44l-2.42 4.41a1.05 1.05 0 0 1-1.05.59H4a1 1 0 0 1-1-1Z"/>
-  </svg>
+const PaintBucketIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 4 4"/><path d="M12.5 6.5 17.5 11.5"/><path d="M22 12v6c0 1.1-.9 2-2 2H7.8c-.4 0-.8-.2-1-.4L2 13.8c-.2-.2-.3-.5-.3-.8V7c0-1.1.9-2 2-2h6"/>
+    </svg>
 );
 
 const BuildingIcon = ({ className }: { className?: string }) => (
@@ -101,18 +103,29 @@ const ServiceCard = ({ icon: Icon, title, description, onContactClick }: { icon:
 );
 
 const services = [
-  { icon: GavelIcon, title: "محامون وموثقون", description: "خبراء لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان." },
+  { icon: BalanceScaleIcon, title: "محامون وموثقون", description: "خبراء لضمان صحة العقود والمعاملات القانونية بكل شفافية وأمان." },
   { icon: RulerIcon, title: "مهندسون معماريون", description: "لتصميم منزل أحلامك أو الإشراف على مشاريع البناء والتجديد." },
   { icon: CameraIcon, title: "مصورون محترفون", description: "لإبراز جمال عقارك بصور وفيديوهات احترافية تجذب المشترين." },
   { icon: HammerIcon, title: "شركات أشغال ومقاولات", description: "لتنفيذ أعمال البناء، الترميم، أو التجديدات بجودة عالية." },
   { icon: TruckIcon, title: "خدمات نقل الأثاث", description: "لنقل أثاثك وممتلكاتك بأمان وسرعة إلى منزلك الجديد." },
   { icon: ShieldIcon, title: "شركات تأمين العقار", description: "لحماية استثمارك العقاري من أي مخاطر مستقبلية غير متوقعة." },
-  { icon: PaintBrushIcon, title: "تصميم داخلي وديكور", description: "لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد." },
+  { icon: PaintBucketIcon, title: "تصميم داخلي وديكور", description: "لإضافة لمسة فنية وجمالية لمساحاتك وتحويلها إلى مكان فريد." },
   { icon: BuildingIcon, title: "إدارة الممتلكات", description: "للمهتمين بالاستثمار، نوفر خدمات إدارة العقارات المؤجرة بكفاءة." }
 ];
 
+const wilayas = [
+  "أدرار", "الشلف", "الأغواط", "أم البواقي", "باتنة", "بجاية", "بسكرة", "بشار",
+  "البليدة", "البويرة", "تمنراست", "تبسة", "تلمسان", "تيارت", "تيزي وزو", "الجزائر",
+  "الجلفة", "جيجل", "سطيف", "سعيدة", "سكيكدة", "سيدي بلعباس", "عنابة", "قالمة",
+  "قسنطينة", "المدية", "مستغانم", "المسيلة", "معسكر", "ورقلة", "وهران", "البيض",
+  "إليزي", "برج بوعريريج", "بومرداس", "الطارف", "تندوف", "تيسمسيلت", "الوادي", "خنشلة",
+  "سوق أهراس", "تيبازة", "ميلة", "عين الدفلى", "النعامة", "عين تموشنت", "غرداية", "غليزان"
+];
+
+
 export default function ServicesPage() {
   const [isContactDialogOpen, setIsContactDialogOpen] = React.useState(false);
+  const [selectedWilaya, setSelectedWilaya] = React.useState('');
 
   return (
     <>
@@ -123,20 +136,37 @@ export default function ServicesPage() {
             <CardTitle className="text-4xl font-headline text-primary">
               دليل الخدمات العقارية
             </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground mt-2">
+            <CardDescription className="text-lg text-muted-foreground mt-2 max-w-2xl mx-auto">
               كل ما تحتاجه في مكان واحد. اكتشف قائمة من المهنيين الموثوقين لمساعدتك في كل مراحل عمليتك العقارية.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-8">
-            {services.map((service) => (
-              <ServiceCard 
-                key={service.title} 
-                icon={service.icon} 
-                title={service.title} 
-                description={service.description} 
-                onContactClick={() => setIsContactDialogOpen(true)}
-              />
-            ))}
+          <CardContent>
+            <div className="flex justify-center mb-10">
+                <div className="w-full max-w-sm">
+                    <Select value={selectedWilaya} onValueChange={setSelectedWilaya}>
+                        <SelectTrigger className="text-base h-12">
+                            <MapPin className="mr-2 ml-2 h-5 w-5 text-muted-foreground"/>
+                            <SelectValue placeholder="اختر ولايتك لعرض الخدمات المتوفرة..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="">جميع الولايات</SelectItem>
+                            {wilayas.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-8">
+              {services.map((service) => (
+                <ServiceCard 
+                  key={service.title} 
+                  icon={service.icon} 
+                  title={service.title} 
+                  description={service.description} 
+                  onContactClick={() => setIsContactDialogOpen(true)}
+                />
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>

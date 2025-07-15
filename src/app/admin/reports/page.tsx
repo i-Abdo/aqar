@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Loader2, CheckCircle, AlertOctagon, ArchiveX, MessageSquare, Trash2, Archive, RefreshCcwDot, UserCheck, UserX, UserCog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc, where } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc, where, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { Report, Property, UserTrustLevel, CustomUser } from "@/types";
 import Link from "next/link";
@@ -58,6 +58,8 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
 export default function AdminReportsPage() {
   const [reports, setReports] = useState<EnhancedReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedReportForDeletion, setSelectedReportForDeletion] = useState<Report | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
@@ -105,6 +107,24 @@ export default function AdminReportsPage() {
     fetchReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  const handleDeleteReport = async () => {
+    if (!selectedReportForDeletion) return;
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, "reports", selectedReportForDeletion.id));
+      toast({ title: "تم الحذف", description: "تم حذف البلاغ بنجاح." });
+      setReports(reports.filter(r => r.id !== selectedReportForDeletion.id));
+      await refreshAdminNotifications();
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      toast({ title: "خطأ", description: "لم نتمكن من حذف البلاغ.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setSelectedReportForDeletion(null);
+    }
+  };
+
 
   const openNotesDialog = (report: Report) => {
     setSelectedReport(report);
@@ -351,6 +371,10 @@ export default function AdminReportsPage() {
               <DropdownMenuItem onClick={() => openTrustLevelDialogForReportOwner(report)} disabled={!report.propertyId}>
                   <UserCog className="mr-2 h-4 w-4" /> تغيير تصنيف مالك العقار
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSelectedReportForDeletion(report)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                <Trash2 className="ml-2 h-4 w-4" /> حذف البلاغ
+              </DropdownMenuItem>
           </DropdownMenuContent>
       </DropdownMenu>
   );
@@ -493,6 +517,24 @@ export default function AdminReportsPage() {
           <p className="text-center text-muted-foreground p-6">لا توجد بلاغات لعرضها حاليًا.</p>
         )}
       </Card>
+
+      <AlertDialog open={!!selectedReportForDeletion} onOpenChange={(open) => !open && setSelectedReportForDeletion(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد حذف البلاغ</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من أنك تريد حذف هذا البلاغ بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReport} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={isNotesDialogOpen} onOpenChange={(open) => {
           setIsNotesDialogOpen(open);

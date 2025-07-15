@@ -6,9 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Loader2, MessageSquare, UserCog, UserCheck, UserX, Mail, Eye, Building } from "lucide-react"; 
+import { MoreHorizontal, Loader2, MessageSquare, UserCog, UserCheck, UserX, Mail, Eye, Building, Trash2 } from "lucide-react"; 
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { UserIssue, CustomUser, UserTrustLevel } from "@/types";
 import {
@@ -50,6 +50,8 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
 export default function AdminUserIssuesPage() {
   const [issues, setIssues] = useState<UserIssue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedIssueForDeletion, setSelectedIssueForDeletion] = useState<UserIssue | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<UserIssue | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
@@ -85,6 +87,24 @@ export default function AdminUserIssuesPage() {
     fetchIssues();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  const handleDeleteIssue = async () => {
+    if (!selectedIssueForDeletion) return;
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, "user_issues", selectedIssueForDeletion.id));
+      toast({ title: "تم الحذف", description: "تم حذف الرسالة بنجاح." });
+      setIssues(issues.filter(i => i.id !== selectedIssueForDeletion.id));
+      await refreshAdminNotifications();
+    } catch (error) {
+      console.error("Error deleting issue:", error);
+      toast({ title: "خطأ", description: "لم نتمكن من حذف الرسالة.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setSelectedIssueForDeletion(null);
+    }
+  };
+
 
   const openDetailsDialog = async (issue: UserIssue) => {
     setSelectedIssue(issue);
@@ -262,9 +282,23 @@ export default function AdminUserIssuesPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => openDetailsDialog(issue)}>
-                    <Eye className="mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4" /> عرض وتعديل
-                  </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">فتح القائمة</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                           <DropdownMenuItem onClick={() => openDetailsDialog(issue)}>
+                                <Eye className="ml-2 h-4 w-4" /> عرض وتعديل
+                           </DropdownMenuItem>
+                           <DropdownMenuSeparator />
+                           <DropdownMenuItem onClick={() => setSelectedIssueForDeletion(issue)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                <Trash2 className="ml-2 h-4 w-4" /> حذف الرسالة
+                           </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
@@ -352,6 +386,24 @@ export default function AdminUserIssuesPage() {
                  {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
                  حفظ التغييرات
             </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={!!selectedIssueForDeletion} onOpenChange={(open) => !open && setSelectedIssueForDeletion(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد حذف الرسالة</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من أنك تريد حذف هذه الرسالة بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteIssue} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              حذف
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -6,9 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Loader2, Eye, Edit, CheckCircle, XCircle, Archive, Gavel } from "lucide-react";
+import { MoreHorizontal, Loader2, Eye, Edit, CheckCircle, XCircle, Archive, Gavel, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, orderBy, Timestamp, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { PropertyAppeal, AppealStatus, AdminAppealDecisionType, Property, UserTrustLevel } from "@/types";
 import Link from "next/link";
@@ -48,6 +48,8 @@ const appealStatusVariants: Record<AppealStatus, "default" | "secondary" | "outl
 export default function AdminPropertyAppealsPage() {
   const [appeals, setAppeals] = useState<PropertyAppeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedAppealForDeletion, setSelectedAppealForDeletion] = useState<PropertyAppeal | null>(null);
   const [selectedAppeal, setSelectedAppeal] = useState<PropertyAppeal | null>(null);
   
   const [isDecisionDialogOpen, setIsDecisionDialogOpen] = useState(false);
@@ -91,6 +93,24 @@ export default function AdminPropertyAppealsPage() {
     setAdminNotes(appeal.adminNotes || "");
     setIsDecisionDialogOpen(true);
   };
+  
+  const handleDeleteAppeal = async () => {
+    if (!selectedAppealForDeletion) return;
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, "property_appeals", selectedAppealForDeletion.id));
+      toast({ title: "تم الحذف", description: "تم حذف الطعن بنجاح." });
+      setAppeals(appeals.filter(a => a.id !== selectedAppealForDeletion.id));
+      await refreshAdminNotifications();
+    } catch (error) {
+      console.error("Error deleting appeal:", error);
+      toast({ title: "خطأ", description: "لم نتمكن من حذف الطعن.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setSelectedAppealForDeletion(null);
+    }
+  };
+
 
   const handleAppealDecision = async () => {
     if (!selectedAppeal || !decisionType) return;
@@ -221,6 +241,10 @@ export default function AdminPropertyAppealsPage() {
             {appeal.appealStatus !== 'new' && appeal.appealStatus !== 'under_review' && (
                 <DropdownMenuItem disabled>لا توجد إجراءات إضافية</DropdownMenuItem>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setSelectedAppealForDeletion(appeal)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                <Trash2 className="ml-2 h-4 w-4" /> حذف الطعن نهائياً
+            </DropdownMenuItem>
         </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -395,6 +419,24 @@ export default function AdminPropertyAppealsPage() {
             <AlertDialogAction onClick={handleAppealDecision} disabled={isLoading || !adminNotes.trim()}>
               {isLoading && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
               تأكيد القرار
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={!!selectedAppealForDeletion} onOpenChange={(open) => !open && setSelectedAppealForDeletion(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد حذف الطعن</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من أنك تريد حذف هذا الطعن بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAppeal} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              حذف
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

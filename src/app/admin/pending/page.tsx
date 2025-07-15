@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Loader2, CheckCircle, XCircle, Archive, UserCog, UserCheck, UserX, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, updateDoc, query, where, orderBy, Timestamp, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, query, where, orderBy, Timestamp, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { Property, CustomUser, UserTrustLevel } from "@/types";
 import Link from "next/link";
@@ -45,6 +45,8 @@ const trustLevelTranslations: Record<UserTrustLevel, string> = {
 export default function AdminPendingPropertiesPage() {
   const [pendingProperties, setPendingProperties] = useState<PendingProperty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedPropertyForDeletion, setSelectedPropertyForDeletion] = useState<PendingProperty | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<PendingProperty | null>(null);
 
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
@@ -117,6 +119,23 @@ export default function AdminPendingPropertiesPage() {
     fetchPendingProperties();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  const handleDeleteProperty = async () => {
+    if (!selectedPropertyForDeletion) return;
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, "properties", selectedPropertyForDeletion.id));
+      toast({ title: "تم الحذف", description: "تم حذف العقار نهائياً." });
+      setPendingProperties(pendingProperties.filter(p => p.id !== selectedPropertyForDeletion.id));
+      await refreshAdminNotifications();
+    } catch (error) {
+      console.error("Error deleting property:", error);
+      toast({ title: "خطأ", description: "لم نتمكن من حذف العقار.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setSelectedPropertyForDeletion(null);
+    }
+  };
 
   const openApproveDialog = (property: PendingProperty) => {
     setSelectedProperty(property);
@@ -249,6 +268,10 @@ export default function AdminPendingPropertiesPage() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => openTrustLevelDialog(prop)} disabled={!prop.userId}>
                   <UserCog className="ml-2 h-4 w-4" /> تغيير تصنيف المالك فقط
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSelectedPropertyForDeletion(prop)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                <Trash2 className="ml-2 h-4 w-4" /> حذف نهائي
               </DropdownMenuItem>
           </DropdownMenuContent>
       </DropdownMenu>
@@ -384,6 +407,24 @@ export default function AdminPendingPropertiesPage() {
           <p className="text-center text-muted-foreground p-6">لا توجد عقارات قيد المراجعة حاليًا.</p>
         )}
       </Card>
+      
+      <AlertDialog open={!!selectedPropertyForDeletion} onOpenChange={(open) => !open && setSelectedPropertyForDeletion(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد حذف العقار</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من أنك تريد حذف هذا العقار بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProperty} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting && <Loader2 className="animate-spin h-4 w-4 mr-2" />}
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
         <AlertDialogContent>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -26,6 +27,7 @@ export function AiDescriptionAssistant({
 
   const handleSuggestDescription = async () => {
     if (!imageDataUri) {
+      // This should not happen if the button is disabled correctly, but as a safeguard.
       toast({
         title: 'صورة مطلوبة',
         description: 'يرجى تحميل صورة أولاً لاستخدام مساعد الوصف.',
