@@ -4,6 +4,7 @@
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 
+// Use dynamic import with ssr: false to ensure this component only renders on the client
 const HomePageClient = dynamic(
   () => import('@/components/home/HomePageClient'),
   { 
@@ -18,5 +19,6 @@ const HomePageClient = dynamic(
 );
 
 export default function HomePage() {
+  // This component now simply renders the client-side-only HomePageClient
   return <HomePageClient />;
 }

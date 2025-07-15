@@ -1,3 +1,4 @@
+
 "use client";
 
 import PropertyDetailClient from '@/components/properties/PropertyDetailClient';
