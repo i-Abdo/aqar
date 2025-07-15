@@ -1,0 +1,58 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Properties Collection
+    match /properties/{propertyId} {
+      // Anyone can read active properties
+      allow read: if resource.data.status == 'active';
+
+      // Logged-in users can create properties
+      allow create: if request.auth != null;
+
+      // Only the property owner can update or delete their property
+      allow update, delete: if request.auth.uid == resource.data.userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // A user can read their own data.
+      allow read: if request.auth.uid == userId;
+      // A user can create their own document or an admin can.
+      allow create: if request.auth.uid == userId;
+      // A user can update their own data.
+      allow update: if request.auth.uid == userId;
+    }
+
+    // Reports Collection (secure for now, admin logic to be added)
+    match /reports/{reportId} {
+      allow read, write: if false; // Default to secure
+      allow create: if request.auth != null; // Allow logged-in users to create reports
+    }
+
+    // User Issues Collection (secure for now, admin logic to be added)
+    match /user_issues/{issueId} {
+       allow read, write: if false; // Default to secure
+       allow create: if request.auth != null; // Allow logged-in users to create issues
+    }
+
+    // Property Appeals Collection (secure for now, admin logic to be added)
+    match /property_appeals/{appealId} {
+       allow read, write: if false; // Default to secure
+       allow create: if request.auth != null; // Allow logged-in users to create appeals
+    }
+    
+    // Subscribers and all-emails should only be writeable from a trusted source
+    match /subscribers/{subscriberId} {
+        allow read: if false; // No one should read the full list
+        allow write: if request.auth.uid == subscriberId; // User can subscribe/unsubscribe themselves
+    }
+    
+    match /all-emails/{emailId} {
+        allow read: if false;
+        allow write: if request.auth.uid == emailId;
+    }
+  }
+}
