@@ -32,7 +32,7 @@ export const siteConfig: SiteConfig = {
       title: "العقارات",
       href: "/properties",
     },
-    {
+     {
       title: "المفضلة",
       href: "/favorites",
     },
