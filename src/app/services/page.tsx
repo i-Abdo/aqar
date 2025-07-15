@@ -28,21 +28,10 @@ const BriefcaseIcon = ({ className }: { className?: string }) => (
 );
 
 const BalanceScaleIcon = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-    <path d="M2 7v10l10 5 10-5V7"></path>
-    <path d="M12 22V12"></path>
-    <path d="M22 7l-10 5"></path>
-    <path d="M2 7l10 5"></path>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 2L3 7l9 4 9-4-9-4z"></path>
+    <path d="M3 7v10l9 5 9-5V7"></path>
+    <path d="M12 22V11"></path>
   </svg>
 );
 
