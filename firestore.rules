@@ -1,9 +1,10 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper Functions
+    
+    // --- Helper Functions ---
     function isAuth() {
       return request.auth != null;
     }
@@ -12,65 +13,60 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == userId;
     }
 
-    // Properties Collection
+    function isAdmin() {
+      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // --- Collections ---
+
+    // Properties can be read by anyone if active.
+    // They can be created by any authenticated user.
+    // They can only be updated/deleted by their owner or an admin.
     match /properties/{propertyId} {
-      // Allow anyone to read properties. The client-side code is responsible
-      // for filtering and showing only 'active' properties to non-owners/admins.
-      // This is the standard and most robust way to allow list queries.
-      allow list, get: if true;
-      
-      // Only authenticated users can create a property.
+      allow read: if resource.data.status == 'active' || isOwner(resource.data.userId) || isAdmin();
       allow create: if isAuth();
-      
-      // Only the user who owns the property can update or delete it.
-      allow update, delete: if isOwner(resource.data.userId);
+      allow update, delete: if isOwner(request.resource.data.userId) || isAdmin();
     }
-    
-    // Users Collection
+
+    // Users can only read and write their own data.
+    // Admins can read any user's data.
     match /users/{userId} {
-      // A user can only read or update their own document.
       allow read, update: if isOwner(userId);
-      // Deny creation/deletion of user documents from the client for security.
-      allow create, delete: if false;
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      // create is handled by the auth form logic
     }
-    
-    // Reports Collection
+
+    // Anyone authenticated can create a report.
+    // Only admins can read/update reports.
     match /reports/{reportId} {
-      // Only authenticated users can create a report.
       allow create: if isAuth();
-      
-      // Nobody can read, update, or delete reports from the client side.
-      // This must be done via admin/backend functionality.
-      allow read, update, delete: if false;
+      allow read, update, delete: if isAdmin();
     }
     
-    // User Issues Collection
+    // Anyone authenticated can create an issue.
+    // Only admins can read/update issues.
     match /user_issues/{issueId} {
-       // Only authenticated users can create an issue.
       allow create: if isAuth();
+      allow read, update, delete: if isAdmin();
+    }
 
-      // Nobody can read, update, or delete issues from the client side.
-      allow read, update, delete: if false;
+    // Anyone authenticated can create an appeal for their own property.
+    // Only admins can read/update appeals.
+    match /property_appeals/{appealId} {
+      allow create: if isAuth() && request.resource.data.ownerUserId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
     }
     
-    // Property Appeals Collection
-    match /property_appeals/{appealId} {
-      // An authenticated user can submit an appeal for their own property.
-      // We check that the appeal's owner ID matches the authenticated user.
-      allow create: if isOwner(request.resource.data.ownerUserId);
-      
-      // Nobody can read, update, or delete appeals from the client side.
-      allow read, update, delete: if false;
-    }
-
-    // Email collections are write-only from client
+    // Lock down other collections by default
     match /subscribers/{subscriberId} {
-        allow create, update: if isAuth();
-        allow read, delete: if false;
+        allow read, write: if false; // Managed by backend logic
     }
     match /all-emails/{emailId} {
-        allow create: if isAuth();
-        allow read, update, delete: if false;
+       allow read, write: if false; // Managed by backend logic
     }
+
   }
 }
+
+    

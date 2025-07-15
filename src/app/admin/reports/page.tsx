@@ -80,77 +80,19 @@ export default function AdminReportsPage() {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-        // 1. Fetch all reports
         const reportsQuery = query(collection(db, "reports"), orderBy("reportedAt", "desc"));
         const reportsSnapshot = await getDocs(reportsQuery);
-        const reportsData = reportsSnapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Report));
-
-        if (reportsData.length === 0) {
-            setReports([]);
-            setIsLoading(false);
-            return;
-        }
-
-        // 2. Collect unique property IDs from reports
-        const propertyIds = [...new Set(reportsData.map(r => r.propertyId).filter(Boolean))];
-        const propertiesMap = new Map<string, Property>();
-
-        // 3. Fetch all related properties in chunks
-        if (propertyIds.length > 0) {
-            const propChunks = [];
-            for (let i = 0; i < propertyIds.length; i += 30) {
-                propChunks.push(propertyIds.slice(i, i + 30));
-            }
-            // Use __name__ to query by document ID in the web SDK
-            const propPromises = propChunks.map(chunk =>
-                getDocs(query(collection(db, "properties"), where("__name__", "in", chunk)))
-            );
-            const propSnapshots = await Promise.all(propPromises);
-            propSnapshots.forEach(snapshot => {
-                snapshot.forEach(propDoc => {
-                    propertiesMap.set(propDoc.id, { id: propDoc.id, ...propDoc.data() } as Property);
-                });
-            });
-        }
-
-        // 4. Collect unique user IDs from the fetched properties
-        const userIds = [...new Set(Array.from(propertiesMap.values()).map(p => p.userId).filter(Boolean))];
-        const usersMap = new Map<string, { trustLevel: UserTrustLevel }>();
-
-        // 5. Fetch all related users in chunks
-        if (userIds.length > 0) {
-            const userChunks = [];
-            for (let i = 0; i < userIds.length; i += 30) {
-                userChunks.push(userIds.slice(i, i + 30));
-            }
-            const userPromises = userChunks.map(chunk =>
-                getDocs(query(collection(db, "users"), where("uid", "in", chunk)))
-            );
-            const userSnapshots = await Promise.all(userPromises);
-            userSnapshots.forEach(snapshot => {
-                snapshot.forEach(userDoc => {
-                    const userData = userDoc.data() as CustomUser;
-                    usersMap.set(userDoc.id, { trustLevel: userData.trustLevel || 'normal' });
-                });
-            });
-        }
-
-        // 6. Combine all data into enhanced reports
-        const enhancedReportsData = reportsData.map(report => {
-            const property = report.propertyId ? propertiesMap.get(report.propertyId) : undefined;
-            const ownerUserId = property?.userId;
-            const ownerInfo = ownerUserId ? usersMap.get(ownerUserId) : undefined;
-            
+        const reportsData = reportsSnapshot.docs.map(docSnap => {
+            const data = docSnap.data();
             return {
-                ...report,
-                ownerCurrentTrustLevel: ownerInfo?.trustLevel || 'normal',
-                ownerUserId: ownerUserId,
-                reportedAt: (report.reportedAt as any)?.toDate ? (report.reportedAt as any).toDate() : new Date(report.reportedAt || Date.now()),
-                updatedAt: (report.updatedAt as any)?.toDate ? (report.updatedAt as any).toDate() : new Date(report.updatedAt || Date.now()),
-            } as EnhancedReport;
+                id: docSnap.id,
+                ...data,
+                reportedAt: (data.reportedAt as any)?.toDate ? (data.reportedAt as any).toDate() : new Date(data.reportedAt || Date.now()),
+                updatedAt: (data.updatedAt as any)?.toDate ? (data.updatedAt as any).toDate() : new Date(data.updatedAt || Date.now()),
+            } as EnhancedReport
         });
+        setReports(reportsData);
 
-        setReports(enhancedReportsData);
     } catch (error) {
         console.error("Error fetching reports:", error);
         toast({ title: "خطأ", description: "لم نتمكن من تحميل البلاغات.", variant: "destructive" });
@@ -223,8 +165,7 @@ export default function AdminReportsPage() {
         const userRef = doc(db, "users", targetUserForTrustLevel.userId);
         await updateDoc(userRef, { trustLevel: selectedTrustLevel, updatedAt: Timestamp.now() });
         toast({ title: "تم تحديث التصنيف", description: `تم تحديث تصنيف مالك العقار "${targetUserForTrustLevel.propertyTitle}" إلى "${trustLevelTranslations[selectedTrustLevel]}".` });
-        await fetchReports(); // Refresh local, ownerCurrentTrustLevel might change
-        // No need to call refreshAdminNotifications here as it's not changing the 'new' report count
+        await fetchReports();
     } catch (error) {
         console.error("Error changing user trust level:", error);
         toast({ title: "خطأ", description: "فشل تحديث تصنيف المستخدم.", variant: "destructive" });
@@ -246,7 +187,7 @@ export default function AdminReportsPage() {
       const updateData: Partial<Omit<Report, 'id' | 'reportedAt'>> & { updatedAt: Timestamp } = {
         status,
         updatedAt: Timestamp.now(),
-        dismissedByReporter: false, // Create a notification for the reporter
+        dismissedByReporter: false,
       };
       if (notes !== undefined) {
         updateData.adminNotes = notes;
@@ -314,7 +255,6 @@ export default function AdminReportsPage() {
       await handleUpdateReportStatus(selectedReport.id, 'resolved', reportNotes);
 
       toast({ title: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار`, description: `تم ${actionType === 'delete' ? 'حذف' : 'أرشفة'} العقار "${selectedReport.propertyTitle}".` });
-      // refreshAdminNotifications is called within handleUpdateReportStatus
 
       if (actionType === 'delete') {
         setPropertyDeletionReason("");
@@ -346,7 +286,6 @@ export default function AdminReportsPage() {
 
         const reportNotes = `تم إعادة تنشيط العقار. (تصنيف المالك لم يتغير)`;
         await handleUpdateReportStatus(report.id, 'resolved', reportNotes);
-        // refreshAdminNotifications is called within handleUpdateReportStatus
 
         toast({ title: "تمت إعادة التنشيط", description: `تم إعادة تنشيط العقار "${report.propertyTitle}".` });
     } catch (error) {
@@ -698,3 +637,5 @@ export default function AdminReportsPage() {
     </div>
   );
 }
+
+    
