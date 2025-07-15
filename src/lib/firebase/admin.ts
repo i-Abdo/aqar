@@ -22,6 +22,43 @@ try {
   db = admin.firestore();
   auth = admin.auth();
   isFirebaseAdminAppInitialized = true;
+  
+  // Assign advertiser role on startup
+  const assignInitialRoles = async () => {
+    const emailToUpdate = "abdokh.me@gmail.com";
+    try {
+        const userRecord = await auth.getUserByEmail(emailToUpdate);
+        const userDocRef = db.collection('users').doc(userRecord.uid);
+        const userDoc = await userDocRef.get();
+
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            const currentRoles = userData?.roles || [];
+            if (!currentRoles.includes('advertiser')) {
+                await userDocRef.update({
+                    roles: admin.firestore.FieldValue.arrayUnion('advertiser')
+                });
+                console.log(`Assigned 'advertiser' role to ${emailToUpdate}`);
+            }
+        }
+    } catch (error: any) {
+        if (error.code === 'auth/user-not-found') {
+            console.warn(`User with email ${emailToUpdate} not found. Cannot assign role.`);
+        } else {
+            console.error(`Error assigning initial role to ${emailToUpdate}:`, error);
+        }
+    }
+  };
+  
+  // Run this only once on server startup
+  if (process.env.NODE_ENV !== 'development' || !process.env.SENTECE_SERVER_STARTUP_FLAG) {
+      assignInitialRoles();
+      if(process.env.NODE_ENV === 'development') {
+        (process.env as any).SENTECE_SERVER_STARTUP_FLAG = true;
+      }
+  }
+
+
 } catch (error: any) {
   isFirebaseAdminAppInitialized = false;
   // It's better to check the error code to avoid hiding other potential issues.

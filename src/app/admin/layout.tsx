@@ -4,7 +4,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter, usePathname } from 'next/navigation';
 import React, { useEffect, useState, useCallback } from 'react';
-import { Loader2, Flag, MessageCircleWarning, ListChecks, ShieldQuestion } from 'lucide-react';
+import { Loader2, Flag, MessageCircleWarning, ListChecks, ShieldQuestion, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { collection, query, where, getCountFromServer } from 'firebase/firestore';
@@ -17,6 +17,7 @@ const adminNavItems = [
   { title: 'مشاكل المستخدمين', href: '/admin/issues', icon: MessageCircleWarning, countKey: 'issues' },
   { title: 'عقارات قيد المراجعة', href: '/admin/pending', icon: ListChecks, countKey: 'pending' },
   { title: 'إدارة الطعون', href: '/admin/appeals', icon: ShieldQuestion, countKey: 'appeals' },
+  { title: 'إدارة الرتب', href: '/admin/roles', icon: Users, countKey: 'roles' }, // Added roles
 ];
 
 interface AdminCounts {
@@ -24,6 +25,7 @@ interface AdminCounts {
   reports: number;
   issues: number;
   appeals: number;
+  roles: number; // Not used for count, just for consistency
 }
 
 
@@ -38,6 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     reports: 0,
     issues: 0,
     appeals: 0,
+    roles: 0,
   });
 
   const fetchCounts = useCallback(async () => {
@@ -61,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         reports: reportsSnapshot.data().count,
         issues: issuesSnapshot.data().count,
         appeals: appealsSnapshot.data().count,
+        roles: 0, // No count for roles
       });
     } catch (error) {
       console.error("Error fetching admin counts:", error);
@@ -120,7 +124,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     <Link href={item.href} className="flex items-center gap-2">
                                         <item.icon className="h-4 w-4" />
                                         <span>{item.title}</span>
-                                        {count > 0 && (
+                                        {item.countKey !== 'roles' && count > 0 && (
                                             <Badge variant={isActive ? "default" : "destructive"} className="h-5 px-1.5">{count > 9 ? '9+' : count}</Badge>
                                         )}
                                     </Link>
