@@ -28,13 +28,21 @@ const BriefcaseIcon = ({ className }: { className?: string }) => (
 );
 
 const BalanceScaleIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M2 7h20" />
-      <path d="M12 3v18" />
-      <path d="M5 7c0 5.523 3.134 10 7 10s7-4.477 7-10" />
-      <path d="M5 7a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1" />
-      <path d="M19 7a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1" />
-    </svg>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M12 3L6 6l-5 1v12l5 1 6-3 6 3 5-1V7l-5-1z" />
+    <path d="M6 6v12" />
+    <path d="M12 3v18" />
+    <path d="M18 6v12" />
+  </svg>
 );
 
 const RulerIcon = ({ className }: { className?: string }) => (
@@ -68,12 +76,24 @@ const ShieldIcon = ({ className }: { className?: string }) => (
 );
 
 const PaintBucketIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="m18.2 12.2-6.4 6.3a2 2 0 0 1-2.8 0L3.4 13a2 2 0 0 1 0-2.8l6.3-6.4a2 2 0 0 1 2.8 0Z"/>
-    <path d="m21 11-8.586 8.586"/>
-    <path d="M12.2 18.2 18 12.5a2 2 0 0 1 2.8 0l.2.2a2 2 0 0 1 0 2.8l-6 5.9"/>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M18.2 12.2L6.4 6.3a2 2 0 0 0-2.8 2.8L9.5 21a2 2 0 0 0 2.8 0L18.2 12.2z" />
+    <path d="M10 18.5L2.5 11" />
+    <path d="M10 12l2-2" />
+    <path d="M14 8l2-2" />
+    <path d="M18 4l2-2" />
   </svg>
 );
+
 
 const BuildingIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
