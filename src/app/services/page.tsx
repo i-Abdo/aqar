@@ -38,12 +38,13 @@ const BalanceScaleIcon = ({ className }: { className?: string }) => (
     strokeLinejoin="round"
     className={className}
   >
-    <line x1="12" y1="21" x2="12" y2="3"></line>
-    <path d="M3 12h18"></path>
-    <path d="M3 7h2l2 10h10l2-10h2"></path>
+    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+    <path d="M2 7v10l10 5 10-5V7"></path>
+    <path d="M12 22V12"></path>
+    <path d="M22 7l-10 5"></path>
+    <path d="M2 7l10 5"></path>
   </svg>
 );
-
 
 const RulerIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -86,20 +87,11 @@ const PaintBucketIcon = ({ className }: { className?: string }) => (
     strokeLinejoin="round"
     className={className}
   >
-    <path d="M18 12L8 22h12a2 2 0 0 0 2-2V14Z" />
-    <path d="M6 12L2 16" />
-    <path d="M2 12h4" />
-    <path d="M12 2v2" />
-    <path d="M17.66 3.34l-1.42 1.42" />
-    <path d="M22 12h-2" />
-    <path d="M17.66 20.66l-1.42-1.42" />
-    <path d="M12 22v-2" />
-    <path d="M6.34 20.66l1.42-1.42" />
-    <path d="M6.34 3.34l1.42 1.42" />
+    <path d="M18.37 2.63L14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3z"></path>
+    <path d="M9 8c-2 3-4 3.5-7 4l8 8c.5-3 1-5 4-7"></path>
+    <path d="M14.5 17.5 4.5 7.5"></path>
   </svg>
 );
-
-
 
 const BuildingIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
